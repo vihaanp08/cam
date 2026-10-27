@@ -113,7 +113,7 @@ final class CardTracker {
         var trackedScore = -1.0
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
-                trackedScore = PlanarTracker.cardScore(g, quad: next.quad)
+                trackedScore = cardLikeness(g, buffer, next.quad)
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it.
@@ -143,7 +143,7 @@ final class CardTracker {
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
                     guard plausible(quadCI(gq), w: W, h: H) else { return }
-                    let sc = PlanarTracker.cardScore(g, quad: gq)
+                    let sc = cardLikeness(g, buffer, gq)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
                 }
                 if let tq = grayQuad {
@@ -245,6 +245,54 @@ final class CardTracker {
         if n > 0 { nq = sq; snapped = n }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
         return FlowResult(quad: nq, points: kept, snapped: snapped)
+    }
+
+    // MARK: - Card check
+
+    /// PlanarTracker.cardScore (edges, even border, shape) times how much the border looks like
+    /// white paper in colour, so a finger or a patch of palm (even, card-shaped, but skin-coloured)
+    /// never wins over the card.
+    private func cardLikeness(_ g: GrayImage, _ buffer: CVPixelBuffer, _ quad: [CGPoint]) -> Double {
+        let s = PlanarTracker.cardScore(g, quad: quad)
+        guard s > 0 else { return 0 }
+        let p = paperFraction(buffer, quad, topDown: rowsTopDown ?? true)
+        return s * p * p
+    }
+
+    /// Fraction of points just inside the quad's edges that are bright and close to neutral
+    /// (paper), read straight from the BGRA analysis buffer. Quad is in gray-image coordinates.
+    private func paperFraction(_ buffer: CVPixelBuffer, _ quad: [CGPoint], topDown: Bool) -> Double {
+        guard CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA else { return 1 }
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return 1 }
+        let w = CVPixelBufferGetWidth(buffer), h = CVPixelBufferGetHeight(buffer)
+        let rb = CVPixelBufferGetBytesPerRow(buffer)
+        let px = base.assumingMemoryBound(to: UInt8.self)
+        let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
+        let size = (0..<4).map { k in hypot(quad[(k + 1) % 4].x - quad[k].x, quad[(k + 1) % 4].y - quad[k].y) }.max() ?? 0
+        guard size > 8, size.isFinite else { return 0 }
+        var ok = 0, total = 0
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            let L = hypot(b.x - a.x, b.y - a.y)
+            guard L > 1 else { continue }
+            var n = CGVector(dx: -(b.y - a.y) / L, dy: (b.x - a.x) / L)
+            if n.dx * ((a.x + b.x) / 2 - cx) + n.dy * ((a.y + b.y) / 2 - cy) < 0 { n = CGVector(dx: -n.dx, dy: -n.dy) }
+            for s in 0..<20 {
+                let t = 0.12 + 0.76 * CGFloat(s) / 19
+                let x = Int((a.x + t * (b.x - a.x) - 0.04 * size * n.dx).rounded())
+                var y = Int((a.y + t * (b.y - a.y) - 0.04 * size * n.dy).rounded())
+                if !topDown { y = h - 1 - y }
+                guard x >= 0, x < w, y >= 0, y < h else { continue }
+                let o = y * rb + x * 4
+                let bb = Double(px[o]), gg = Double(px[o + 1]), rr = Double(px[o + 2])
+                let mx = max(rr, gg, bb), mn = min(rr, gg, bb)
+                total += 1
+                if mx > 64 && (mx - mn) / mx < 0.3 { ok += 1 }
+            }
+        }
+        return total == 0 ? 0 : Double(ok) / Double(total)
     }
 
     // MARK: - Gray image for the flow tracker
