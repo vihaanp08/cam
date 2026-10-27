@@ -60,3 +60,63 @@ jobs:
         with:
           name: build-log
           path: xcodebuild.log
+
+  test:
+    runs-on: macos-15
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Python tools
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet pillow numpy
+
+      - name: Make test data
+        run: |
+          mkdir -p /tmp/syn results
+          .venv/bin/python harness/cards.py /tmp
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn 300
+
+      - name: Build harness
+        run: |
+          set -o pipefail
+          swiftc -O -o /tmp/harness \
+            Cam/Geometry.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
+            harness/Stubs.swift harness/main.swift 2>&1 | tee results/harness_build.log | grep -E "error" || true
+          test -x /tmp/harness
+
+      - name: Synthetic test
+        continue-on-error: true
+        run: /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tee results/synth_log.txt
+
+      - name: Real video tests
+        run: |
+          shopt -s nullglob
+          # big videos are stored in ~2 MB parts; join them back up
+          for first in testdata/*.part00; do
+            name="${first%.part00}"
+            cat "$name".part* > "$name"
+            shasum "$name"
+          done
+          for f in testdata/*.mov testdata/*.MOV testdata/*.mp4; do
+            n=$(basename "$f"); n="${n%.*}"
+            /tmp/harness video "$f" /tmp/fake_7d.png "results/real_$n" 0.5 2>&1 | tee "results/real_${n}_log.txt" || true
+          done
+
+      - name: Publish results branch
+        if: always()
+        run: |
+          cp -R results /tmp/results_out
+          cd /tmp/results_out
+          git init -q -b results
+          git config user.name "cam-ci"
+          git config user.email "cam-ci@users.noreply.github.com"
+          echo "commit ${GITHUB_SHA}" > COMMIT.txt
+          git add -A
+          git commit -qm "Results for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" results
