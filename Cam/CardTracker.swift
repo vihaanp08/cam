@@ -42,6 +42,9 @@ final class CardTracker {
     private var points: [CGPoint] = []
     private var rowsTopDown: Bool?
     private var weakFrames = 0
+    /// The last confidently tracked card (gray coordinates), to re-find it after a fast move and to
+    /// prefer shapes of about the same size (the card's distance from the camera changes slowly).
+    private var lastGood: (quad: [CGPoint], size: CGFloat, frame: Int)?
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// Below this a shape isn't accepted as a card.
@@ -76,6 +79,7 @@ final class CardTracker {
         prevPyramid = nil
         points = []
         weakFrames = 0
+        lastGood = nil
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -116,7 +120,7 @@ final class CardTracker {
         var trackedScore = -1.0
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
-                trackedScore = cardLikeness(g, paper, next.quad)
+                trackedScore = cardLikeness(g, paper, next.quad) * sizeConsistency(next.quad)
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it.
@@ -146,8 +150,13 @@ final class CardTracker {
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
                     guard plausible(quadCI(gq), w: W, h: H) else { return }
-                    let sc = cardLikeness(g, paper, gq)
+                    let sc = cardLikeness(g, paper, gq) * sizeConsistency(gq)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
+                }
+                if let lg = lastGood, frameIndex - lg.frame < 90 {
+                    // where the card was last seen clearly (it often comes back after a fast move)
+                    consider(lg.quad, "last")
+                    if let r = refitInward(g, paper, lg.quad) { consider(r, "last fit") }
                 }
                 if let tq = grayQuad {
                     // the current lock might be half the card, or have grown onto the fingers
@@ -177,6 +186,9 @@ final class CardTracker {
             }
         }
         lastScore = trackedScore
+        if trackedScore >= 0.3, let gq = grayQuad {
+            lastGood = (gq, quadSize(gq), frameIndex)
+        }
         prevPyramid = pyramid
 
         // 3. Sanity: reject shapes that are clearly not a card held up to the camera.
@@ -303,6 +315,19 @@ final class CardTracker {
         guard let paper = paper else { return s }
         let p = paperFraction(paper, quad)
         return s * p * p
+    }
+
+    private func quadSize(_ q: [CGPoint]) -> CGFloat {
+        (0..<4).map { k in hypot(q[(k + 1) % 4].x - q[k].x, q[(k + 1) % 4].y - q[k].y) }.max() ?? 0
+    }
+
+    /// 1 for a shape the same size as the card seen recently, falling off for much smaller or
+    /// bigger shapes (a finger, the gap between two fingers, a whole hand).
+    private func sizeConsistency(_ q: [CGPoint]) -> Double {
+        guard let lg = lastGood, frameIndex - lg.frame < 90, lg.size > 0 else { return 1 }
+        let r = Double(quadSize(q) / lg.size)
+        guard r > 0, r.isFinite else { return 0 }
+        return exp(-pow(log(r) / 0.4, 2))
     }
 
     /// Fraction of points just inside the quad's edges that look like paper.
