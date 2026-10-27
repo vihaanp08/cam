@@ -1,0 +1,41 @@
+IOServiceMatchingfailed for: AppleM2ScalerParavirtDriver
+{
+  "corner_err_max_px" : 145.16999999999999,
+  "corner_err_mean_px" : 6.2400000000000002,
+  "corner_err_p95_px" : 14.449999999999999,
+  "coverage_pct" : 100,
+  "document_detector_errors" : 0,
+  "exposed_frame_list" : [
+
+  ],
+  "exposed_frames" : 0,
+  "false_draw_frames" : 12,
+  "first_lock_frame" : 0,
+  "flicker_events" : 0,
+  "frame" : "720x1280",
+  "frames" : 300,
+  "ms_per_frame_mean" : 34.729999999999997,
+  "ms_per_frame_p95" : 148.91999999999999,
+  "reasons" : {
+    "holding" : 12,
+    "lost" : 2,
+    "ok" : 286
+  },
+  "sources" : {
+    "doc fit" : 1,
+    "flow" : 2,
+    "flow fit" : 1,
+    "flow+edge" : 271,
+    "match" : 6,
+    "match fit" : 5,
+    "none" : 14
+  },
+  "still_jitter_px" : 0.63,
+  "worst_frames" : [
+    "#245: 145.17 px",
+    "#246: 33.71 px",
+    "#176: 26.85 px",
+    "#166: 22.52 px",
+    "#244: 22.51 px"
+  ]
+}
