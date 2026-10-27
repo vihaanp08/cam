@@ -9,6 +9,8 @@ jobs:
   build:
     runs-on: macos-15
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -53,6 +55,19 @@ jobs:
         with:
           name: Cam-ipa
           path: Cam.ipa
+
+      - name: Publish IPA branch
+        run: |
+          mkdir -p /tmp/ipa_out
+          cp Cam.ipa /tmp/ipa_out/
+          cd /tmp/ipa_out
+          git init -q -b ipa
+          git config user.name "cam-ci"
+          git config user.email "cam-ci@users.noreply.github.com"
+          echo "commit ${GITHUB_SHA}" > COMMIT.txt
+          git add -A
+          git commit -qm "Cam.ipa for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ipa
 
       - name: Upload build log
         if: always()
