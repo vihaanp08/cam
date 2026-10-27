@@ -131,7 +131,8 @@ final class CardTracker {
                 weakFrames = trackedScore < minScore ? weakFrames + 1 : 0
                 // Shrunk onto part of the card (paper carries on past two sides): drop it at once so
                 // detection replaces it this very frame, never keep painting a card inside the card.
-                let insideCard = lastInside >= 2
+                // (three sides: against a plain white ceiling one or two real edges can look like that)
+                let insideCard = PlanarTracker.paperContinuesSides(g, quad: next.quad) >= 3
                 if !insideCard && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
                     points = next.points
@@ -152,6 +153,7 @@ final class CardTracker {
             if let g = gray {
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
+                var all: [(quad: [CGPoint], how: String, score: Double)] = []
                 var tried = 0, shapeOK = 0
                 var bestNote = ""
                 func consider(_ q: [CGPoint], _ how: String) {
@@ -167,6 +169,7 @@ final class CardTracker {
                     let useSize = grayQuad == nil || trackedScore >= minScore
                     let sz = useSize ? sizeConsistency(gq) : 1
                     let sc = cardLikeness(g, paper, gq) * sz
+                    all.append((gq, how, sc))
                     if best == nil || sc > best!.score { best = (gq, how, sc); bestNote = partsNote + String(format: " size %.2f", sz) }
                 }
                 if grayQuad == nil, let lg = lastGood, frameIndex - lg.frame < 90 {
@@ -206,13 +209,23 @@ final class CardTracker {
                     if let pr = paper, let r = InkFinder.refine(g, pr, gq) { consider(r, how + " ref") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
+                // Card inside a card: the winner is a box inside another good candidate (round some
+                // of the pips, or half the card). The whole card is what must be covered, so the
+                // bigger one wins as long as it is clearly card-like too.
+                if let b = best, let outer = enclosing(b.quad, in: all, minScore: max(0.3, 0.7 * b.score)) {
+                    best = outer
+                    bestNote += " (outer)"
+                }
                 lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " +
                     (best.map { "\($0.how) \(String(format: "%.2f", $0.score)) [\(bestNote)]" } ?? "-")
                 // Taking over from a working track needs a clearly better, clearly card-like shape.
                 // Starting a lock from nothing needs a clearly card-like shape (a weak first lock is how
                 // a fake card ends up painted on a wall).
+                // The current lock sitting inside a good candidate is the card-in-card glitch: replace it.
+                let lockInside = grayQuad.flatMap { enclosing($0, in: all, minScore: max(0.3, 0.7 * trackedScore)) } != nil
                 if let b = best, b.score >= (measured == nil ? 0.3 : minScore),
-                   measured == nil || (b.score > trackedScore + 0.12 && b.score >= 0.3) {
+                   measured == nil || (b.score > trackedScore + 0.12 && b.score >= 0.3)
+                    || (lockInside && b.score >= 0.3 && quadArea(b.quad) > 1.3 * quadArea(grayQuad!)) {
                     grayQuad = b.quad
                     points = PlanarTracker.goodFeatures(g, quad: b.quad)
                     measured = quadCI(b.quad)
@@ -227,7 +240,9 @@ final class CardTracker {
         }
         lastScore = trackedScore
         if !(measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)) { lastDebug = "" }
-        if trackedScore >= 0.25, let gq = grayQuad {
+        // (only from a lock that has held for a few frames: a one-frame wrong lock must not
+        // become the size and picture the card is searched for by)
+        if trackedScore >= 0.25, stableFrames >= 4, let gq = grayQuad {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
         }
@@ -437,20 +452,10 @@ final class CardTracker {
     /// wins over the card.
     private var partsNote = ""
 
-    /// Sides of the last scored quad with plain paper carrying on past them (see cardLikeness).
-    private var lastInside = 0
-
     private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> Double {
-        lastInside = 0
-        let s0 = PlanarTracker.cardScore(g, quad: quad)
+        let s = PlanarTracker.cardScore(g, quad: quad)
         partsNote = "edge/shape 0"
-        guard s0 > 0 else { return 0 }
-        // A box drawn inside a card (round some of its pips, or half of it): paper carries straight
-        // on across its sides. That is the "card inside a card" look, so it must never win.
-        let inside = PlanarTracker.paperContinuesSides(g, quad: quad)
-        lastInside = inside
-        let s = s0 * (inside == 0 ? 1 : inside == 1 ? 0.35 : 0)
-        guard s > 0 else { partsNote = "inside a card"; return 0 }
+        guard s > 0 else { return 0 }
         guard let paper = paper else { return s }
         let p = paperFraction(paper, quad)
         // A card face always has printing on it (indices, pips); a blank patch of wall or ceiling
@@ -490,13 +495,35 @@ final class CardTracker {
         (0..<4).map { k in hypot(q[(k + 1) % 4].x - q[k].x, q[(k + 1) % 4].y - q[k].y) }.max() ?? 0
     }
 
+    private func quadArea(_ q: [CGPoint]) -> Double {
+        guard q.count == 4 else { return 0 }
+        var a = 0.0
+        for k in 0..<4 { let p = q[k], n = q[(k + 1) % 4]; a += Double(p.x * n.y - n.x * p.y) }
+        return abs(a) / 2
+    }
+
+    /// A candidate that contains `q` (all its corners inside) and is clearly bigger, scoring at least
+    /// `minScore`: the best-scoring such one.
+    private func enclosing(_ q: [CGPoint], in all: [(quad: [CGPoint], how: String, score: Double)],
+                           minScore: Double) -> (quad: [CGPoint], how: String, score: Double)? {
+        let aq = quadArea(q)
+        guard aq > 0 else { return nil }
+        var out: (quad: [CGPoint], how: String, score: Double)?
+        for c in all where c.score >= minScore && quadArea(c.quad) > 1.3 * aq {
+            let grown = PlanarTracker.shrunk(c.quad, -0.03)
+            guard q.allSatisfy({ PlanarTracker.inside(grown, $0) }) else { continue }
+            if out == nil || c.score > out!.score { out = c }
+        }
+        return out
+    }
+
     /// 1 for a shape the same size as the card seen recently, falling off for much smaller or
     /// bigger shapes (a finger, the gap between two fingers, a whole hand).
     private func sizeConsistency(_ q: [CGPoint]) -> Double {
         guard let lg = lastGood, frameIndex - lg.frame < 90, lg.size > 0 else { return 1 }
         let r = Double(quadSize(q) / lg.size)
         guard r > 0, r.isFinite else { return 0 }
-        return exp(-pow(log(r) / 0.4, 2))
+        return exp(-pow(log(r) / 0.6, 2))
     }
 
     /// Fraction of points just inside the quad's edges that look like paper.
