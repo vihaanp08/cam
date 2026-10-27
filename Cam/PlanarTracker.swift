@@ -504,7 +504,7 @@ enum PlanarTracker {
     /// to a playing card's proportions (either way round, the scorer picks). Gray coordinates.
     static func completeTruncated(_ quad: [CGPoint], w: Int, h: Int) -> [[CGPoint]] {
         guard quad.count == 4 else { return [] }
-        let tol: CGFloat = 4
+        let tol = max(4, 0.04 * CGFloat(min(w, h)))     // a side within this of the picture edge is cut off
         func onBorder(_ p: CGPoint) -> Int? {
             if p.x <= tol { return 0 }
             if p.x >= CGFloat(w - 1) - tol { return 1 }

@@ -120,7 +120,10 @@ final class FramePipeline {
             quad = q
             // Bridge a short tracking hiccup (fast blur), but only while there is still clearly a card
             // there: a fake card painted on an empty wall would give the trick away.
-            let stillThere = n <= holdFrames && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
+            // (not when the card was going out of the picture: it has left, not glitched)
+            let fe = frame.extent.insetBy(dx: frame.extent.width * 0.02, dy: frame.extent.height * 0.02)
+            let wellInside = q.points.allSatisfy { fe.contains($0) }
+            let stillThere = n <= holdFrames && wellInside && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
             if armed, overlayOn, stillThere, let a = lastAnalysis, let albedo = albedo {
                 out = compositor.overlay(frame: frame, quad: q, albedo: albedo, analysis: a, cfg: cfg)
                 drew = true
