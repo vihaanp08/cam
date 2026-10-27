@@ -81,6 +81,7 @@ jobs:
           mkdir -p /tmp/syn results
           .venv/bin/python harness/cards.py /tmp
           .venv/bin/python harness/gen_synthetic.py /tmp/syn 300
+          .venv/bin/python harness/render_face.py 9_hearts /tmp/fake_9h.png
 
       - name: Build harness
         run: |
@@ -94,9 +95,9 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          if ! /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tee results/synth_log.txt; then
+          if ! /tmp/harness synth /tmp/syn /tmp/fake_9h.png results/synth 0.75 2>&1 | tee results/synth_log.txt; then
             echo "harness crashed; backtrace:" | tee -a results/synth_log.txt
-            lldb --batch -o run -k "bt 30" -k quit -- /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tail -80 | tee -a results/synth_log.txt
+            lldb --batch -o run -k "bt 30" -k quit -- /tmp/harness synth /tmp/syn /tmp/fake_9h.png results/synth 0.75 2>&1 | tail -80 | tee -a results/synth_log.txt
           fi
 
       - name: Real video tests
@@ -110,8 +111,41 @@ jobs:
           done
           for f in testdata/*.mov testdata/*.MOV testdata/*.mp4; do
             n=$(basename "$f"); n="${n%.*}"
-            /tmp/harness video "$f" /tmp/fake_7d.png "results/real_$n" 0.5 2>&1 | tee "results/real_${n}_log.txt" || true
+            /tmp/harness video "$f" /tmp/fake_9h.png "results/real_$n" 0.5 2>&1 | tee "results/real_${n}_log.txt" || true
           done
+
+      - name: Screenshot the camera screen in the simulator
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          set -x
+          .venv/bin/python scripts/make_icon.py
+          brew install xcodegen >/dev/null
+          xcodegen generate
+          xcodebuild -project Cam.xcodeproj -scheme Cam -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath simbuild \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          APP=simbuild/Build/Products/Debug-iphonesimulator/Cam.app
+          test -d "$APP"
+          DEV=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          c=[(r,x) for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')]
+          pro=[t for t in c if 'Pro' in t[1]['name'] and 'Max' not in t[1]['name']]
+          print(sorted(pro or c, key=lambda t: t[0])[-1][1]['udid'])")
+          xcrun simctl boot "$DEV" || true
+          xcrun simctl bootstatus "$DEV" -b
+          xcrun simctl install "$DEV" "$APP"
+          BID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP/Info.plist")
+          for s in camera microphone photos; do xcrun simctl privacy "$DEV" grant $s "$BID" || true; done
+          xcrun simctl launch "$DEV" "$BID" -demoFront
+          sleep 8
+          xcrun simctl io "$DEV" screenshot results/ui_front.png
+          xcrun simctl terminate "$DEV" "$BID" || true
+          xcrun simctl launch "$DEV" "$BID" -demoBack
+          sleep 8
+          xcrun simctl io "$DEV" screenshot results/ui_back.png
+          xcrun simctl list devices | grep Booted > results/ui_device.txt || true
 
       - name: Publish results branch
         if: always()

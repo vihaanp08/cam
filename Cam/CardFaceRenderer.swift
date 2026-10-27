@@ -36,6 +36,38 @@ enum CardFaceRenderer {
         return img.cgImage
     }
 
+    /// A face traced from the performer's own deck (see RealFaces).
+    static func render(face: RealFaces.Face) -> CGImage? {
+        let fmt = UIGraphicsImageRendererFormat()
+        fmt.scale = 1
+        fmt.opaque = true
+        fmt.preferredRange = .standard
+        let img = UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
+            let c = ctx.cgContext
+            UIColor.white.setFill()
+            c.fill(CGRect(origin: .zero, size: size))
+            let path = CGMutablePath()
+            for poly in face.polys where poly.count >= 6 {
+                path.move(to: CGPoint(x: CGFloat(poly[0]) + 0.5, y: CGFloat(poly[1]) + 0.5))
+                var i = 2
+                while i + 1 < poly.count {
+                    path.addLine(to: CGPoint(x: CGFloat(poly[i]) + 0.5, y: CGFloat(poly[i + 1]) + 0.5))
+                    i += 2
+                }
+                path.closeSubpath()
+            }
+            // Ink colour measured against the paper in the photo (paper = white here).
+            let k: CGFloat = 255 / 250
+            c.setFillColor(UIColor(red: min(1, CGFloat(face.ink.0) * k / 255),
+                                   green: min(1, CGFloat(face.ink.1) * k / 255),
+                                   blue: min(1, CGFloat(face.ink.2) * k / 255), alpha: 1).cgColor)
+            c.setShouldAntialias(true)
+            c.addPath(path)
+            c.fillPath(using: .evenOdd)
+        }
+        return img.cgImage
+    }
+
     // MARK: - Pieces
 
     private static func suitImage(_ suit: Int, color: UIColor, pointSize: CGFloat) -> UIImage? {

@@ -170,6 +170,7 @@ final class CardTracker {
                     }
                 }
                 if let tq = grayQuad {
+                    for full in PlanarTracker.completeTruncated(tq, w: g.w, h: g.h) { consider(full, "flow part") }
                     // the current lock might be half the card, or have grown onto the fingers
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
@@ -177,6 +178,9 @@ final class CardTracker {
                 for (q, how) in cands {
                     let gq = q.points.map(toGray)
                     consider(gq, how)
+                    // A card only partly in view (coming in or going out): complete it to a full
+                    // card so the fake covers it from the very first frame.
+                    for full in PlanarTracker.completeTruncated(gq, w: g.w, h: g.h) { consider(full, how + " part") }
                     // Vision's outline often includes the fingers behind the card: pull each side in
                     // to the real paper edge.
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
@@ -212,7 +216,10 @@ final class CardTracker {
 
         if var m = measured {
             m = lastQuad.map { m.aligned(to: $0) } ?? m.uprightPortrait()
-            if framesSinceSeen > maxCoastFrames || lastQuad == nil { smoother.reset() }
+            // After a gap or a jump to a different place, start fresh at the new position instead of
+            // sliding there (a sliding fake card is a visible ghost).
+            let jumped = lastQuad.map { meanCornerDistance(m, $0) > 0.25 * max(m.width, m.height) } ?? true
+            if framesSinceSeen > 1 || jumped { smoother.reset() }
             let s = smoother.smooth(m, dt: dt)
             lastQuad = s
             framesSinceSeen = 0
@@ -519,9 +526,9 @@ final class CardTracker {
     private func detectCandidates(_ buffer: CVPixelBuffer, w: CGFloat, h: CGFloat) -> [(Quad, String)] {
         let doc = VNDetectDocumentSegmentationRequest()
         let rect = VNDetectRectanglesRequest()
-        rect.minimumAspectRatio = 0.45
-        rect.maximumAspectRatio = 0.95
-        rect.quadratureTolerance = 30
+        rect.minimumAspectRatio = 0.2
+        rect.maximumAspectRatio = 1.0
+        rect.quadratureTolerance = 40
         rect.minimumSize = 0.08
         rect.minimumConfidence = 0.2
         rect.maximumObservations = 10
@@ -532,15 +539,19 @@ final class CardTracker {
             do { try handler.perform([doc]) } catch { documentErrors += 1 }
         }
         var out: [(Quad, String)] = []
+        // A shape cut off by the edge of the picture is kept too: it gets completed to a full card.
+        func touchesBorder(_ q: Quad) -> Bool {
+            q.points.filter { $0.x < w * 0.01 || $0.x > w * 0.99 || $0.y < h * 0.01 || $0.y > h * 0.99 }.count >= 2
+        }
         if useDocumentDetector, let d = doc.results?.first, d.confidence > 0.3 {
             let dq = quad(from: d, w: w, h: h)
-            if plausible(dq, w: w, h: h) { out.append((dq, "doc")) }
+            if plausible(dq, w: w, h: h) || touchesBorder(dq) { out.append((dq, "doc")) }
         }
         let rects = (rect.results ?? [])
             .sorted { area($0) * CGFloat($0.confidence) > area($1) * CGFloat($1.confidence) }
         for r in rects {
             let q = quad(from: r, w: w, h: h)
-            if plausible(q, w: w, h: h) { out.append((q, "rect")) }
+            if plausible(q, w: w, h: h) || touchesBorder(q) { out.append((q, "rect")) }
         }
         if let last = lastQuad {
             // nearest to where the card was comes first
@@ -594,14 +605,15 @@ final class CardTracker {
     }
 
     private func plausible(_ q: Quad, w: CGFloat, h: CGFloat) -> Bool {
+        let p = q.points
+        guard p.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return false }
         let short = min(q.width, q.height), long = max(q.width, q.height)
         // In a close-up the card is never tiny: rules out pips, fingertips and other small boxes.
         guard short > max(40, 0.13 * min(w, h)), long > 0 else { return false }
-        let ratio = short / long
-        // A 63 x 88 mm card is 0.716; allow for perspective.
-        guard ratio > 0.45, ratio < 0.95 else { return false }
-        // Convex, roughly rectangular (no corner angle far from 90 degrees), opposite sides similar.
-        let p = q.points
+        // A card's proportions once perspective is undone (63 x 88 mm = 0.716), so tilted cards pass.
+        let r = PlanarTracker.trueAspect(p, f: Double(0.75 * min(w, h)), cx: Double(w / 2), cy: Double(h / 2))
+        guard r > 0.5, r < 0.93 else { return false }
+        // Convex, no corner angle wildly far from square, opposite sides not wildly different.
         var sign: CGFloat = 0
         for k in 0..<4 {
             let a = p[(k + 3) % 4], b = p[k], c = p[(k + 1) % 4]
@@ -611,12 +623,12 @@ final class CardTracker {
             let cross = u.dx * v.dy - u.dy * v.dx
             if sign == 0 { sign = cross } else if (cross > 0) != (sign > 0) { return false }
             let cosA = (u.dx * v.dx + u.dy * v.dy) / (lu * lv)
-            if abs(cosA) > 0.64 { return false }         // outside 50...130 degrees
+            if abs(cosA) > 0.82 { return false }         // outside 35...145 degrees
         }
         let s0 = p[0].distance(to: p[1]), s1 = p[1].distance(to: p[2])
         let s2 = p[2].distance(to: p[3]), s3 = p[3].distance(to: p[0])
-        guard s0 / s2 > 0.6, s0 / s2 < 1.67, s1 / s3 > 0.6, s1 / s3 < 1.67 else { return false }
-        // Not the whole frame (e.g. a doorway or the edge of a screen).
-        return q.boundingBox.width < w * 0.98 || q.boundingBox.height < h * 0.98
+        guard s0 / s2 > 0.5, s0 / s2 < 2, s1 / s3 > 0.5, s1 / s3 < 2 else { return false }
+        // Not something filling the whole picture (a doorway, a screen).
+        return q.boundingBox.width < w * 1.6 && q.boundingBox.height < h * 1.6
     }
 }

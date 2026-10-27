@@ -32,6 +32,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var _gateImage: CIImage?
     private var _position: AVCaptureDevice.Position = .front
     private var _onAutoRearm: (() -> Void)?
+    private var _lastFakeShown: CFTimeInterval = 0
     /// Rotation that makes this camera's frames upright with the phone held in portrait.
     /// 90 for sensors mounted sideways (most), 0 for the newer portrait-mounted square selfie sensor.
     private var _portraitAngle: CGFloat = 90
@@ -92,6 +93,12 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     var latestImage: CIImage? {
         lock.lock(); defer { lock.unlock() }
         return _latest
+    }
+
+    /// The fake card is on screen right now (a reveal only makes sense then).
+    var isShowingFake: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return CACurrentMediaTime() - _lastFakeShown < 0.4
     }
 
     var isArmed: Bool {
@@ -455,6 +462,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
         lock.lock()
         _latest = out
+        if result.drewOverlay { _lastFakeShown = now }
         lock.unlock()
 
         if now - lastStatusSent > 0.2, let cb = onStatus {

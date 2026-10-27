@@ -73,6 +73,25 @@ def quad_for(cx, cy, size, rot, tilt_x, tilt_y):
     return pts
 
 
+def inframe_fraction(quad):
+    """Fraction of the card's area that is inside the frame."""
+    m = Image.new("L", (FW * 3, FH * 3), 0)
+    ImageDraw.Draw(m).polygon([(x + FW, y + FH) for x, y in quad], fill=1)
+    a = np.asarray(m)
+    total = a.sum()
+    return float(a[FH:2 * FH, FW:2 * FW].sum()) / total if total else 0.0
+
+
+def real_card():
+    """The performer's real card (5 of spades traced from a photo of his deck), with rounded corners."""
+    from render_face import render
+    im = render("5_spades", paper=(246, 246, 243), scale_ink=1.0).convert("RGBA")
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, im.size[0] - 1, im.size[1] - 1), radius=26, fill=255)
+    im.putalpha(mask)
+    return im
+
+
 def pose(i, n):
     """Scripted motion: drift, still hold, fast swipe, leave and return."""
     seg = i / n
@@ -85,6 +104,13 @@ def pose(i, n):
     tx = math.radians(12 * math.sin(t * 0.5))
     ty = math.radians(14 * math.sin(t * 0.6 + 0.5))
     size = 300 + 30 * math.sin(t * 0.4)
+    if seg < 0.07:                    # comes up into view from below at the start
+        k = 1 - seg / 0.07
+        cy += 900 * k * k
+    if 0.44 <= seg < 0.54:            # strong tilt back and forth (card held at an angle)
+        k = (seg - 0.44) / 0.10
+        tx += math.radians(38) * math.sin(k * math.pi)
+        ty += math.radians(30) * math.sin(2 * k * math.pi)
     if 0.55 <= seg < 0.60:            # fast swipe to the right and back
         k = (seg - 0.55) / 0.05
         cx += 260 * math.sin(k * math.pi)
@@ -121,7 +147,7 @@ def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
     os.makedirs(out, exist_ok=True)
-    face = card(5, 0)
+    face = real_card()
     rng = np.random.default_rng(1)
     gts = []
     prev = None
@@ -150,7 +176,7 @@ def main():
         Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(os.path.join(out, f"frame_{i:05d}.jpg"), quality=90)
         inside = all(0 <= x < FW and 0 <= y < FH for x, y in quad)
         gts.append({"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
-                    "still": 0.30 <= i / n < 0.42})
+                    "still": 0.30 <= i / n < 0.42, "inframe": round(inframe_fraction(quad), 3)})
     json.dump({"width": FW, "height": FH, "fps": FPS, "frames": gts}, open(os.path.join(out, "gt.json"), "w"))
     print("wrote", n, "frames to", out)
 

@@ -35,6 +35,11 @@ struct GrayImage {
         return top + (bot - top) * ay
     }
 
+    /// Inside the image with a 1-pixel margin.
+    @inline(__always) func contains(_ x: Double, _ y: Double) -> Bool {
+        x >= 1 && y >= 1 && x <= Double(w - 2) && y <= Double(h - 2)
+    }
+
     /// Half-size image (2x2 average).
     func down() -> GrayImage {
         let nw = max(1, w / 2), nh = max(1, h / 2)
@@ -282,7 +287,7 @@ enum PlanarTracker {
         func len(_ a: (Double, Double), _ b: (Double, Double)) -> Double { hypot(b.0 - a.0, b.1 - a.1) }
         let size = max(len(q[0], q[1]), len(q[0], q[3]))
         guard size > 8, size < 1e4 else { return (quad, 0) }
-        let rad = max(4.0, 0.06 * size)
+        let rad = max(4.0, 0.07 * size)
         let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
         let samples = 28
         let steps = Int(2 * rad) + 1
@@ -293,7 +298,7 @@ enum PlanarTracker {
         }
         var lines: [((Double, Double), (Double, Double))] = []   // (point, unit direction)
         var snapped = 0
-        let cosLimit = cos(6.0 * Double.pi / 180)
+        let cosLimit = cos(8.0 * Double.pi / 180)
         for k in 0..<4 {
             let a = q[k], b = q[(k + 1) % 4]
             let L = len(a, b)
@@ -307,6 +312,9 @@ enum PlanarTracker {
             for s in 0..<samples {
                 let t = 0.18 + 0.64 * Double(s) / Double(samples - 1)
                 let px = a.0 + t * (b.0 - a.0), py = a.1 + t * (b.1 - a.1)
+                // parts of the card outside the picture (card entering or leaving) tell us nothing
+                guard g.contains(px - rad * abs(nrm.0), py - rad * abs(nrm.1)),
+                      g.contains(px + rad * abs(nrm.0), py + rad * abs(nrm.1)) else { continue }
                 var best = 0.0, bestOff = 0.0
                 for i in 0..<steps {
                     let off = -rad + 2 * rad * Double(i) / Double(steps - 1)
@@ -320,6 +328,7 @@ enum PlanarTracker {
                 strengths.append(best)
             }
             // keep the stronger samples
+            guard strengths.count >= 8 else { lines.append((a, d)); continue }
             let sorted = strengths.sorted()
             let p30 = sorted[Int(Double(sorted.count - 1) * 0.3)]
             let minStrength = max(p30, 6.0 / 255.0)
@@ -377,9 +386,43 @@ enum PlanarTracker {
 
     // MARK: - How much does this quad look like a playing card?
 
+    /// The card's real width/height ratio (short over long) undoing perspective, for a camera with
+    /// focal length `f` (pixels) and the principal point at the image centre. A card tilted away
+    /// from the camera looks squashed in the picture but still comes out near 63/88 = 0.716 here.
+    static func trueAspect(_ quad: [CGPoint], f: Double, cx: Double, cy: Double) -> Double {
+        // Zhang & He (whiteboard scanning): rectangle aspect from its four imaged corners.
+        func v(_ p: CGPoint) -> (Double, Double, Double) { (Double(p.x) - cx, Double(p.y) - cy, 1) }
+        func cross(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> (Double, Double, Double) {
+            (a.1 * b.2 - a.2 * b.1, a.2 * b.0 - a.0 * b.2, a.0 * b.1 - a.1 * b.0)
+        }
+        func dot(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> Double { a.0 * b.0 + a.1 * b.1 + a.2 * b.2 }
+        let m1 = v(quad[0]), m2 = v(quad[1]), m4 = v(quad[2]), m3 = v(quad[3])   // tl, tr, br, bl
+        let c14 = cross(m1, m4)
+        let d2 = dot(cross(m2, m4), m3), d3 = dot(cross(m3, m4), m2)
+        func simple() -> Double {
+            let w = (hypot(Double(quad[1].x - quad[0].x), Double(quad[1].y - quad[0].y)) + hypot(Double(quad[2].x - quad[3].x), Double(quad[2].y - quad[3].y))) / 2
+            let h = (hypot(Double(quad[3].x - quad[0].x), Double(quad[3].y - quad[0].y)) + hypot(Double(quad[2].x - quad[1].x), Double(quad[2].y - quad[1].y))) / 2
+            return min(w, h) / max(max(w, h), 1e-6)
+        }
+        guard abs(d2) > 1e-9, abs(d3) > 1e-9 else { return simple() }
+        let k2 = dot(c14, m3) / d2, k3 = dot(c14, m2) / d3
+        let n2 = (k2 * m2.0 - m1.0, k2 * m2.1 - m1.1, k2 * m2.2 - m1.2)
+        let n3 = (k3 * m3.0 - m1.0, k3 * m3.1 - m1.1, k3 * m3.2 - m1.2)
+        let f2 = f * f
+        let a = n2.0 * n2.0 + n2.1 * n2.1 + f2 * n2.2 * n2.2
+        let b = n3.0 * n3.0 + n3.1 * n3.1 + f2 * n3.2 * n3.2
+        guard a > 0, b > 0, a.isFinite, b.isFinite else { return simple() }
+        let r = (a / b).squareRoot()
+        let ratio = min(r, 1 / r)
+        return ratio.isFinite ? ratio : simple()
+    }
+
+    /// Focal length guess for the gray image (about 70 degrees across the short side).
+    static func focalGuess(_ g: GrayImage) -> Double { 0.75 * Double(min(g.w, g.h)) }
+
     /// For each edge, the fraction of points along it where the image really has an edge
     /// (a brightness step across it, either way round: the background can be brighter or darker
-    /// than the card).
+    /// than the card). -1 for an edge that is mostly outside the picture (unknown).
     static func edgeSupport(_ g: GrayImage, quad: [CGPoint]) -> [Double] {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return [0, 0, 0, 0] }
         let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
@@ -392,10 +435,12 @@ enum PlanarTracker {
             var n = (-d.1, d.0)
             let mx = Double(a.x + b.x) / 2 - Double(cx), my = Double(a.y + b.y) / 2 - Double(cy)
             if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }      // outward
-            var hits = 0
+            var hits = 0, seen = 0
             for s in 0..<20 {
                 let t = 0.12 + 0.76 * Double(s) / 19
                 let px = Double(a.x) + t * Double(b.x - a.x), py = Double(a.y) + t * Double(b.y - a.y)
+                guard g.contains(px - 4 * abs(n.0), py - 4 * abs(n.1)), g.contains(px + 4 * abs(n.0), py + 4 * abs(n.1)) else { continue }
+                seen += 1
                 var best: Float = 0
                 for o in [-1.5, -0.75, 0, 0.75, 1.5] {
                     let qx = px + o * n.0, qy = py + o * n.1
@@ -405,15 +450,16 @@ enum PlanarTracker {
                 }
                 if best > 0.012 { hits += 1 }
             }
-            out.append(Double(hits) / 20)
+            out.append(seen < 6 ? -1 : Double(hits) / Double(seen))
         }
         return out
     }
 
-    /// 0...1. High when all four edges are real edges, the band just inside the edges is even
-    /// (the white border), and the shape is card-like. Used to choose between detections and to
-    /// notice when the tracker has latched onto something else (a card-plus-fingers blob, half a
-    /// card, a patch of palm, a window).
+    /// 0...1. High when the edges are real edges, the band just inside the edges is even
+    /// (the white border), and the shape is card-like once perspective is undone. Parts of the card
+    /// outside the picture are ignored, so a card that is only partly in view still scores well.
+    /// Used to choose between detections and to notice when the tracker has latched onto something
+    /// else (a card-plus-fingers blob, half a card, a patch of palm, a window).
     static func cardScore(_ g: GrayImage, quad: [CGPoint]) -> Double {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return 0 }
         let sides = (0..<4).map { k -> Double in
@@ -434,21 +480,57 @@ enum PlanarTracker {
             if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }
             for s in 0..<20 {
                 let t = 0.12 + 0.76 * Double(s) / 19
-                let px = Double(a.x) + t * Double(b.x - a.x), py = Double(a.y) + t * Double(b.y - a.y)
-                ring.append(g.sample(Float(px - inset * n.0), Float(py - inset * n.1)))
+                let px = Double(a.x) + t * Double(b.x - a.x) - inset * n.0, py = Double(a.y) + t * Double(b.y - a.y) - inset * n.1
+                guard g.contains(px, py) else { continue }
+                ring.append(g.sample(Float(px), Float(py)))
             }
         }
-        let support = edgeSupport(g, quad: quad)
-        // Every side of a real card is an edge somewhere along it, even with fingers on it;
+        guard ring.count >= 20 else { return 0 }
+        let support = edgeSupport(g, quad: quad).filter { $0 >= 0 }
+        guard support.count >= 2 else { return 0 }
+        // Every visible side of a real card is an edge somewhere along it, even with fingers on it;
         // a side with almost no edge (half a card, a box drawn through the middle) is penalised.
-        let edgeScore = support.reduce(0, +) / 4 * min(1, support.min()! / 0.5)
+        let edgeScore = support.reduce(0, +) / Double(support.count) * min(1, support.min()! / 0.5)
         let sorted = ring.sorted()
         let med = sorted[sorted.count / 2]
         let even = Double(ring.filter { abs($0 - med) < 0.06 }.count) / Double(ring.count)
-        let w = (sides[0] + sides[2]) / 2, h = (sides[1] + sides[3]) / 2
-        let r = min(w, h) / max(w, h)
+        let r = trueAspect(quad, f: focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2)
         let aspect = exp(-pow((r - 0.716) / 0.15, 2))
         return edgeScore * even * aspect
+    }
+
+    /// A card coming into (or going out of) view is cut off by the edge of the picture. If one side
+    /// of `quad` lies along the picture's border, returns the full card: the cut-off sides extended
+    /// to a playing card's proportions (either way round, the scorer picks). Gray coordinates.
+    static func completeTruncated(_ quad: [CGPoint], w: Int, h: Int) -> [[CGPoint]] {
+        guard quad.count == 4 else { return [] }
+        let tol: CGFloat = 4
+        func onBorder(_ p: CGPoint) -> Int? {
+            if p.x <= tol { return 0 }
+            if p.x >= CGFloat(w - 1) - tol { return 1 }
+            if p.y <= tol { return 2 }
+            if p.y >= CGFloat(h - 1) - tol { return 3 }
+            return nil
+        }
+        var out: [[CGPoint]] = []
+        for k in 0..<4 {
+            let p0 = quad[k], p1 = quad[(k + 1) % 4]
+            guard let b0 = onBorder(p0), let b1 = onBorder(p1), b0 == b1 else { continue }
+            let A = quad[(k + 3) % 4], B = quad[(k + 2) % 4]    // the far side, fully visible
+            let L = hypot(B.x - A.x, B.y - A.y)
+            let la = hypot(p0.x - A.x, p0.y - A.y), lb = hypot(p1.x - B.x, p1.y - B.y)
+            guard L > 8, la > 2, lb > 2 else { continue }
+            let da = CGVector(dx: (p0.x - A.x) / la, dy: (p0.y - A.y) / la)
+            let db = CGVector(dx: (p1.x - B.x) / lb, dy: (p1.y - B.y) / lb)
+            let visible = max(la, lb)
+            for full in [L / 0.716, L * 0.716] where full > visible * 1.02 {
+                var q = quad
+                q[k] = CGPoint(x: A.x + da.dx * full, y: A.y + da.dy * full)
+                q[(k + 1) % 4] = CGPoint(x: B.x + db.dx * full, y: B.y + db.dy * full)
+                out.append(q)
+            }
+        }
+        return out
     }
 
     /// Bigger versions of `quad` for each side with no real edge under it: the shape doubled
@@ -456,7 +538,7 @@ enum PlanarTracker {
     static func extendAcrossWeakSides(_ g: GrayImage, quad: [CGPoint]) -> [[CGPoint]] {
         let support = edgeSupport(g, quad: quad)
         var out: [[CGPoint]] = []
-        for k in 0..<4 where support[k] < 0.5 {
+        for k in 0..<4 where support[k] >= 0 && support[k] < 0.5 {
             var q = quad
             let a = k, b = (k + 1) % 4, oa = (k + 3) % 4, ob = (k + 2) % 4
             q[a] = CGPoint(x: 2 * quad[a].x - quad[oa].x, y: 2 * quad[a].y - quad[oa].y)

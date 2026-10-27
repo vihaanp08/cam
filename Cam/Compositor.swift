@@ -85,6 +85,8 @@ final class Compositor {
             let i = (y * gw + x) * 4
             return (Double(px[i]), Double(px[i + 1]), Double(px[i + 2]))
         }
+        /// Outside the camera picture (card partly out of view): no information there.
+        @inline(__always) func seen(_ x: Int, _ y: Int) -> Bool { px[(y * gw + x) * 4 + 3] > 0.5 }
         @inline(__always) func lum(_ c: (Double, Double, Double)) -> Double {
             0.2126 * c.0 + 0.7152 * c.1 + 0.0722 * c.2
         }
@@ -102,6 +104,7 @@ final class Compositor {
                 let nearCornerX = x < cornerX || x >= gw - cornerX
                 let nearCornerY = y < cornerY || y >= gh - cornerY
                 if nearCornerX && nearCornerY { continue }
+                guard seen(x, y) else { continue }
                 let c = rgb(x, y)
                 samples.append(S(u: Double(x) / Double(gw - 1), v: Double(y) / Double(gh - 1),
                                  r: c.0, g: c.1, b: c.2, l: lum(c)))
@@ -162,12 +165,14 @@ final class Compositor {
         var inL = 0.0, inP = 0.0
         for y in stride(from: gh / 5, to: gh * 4 / 5, by: 2) {
             for x in stride(from: gw / 5, to: gw * 4 / 5, by: 2) {
+                guard seen(x, y) else { continue }
                 let u = Double(x) / Double(gw - 1), v = Double(y) / Double(gh - 1)
                 inL += lum(rgb(x, y))
                 inP += lum(predict(u, v))
             }
         }
-        let faceUp = inP > 0 && (inL / inP) > 0.38
+        // (mostly out of view: can't tell, assume a face)
+        let faceUp = inP <= 0 || (inL / inP) > 0.38
 
         // 4. Fingers: skin that comes in over the card's outer edge (index corners excluded).
         // A finger has to start right at the edge of the card and is followed inward only while it
@@ -175,6 +180,7 @@ final class Compositor {
         // the real card's pips and indices can never be mistaken for a finger and show through.
         var finger = [Float](repeating: 0, count: gw * gh)
         func isSkin(_ x: Int, _ y: Int) -> Bool {
+            guard seen(x, y) else { return false }
             let c = rgb(x, y)
             let p = predict(Double(x) / Double(gw - 1), Double(y) / Double(gh - 1))
             let lc = lum(c), lp = max(lum(p), 1e-4)
@@ -310,15 +316,17 @@ final class Compositor {
         return m
     }
 
-    /// The fake face lifted slightly off pure black: printed ink never photographs as 0.
+    /// The fake face as reflectance (paper = 1). Faces traced from the real deck already carry the
+    /// ink's true darkness relative to the paper, so only a tiny lift is added (this runs in linear
+    /// light, where a big lift turns black ink into a washed-out grey).
     static func prepareAlbedo(_ face: CIImage) -> CIImage {
         let f = CIFilter.colorMatrix()
         f.inputImage = face
-        f.rVector = CIVector(x: 0.95, y: 0, z: 0, w: 0)
-        f.gVector = CIVector(x: 0, y: 0.95, z: 0, w: 0)
-        f.bVector = CIVector(x: 0, y: 0, z: 0.95, w: 0)
+        f.rVector = CIVector(x: 0.995, y: 0, z: 0, w: 0)
+        f.gVector = CIVector(x: 0, y: 0.995, z: 0, w: 0)
+        f.bVector = CIVector(x: 0, y: 0, z: 0.995, w: 0)
         f.aVector = CIVector(x: 0, y: 0, z: 0, w: 1)
-        f.biasVector = CIVector(x: 0.035, y: 0.035, z: 0.035, w: 0)
+        f.biasVector = CIVector(x: 0.004, y: 0.004, z: 0.004, w: 0)
         return (f.outputImage ?? face).cropped(to: Compositor.cardRect)
     }
 

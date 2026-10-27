@@ -34,7 +34,7 @@ final class AppSettings: ObservableObject {
 
     private init() {
         d.register(defaults: [
-            "rank": 7, "suit": 3,
+            "rank": 9, "suit": 1,
             "snapEnabled": true, "snapSensitivity": 0.55,
             "buttonsEnabled": true, "tapEnabled": false,
             "mirror": true, "showGrid": true, "haptics": true, "autoRearm": false,

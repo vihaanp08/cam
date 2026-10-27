@@ -170,7 +170,7 @@ func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
 }
 
 if mode == "synth" {
-    struct GTFrame: Decodable { let i: Int; let visible: Bool; let corners: [[Double]]; let still: Bool }
+    struct GTFrame: Decodable { let i: Int; let visible: Bool; let corners: [[Double]]; let still: Bool; let inframe: Double? }
     struct GT: Decodable { let width: Int; let height: Int; let fps: Double; let frames: [GTFrame] }
     let gtData = try! Data(contentsOf: URL(fileURLWithPath: input + "/gt.json"))
     let gt = try! JSONDecoder().decode(GT.self, from: gtData)
@@ -213,6 +213,15 @@ if mode == "synth" {
         }
         if !f.visible && drew[f.i] { falseDraw += 1 }
     }
+    // The two things the audience must never see:
+    // the real card while a good part of it is in view (from the very first frame it enters), and
+    // a fake card painted where there is (almost) no card.
+    var entryExposed: [Int] = [], ghost: [Int] = []
+    for f in gt.frames {
+        let inf = f.inframe ?? (f.visible ? 1 : 0)
+        if inf >= 0.2 && !drew[f.i] { entryExposed.append(f.i) }
+        if inf < 0.05 && drew[f.i] { ghost.append(f.i) }
+    }
     // Jitter during the still hold: spread of each tracked corner around its mean.
     var stillCorners: [[CGPoint]] = []
     for f in gt.frames where f.still && drew[f.i] { if let q = quads[f.i] { stillCorners.append(q) } }
@@ -247,6 +256,10 @@ if mode == "synth" {
         "exposed_frame_list": Array(exposures.prefix(40)),
         "flicker_events": flickers,
         "false_draw_frames": falseDraw,
+        "real_card_shown_frames": entryExposed.count,
+        "real_card_shown_list": Array(entryExposed.prefix(40)),
+        "ghost_frames": ghost.count,
+        "ghost_list": Array(ghost.prefix(40)),
         "corner_err_mean_px": r2(errors.isEmpty ? -1 : errors.reduce(0, +) / Double(errors.count)),
         "corner_err_p95_px": r2(percentile(errors, 0.95)),
         "corner_err_max_px": r2(errors.max() ?? -1),

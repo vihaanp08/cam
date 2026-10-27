@@ -367,38 +367,43 @@ private struct ModePill: View {
     var body: some View {
         GeometryReader { g in
             let widths = model.modes.map(width)
+            let total = widths.reduce(0, +) + CGFloat(max(0, widths.count - 1)) * spacing
             let centers: [CGFloat] = widths.indices.map { i in
                 widths[..<i].reduce(0, +) + CGFloat(i) * spacing + widths[i] / 2
             }
-            let offset = g.size.width / 2 - centers[model.modeIndex]
+            // The labels' row is centred in the pill; shift it so the selected mode sits in the middle.
+            let offset = total / 2 - centers[min(max(model.modeIndex, 0), centers.count - 1)]
 
-            ZStack(alignment: .leading) {
+            ZStack {
                 Capsule().fill(Color(white: 0.08).opacity(0.95))
                 Capsule()
                     .fill(Color(white: 0.13))
                     .overlay(Capsule().stroke(Color.white.opacity(0.13), lineWidth: 1))
                     .frame(width: 90.7 * s, height: 41.7 * s)
-                    .position(x: g.size.width / 2, y: g.size.height / 2)
                 HStack(spacing: spacing) {
                     ForEach(Array(model.modes.enumerated()), id: \.offset) { i, m in
                         Text(m)
                             .font(.system(size: 16 * s, weight: .semibold))
                             .kerning(kern)
                             .foregroundStyle(i == model.modeIndex ? CameraScreen.yellow : Color.white)
+                            .lineLimit(1)
                             .fixedSize()
                             .onTapGesture { model.selectMode(i) }
                     }
                 }
+                .fixedSize()
                 .offset(x: offset)
+                .animation(.easeOut(duration: 0.2), value: model.modeIndex)
+                .frame(width: g.size.width, height: g.size.height)
+                .clipped()
+                // fade the labels out towards the ends of the pill, like the real one
                 .mask(
                     LinearGradient(stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black, location: 0.14),
-                        .init(color: .black, location: 0.86),
-                        .init(color: .clear, location: 1)
+                        .init(color: .clear, location: 0.02),
+                        .init(color: .black, location: 0.16),
+                        .init(color: .black, location: 0.84),
+                        .init(color: .clear, location: 0.98)
                     ], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: g.size.width)
-                    .offset(x: -offset)
                 )
             }
             .frame(width: g.size.width, height: g.size.height)

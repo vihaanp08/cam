@@ -51,6 +51,15 @@ final class CameraModel: ObservableObject {
             self.zoomStops = stops
             self.zoomIndex = stops.firstIndex { $0.label == "1" } ?? 0
         }
+        // Layout checks in the simulator (no camera there): show the front or back camera controls.
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-demoBack") {
+            position = .back
+            zoomStops = [(".5", 1.0), ("1", 2.0), ("2", 4.0), ("4", 8.0), ("8", 16.0)].map { CameraEngine.ZoomStop(label: $0.0, factor: $0.1) }
+            zoomIndex = 1
+        } else if args.contains("-demoFront") {
+            position = .front
+        }
         snap.onSnap = { [weak self] in self?.trigger(source: "snap") }
         snap.onLevel = { [weak self] lvl in
             guard let self = self, self.meterActive else { return }
@@ -89,6 +98,10 @@ final class CameraModel: ObservableObject {
         lastFaceKey = key
         if let name = settings.importedFace, let cg = CardImporter.loadFace(named: name) {
             engine.setFace(cg)
+        } else if let real = RealFaces.face(rank: settings.rank, suit: settings.suit),
+                  let cg = CardFaceRenderer.render(face: real) {
+            // traced from your own deck: exactly the real card's pips and indices
+            engine.setFace(cg)
         } else if let cg = CardFaceRenderer.render(rank: settings.rank, suit: settings.suit) {
             engine.setFace(cg)
         }
@@ -109,6 +122,9 @@ final class CameraModel: ObservableObject {
 
     func trigger(source: String) {
         guard engine.isArmed else { return }
+        // A snap only counts while the fake card is actually on screen, so a stray noise with no
+        // card in view can't quietly disarm the trick. (Buttons always work.)
+        if source == "snap" && !engine.isShowingFake { return }
         engine.setArmed(false)
         armed = false
         if settings.haptics {

@@ -30,7 +30,7 @@ final class FramePipeline {
     }
 
     /// Frames to keep the fake card on after the tracker loses the card (about 0.4 s at 30 fps).
-    var holdFrames = 12
+    var holdFrames = 5
     /// Consecutive "not a card face" frames before the fake turns off (card turned around, etc.).
     var badFramesToDrop = 5
 
@@ -90,7 +90,8 @@ final class FramePipeline {
             st.cardness = a?.cardness ?? 0
             let isFace = a.map { $0.faceUp || !cfg.facesOnly } ?? false
             // Easier to stay on than to turn on (hysteresis).
-            let threshold = overlayOn ? 0.22 : 0.42
+            // Turn on as soon as it plausibly is the card (the real card must never show).
+            let threshold = overlayOn ? 0.22 : 0.3
             let good = a != nil && st.cardness > threshold && isFace
             if good {
                 badStreak = 0
@@ -117,11 +118,15 @@ final class FramePipeline {
         case .coasting(let q, let n):
             st.tracking = "coast \(n)"
             quad = q
-            if armed, overlayOn, n <= holdFrames, let a = lastAnalysis, let albedo = albedo {
+            // Bridge a short tracking hiccup (fast blur), but only while there is still clearly a card
+            // there: a fake card painted on an empty wall would give the trick away.
+            let stillThere = n <= holdFrames && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
+            if armed, overlayOn, stillThere, let a = lastAnalysis, let albedo = albedo {
                 out = compositor.overlay(frame: frame, quad: q, albedo: albedo, analysis: a, cfg: cfg)
                 drew = true
                 st.reason = "holding"
             } else {
+                overlayOn = false
                 if n > holdFrames { overlayOn = false }
                 st.reason = "lost"
             }
