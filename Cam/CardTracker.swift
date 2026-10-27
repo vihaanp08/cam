@@ -138,13 +138,22 @@ final class CardTracker {
             if let g = gray {
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
-                for (q, how) in cands {
-                    var gq = q.points.map(toGray)
+                func consider(_ q: [CGPoint], _ how: String) {
+                    var gq = q
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
-                    guard plausible(quadCI(gq), w: W, h: H) else { continue }
+                    guard plausible(quadCI(gq), w: W, h: H) else { return }
                     let sc = PlanarTracker.cardScore(g, quad: gq)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
+                }
+                if let tq = grayQuad {
+                    // the current lock might be half the card
+                    for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
+                }
+                for (q, how) in cands {
+                    let gq = q.points.map(toGray)
+                    consider(gq, how)
+                    for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
                 if let b = best, b.score >= minScore,
                    measured == nil || b.score > trackedScore + 0.12 {
