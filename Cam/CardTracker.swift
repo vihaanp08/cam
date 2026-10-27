@@ -194,7 +194,9 @@ final class CardTracker {
                 lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " +
                     (best.map { "\($0.how) \(String(format: "%.2f", $0.score))" } ?? "-")
                 // Taking over from a working track needs a clearly better, clearly card-like shape.
-                if let b = best, b.score >= minScore,
+                // Starting a lock from nothing needs a clearly card-like shape (a weak first lock is how
+                // a fake card ends up painted on a wall).
+                if let b = best, b.score >= (measured == nil ? 0.3 : minScore),
                    measured == nil || (b.score > trackedScore + 0.12 && b.score >= 0.3) {
                     grayQuad = b.quad
                     points = PlanarTracker.goodFeatures(g, quad: b.quad)
@@ -371,6 +373,17 @@ final class CardTracker {
 
         /// Bright and close to neutral: white card paper (even under warm or cool light), not skin.
         /// (x, y) in gray-image coordinates.
+        /// (r, g, b) 0...255 at gray-image coordinates, or nil outside the picture.
+        func color(_ x: CGFloat, _ y: CGFloat) -> (Double, Double, Double)? {
+            guard x.isFinite, y.isFinite, abs(x) < 1e6, abs(y) < 1e6 else { return nil }
+            let xi = Int(x.rounded())
+            var yi = Int(y.rounded())
+            if !topDown { yi = h - 1 - yi }
+            guard xi >= 0, xi < w, yi >= 0, yi < h else { return nil }
+            let o = yi * rb + xi * 4
+            return (Double(base[o + 2]), Double(base[o + 1]), Double(base[o]))
+        }
+
         func isPaper(_ x: CGFloat, _ y: CGFloat) -> Bool {
             guard x.isFinite, y.isFinite, abs(x) < 1e6, abs(y) < 1e6 else { return false }
             let xi = Int(x.rounded())
@@ -392,7 +405,36 @@ final class CardTracker {
         guard s > 0 else { return 0 }
         guard let paper = paper else { return s }
         let p = paperFraction(paper, quad)
-        return s * p * p
+        // A card face always has printing on it (indices, pips); a blank patch of wall or ceiling
+        // with straight edges around it does not.
+        let ink = inkFraction(paper, quad)
+        return s * p * p * min(1, ink / 0.04)
+    }
+
+    /// Fraction of points inside the quad (its middle 76%) that are printing: clearly darker than
+    /// the paper, or strongly red. Only points inside the picture count.
+    private func inkFraction(_ paper: PaperReader, _ quad: [CGPoint]) -> Double {
+        guard quad.count == 4 else { return 0 }
+        func lum(_ c: (Double, Double, Double)) -> Double { 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2 }
+        var samples: [(Double, Double, Double)] = []
+        for j in 0..<16 {
+            for i in 0..<12 {
+                let u = 0.12 + 0.76 * CGFloat(i) / 11, v = 0.12 + 0.76 * CGFloat(j) / 15
+                // bilinear position inside the quad (tl, tr, br, bl)
+                let top = CGPoint(x: quad[0].x + u * (quad[1].x - quad[0].x), y: quad[0].y + u * (quad[1].y - quad[0].y))
+                let bot = CGPoint(x: quad[3].x + u * (quad[2].x - quad[3].x), y: quad[3].y + u * (quad[2].y - quad[3].y))
+                let p = CGPoint(x: top.x + v * (bot.x - top.x), y: top.y + v * (bot.y - top.y))
+                if let c = paper.color(p.x, p.y) { samples.append(c) }
+            }
+        }
+        guard samples.count >= 20 else { return 0 }
+        let lums = samples.map(lum).sorted()
+        let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]     // the paper is the bright majority
+        guard paperLum > 40 else { return 0 }
+        let inky = samples.filter { c in
+            lum(c) < 0.6 * paperLum || (c.0 - max(c.1, c.2) > 60)
+        }.count
+        return Double(inky) / Double(samples.count)
     }
 
     private func quadSize(_ q: [CGPoint]) -> CGFloat {
