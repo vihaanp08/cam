@@ -45,6 +45,7 @@ final class CardTracker {
     /// The last confidently tracked card (gray coordinates), to re-find it after a fast move and to
     /// prefer shapes of about the same size (the card's distance from the camera changes slowly).
     private var lastGood: (quad: [CGPoint], size: CGFloat, frame: Int)?
+    private var lastGoodPyramid: [GrayImage]?
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// Below this a shape isn't accepted as a card.
@@ -80,6 +81,7 @@ final class CardTracker {
         points = []
         weakFrames = 0
         lastGood = nil
+        lastGoodPyramid = nil
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -157,6 +159,11 @@ final class CardTracker {
                     // where the card was last seen clearly (it often comes back after a fast move)
                     consider(lg.quad, "last")
                     if let r = refitInward(g, paper, lg.quad) { consider(r, "last fit") }
+                    // and wherever its picture best matches now (after a fast swipe)
+                    if let tpl = lastGoodPyramid, let cur = pyramid, let moved = findByTemplate(lg.quad, from: tpl, in: cur) {
+                        consider(moved, "match")
+                        if let r = refitInward(g, paper, moved) { consider(r, "match fit") }
+                    }
                 }
                 if let tq = grayQuad {
                     // the current lock might be half the card, or have grown onto the fingers
@@ -189,6 +196,7 @@ final class CardTracker {
         lastScore = trackedScore
         if trackedScore >= 0.25, let gq = grayQuad {
             lastGood = (gq, quadSize(gq), frameIndex)
+            lastGoodPyramid = pyramid
         }
         prevPyramid = pyramid
 
@@ -265,6 +273,56 @@ final class CardTracker {
         if n > 0 { nq = sq; snapped = n }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
         return FlowResult(quad: nq, points: kept, snapped: snapped)
+    }
+
+    // MARK: - Re-finding the card by its picture
+
+    /// Where did the card's image (from the last frame it was clearly tracked) move to? Searches by
+    /// normalized cross-correlation at 1/8 scale over about a card's width, refines at 1/4 scale,
+    /// and returns the quad shifted by that offset, or nil if nothing matches well.
+    private func findByTemplate(_ quad: [CGPoint], from tpl: [GrayImage], in cur: [GrayImage]) -> [CGPoint]? {
+        guard tpl.count >= 4, cur.count >= 4 else { return nil }
+        let xs = quad.map(\.x), ys = quad.map(\.y)
+        guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max(),
+              (maxX - minX).isFinite, (maxY - minY).isFinite else { return nil }
+        let cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
+        let hw = (maxX - minX) * 0.35, hh = (maxY - minY) * 0.35   // central part of the card
+        let size = max(maxX - minX, maxY - minY)
+
+        func ncc(_ T: GrayImage, _ C: GrayImage, _ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int, _ dx: Int, _ dy: Int) -> Float {
+            var st: Float = 0, sc: Float = 0, stt: Float = 0, scc: Float = 0, stc: Float = 0
+            var n: Float = 0
+            for y in stride(from: y0, through: y1, by: 1) {
+                for x in stride(from: x0, through: x1, by: 1) {
+                    let a = T.at(x, y), b = C.at(x + dx, y + dy)
+                    st += a; sc += b; stt += a * a; scc += b * b; stc += a * b; n += 1
+                }
+            }
+            guard n > 4 else { return -1 }
+            let cov = stc - st * sc / n, vt = stt - st * st / n, vc = scc - sc * sc / n
+            guard vt > 1e-6, vc > 1e-6 else { return -1 }
+            return cov / (vt * vc).squareRoot()
+        }
+        func search(level L: Int, around: (Int, Int), radius: Int) -> (Int, Int, Float) {
+            let s = CGFloat(1 << L)
+            let x0 = Int(((cx - hw) / s).rounded()), x1 = Int(((cx + hw) / s).rounded())
+            let y0 = Int(((cy - hh) / s).rounded()), y1 = Int(((cy + hh) / s).rounded())
+            var best = (around.0, around.1, Float(-2))
+            for dy in (around.1 - radius)...(around.1 + radius) {
+                for dx in (around.0 - radius)...(around.0 + radius) {
+                    let v = ncc(tpl[L], cur[L], x0, y0, x1, y1, dx, dy)
+                    if v > best.2 { best = (dx, dy, v) }
+                }
+            }
+            return best
+        }
+        let r3 = max(3, Int((size / 8).rounded()))
+        let coarse = search(level: 3, around: (0, 0), radius: r3)
+        guard coarse.2 > 0.5 else { return nil }
+        let fine = search(level: 2, around: (coarse.0 * 2, coarse.1 * 2), radius: 2)
+        guard fine.2 > 0.6 else { return nil }
+        let ox = CGFloat(fine.0 * 4), oy = CGFloat(fine.1 * 4)
+        return quad.map { CGPoint(x: $0.x + ox, y: $0.y + oy) }
     }
 
     // MARK: - Card check
