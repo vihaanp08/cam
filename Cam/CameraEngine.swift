@@ -5,8 +5,8 @@ import Metal
 import QuartzCore
 import UIKit
 
-/// Owns the camera and runs the per-frame pipeline:
-/// camera frame -> find card -> measure light -> paint fake face -> hand image to the screen.
+/// Owns the camera and feeds each frame through the FramePipeline (find card, paint fake face),
+/// then hands the result to the screen.
 final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     let session = AVCaptureSession()
     let metalDevice: MTLDevice
@@ -16,10 +16,9 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private let videoQueue = DispatchQueue(label: "cam.video", qos: .userInteractive)
     private let videoOutput = AVCaptureVideoDataOutput()
     private var input: AVCaptureDeviceInput?
-    private(set) var position: AVCaptureDevice.Position = .front
+    private var device: AVCaptureDevice?
 
-    private let tracker = CardTracker()
-    private let compositor: Compositor
+    private let pipeline: FramePipeline
 
     // Shared state (guarded by `lock`)
     private let lock = NSLock()
@@ -31,19 +30,21 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var _gateUntilReady = true
     private var _gateStart: CFTimeInterval = CACurrentMediaTime()
     private var _gateImage: CIImage?
+    private var _position: AVCaptureDevice.Position = .front
+    private var _onAutoRearm: (() -> Void)?
 
     // Video-queue-only state
-    private var lastAnalysis: Compositor.Analysis?
-    private var framesSinceOverlay = 1000
-    private var lastCardSeen: CFTimeInterval = 0
     private var gateFade = 0
     private var lastStatusSent: CFTimeInterval = 0
-    private var lastQuadForBlur: Quad?
+    private var lastFrameTime: Double = -1
+    private var fps: Double = 30
+    private var rearmFiredFor: Double = -2
 
-    /// Main-thread callbacks
+    /// Main-thread callback with tracking info for the debug view.
     var onStatus: ((EngineStatus) -> Void)?
-    /// Reassigned from main on every settings change and read on the video queue, so it is lock-guarded.
-    private var _onAutoRearm: (() -> Void)?
+    /// Main-thread callback when the camera (and its zoom options) changes.
+    var onCameraChanged: ((AVCaptureDevice.Position, [ZoomStop]) -> Void)?
+
     var onAutoRearm: (() -> Void)? {
         get { lock.lock(); defer { lock.unlock() }; return _onAutoRearm }
         set { lock.lock(); _onAutoRearm = newValue; lock.unlock() }
@@ -51,8 +52,17 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
     struct EngineStatus {
         var tracking: String
+        var source: String
+        var reason: String
         var cardness: Double
         var armed: Bool
+        var fps: Double
+    }
+
+    /// A zoom button: its label and the device zoom factor it maps to.
+    struct ZoomStop: Equatable {
+        var label: String
+        var factor: CGFloat
     }
 
     override init() {
@@ -63,7 +73,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         ])
         metalDevice = device
         ciContext = ctx
-        compositor = Compositor(context: ctx)
+        pipeline = FramePipeline(context: ctx)
         super.init()
     }
 
@@ -79,6 +89,11 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         return _armed
     }
 
+    var position: AVCaptureDevice.Position {
+        lock.lock(); defer { lock.unlock() }
+        return _position
+    }
+
     func setArmed(_ armed: Bool) {
         lock.lock(); _armed = armed; lock.unlock()
     }
@@ -92,18 +107,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     }
 
     func setFace(_ cg: CGImage) {
-        var face = CIImage(cgImage: cg)
-        // Normalise to the standard card size.
-        let sx = Compositor.cardSize.width / face.extent.width
-        let sy = Compositor.cardSize.height / face.extent.height
-        face = face.transformed(by: CGAffineTransform(scaleX: sx, y: sy)).cropped(to: Compositor.cardRect)
-        let albedo = Compositor.prepareAlbedo(face)
-        let mirrored = albedo
-            .transformed(by: CGAffineTransform(scaleX: -1, y: 1).translatedBy(x: -Compositor.cardSize.width, y: 0))
-            .cropped(to: Compositor.cardRect)
+        let a = FramePipeline.makeAlbedo(cg)
         lock.lock()
-        _albedo = albedo
-        _albedoMirrored = mirrored
+        _albedo = a.normal
+        _albedoMirrored = a.mirrored
         lock.unlock()
     }
 
@@ -140,17 +147,53 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         sessionQueue.async {
             let newPos: AVCaptureDevice.Position = self.position == .front ? .back : .front
             self.configure(position: newPos)
-            self.videoQueue.async {
-                self.tracker.reset()
-                self.compositor.resetTemporalState()
-                self.lastAnalysis = nil
-            }
+            self.videoQueue.async { self.pipeline.reset() }
         }
+    }
+
+    func setZoom(_ factor: CGFloat, animated: Bool = true) {
+        sessionQueue.async {
+            guard let d = self.device else { return }
+            let f = min(max(factor, d.minAvailableVideoZoomFactor), min(d.maxAvailableVideoZoomFactor, 32))
+            do {
+                try d.lockForConfiguration()
+                if animated { d.ramp(toVideoZoomFactor: f, withRate: 12) } else { d.videoZoomFactor = f }
+                d.unlockForConfiguration()
+            } catch {}
+            self.videoQueue.async { self.pipeline.reset() }
+        }
+    }
+
+    /// Point in normalized frame coordinates (0...1, origin top-left of the upright, as-displayed frame).
+    func focus(at p: CGPoint) {
+        sessionQueue.async {
+            guard let d = self.device else { return }
+            // Device coordinates are in the sensor's landscape orientation.
+            var x = p.x
+            if self.position == .front && self.currentConfig.mirror { x = 1 - x }
+            let devicePoint = CGPoint(x: p.y, y: 1 - x)
+            do {
+                try d.lockForConfiguration()
+                // Keep focus/exposure continuous (just biased to the tapped point) so tracking never
+                // gets stuck with a locked, wrong focus.
+                if d.isFocusPointOfInterestSupported, d.isFocusModeSupported(.continuousAutoFocus) {
+                    d.focusPointOfInterest = devicePoint; d.focusMode = .continuousAutoFocus
+                }
+                if d.isExposurePointOfInterestSupported, d.isExposureModeSupported(.continuousAutoExposure) {
+                    d.exposurePointOfInterest = devicePoint; d.exposureMode = .continuousAutoExposure
+                }
+                d.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    private var currentConfig: RenderConfig {
+        lock.lock(); defer { lock.unlock() }
+        return _config
     }
 
     private func configure(position: AVCaptureDevice.Position) {
         session.beginConfiguration()
-        defer { session.commitConfiguration() }
         session.automaticallyConfiguresApplicationAudioSession = false
         if session.canSetSessionPreset(.hd1920x1080) {
             session.sessionPreset = .hd1920x1080
@@ -159,24 +202,22 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         }
 
         if let old = input { session.removeInput(old) }
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
-              let newInput = try? AVCaptureDeviceInput(device: device),
-              session.canAddInput(newInput) else { return }
+        let d: AVCaptureDevice?
+        if position == .back {
+            d = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back)
+                ?? AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back)
+                ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+        } else {
+            d = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+        }
+        guard let dev = d, let newInput = try? AVCaptureDeviceInput(device: dev), session.canAddInput(newInput) else {
+            session.commitConfiguration()
+            return
+        }
         session.addInput(newInput)
         input = newInput
-        self.position = position
-
-        do {
-            try device.lockForConfiguration()
-            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
-            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
-            if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
-            if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
-            if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) { device.whiteBalanceMode = .continuousAutoWhiteBalance }
-            device.unlockForConfiguration()
-        } catch {
-            print("Device config error: \(error)")
-        }
+        device = dev
+        lock.lock(); _position = position; lock.unlock()
 
         if !session.outputs.contains(videoOutput) {
             videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
@@ -185,12 +226,42 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             if session.canAddOutput(videoOutput) { session.addOutput(videoOutput) }
         }
         applyConnectionSettings()
+        session.commitConfiguration()
+
+        // Zoom stops: "1x" is the main wide lens; on multi-camera devices that is a switch-over factor.
+        var stops: [ZoomStop] = []
+        var oneX: CGFloat = 1
+        do {
+            try dev.lockForConfiguration()
+            dev.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+            dev.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
+            if dev.isExposureModeSupported(.continuousAutoExposure) { dev.exposureMode = .continuousAutoExposure }
+            if dev.isFocusModeSupported(.continuousAutoFocus) { dev.focusMode = .continuousAutoFocus }
+            if dev.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) { dev.whiteBalanceMode = .continuousAutoWhiteBalance }
+            if position == .back {
+                let switches = dev.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+                if let first = switches.first, dev.isVirtualDevice, dev.constituentDevices.first?.deviceType == .builtInUltraWideCamera {
+                    oneX = first
+                    stops.append(ZoomStop(label: ".5", factor: 1))
+                }
+                stops.append(ZoomStop(label: "1", factor: oneX))
+                for m: CGFloat in [2, 4, 8] where oneX * m <= dev.maxAvailableVideoZoomFactor {
+                    stops.append(ZoomStop(label: "\(Int(m))", factor: oneX * m))
+                }
+            }
+            dev.videoZoomFactor = oneX
+            dev.unlockForConfiguration()
+        } catch {
+            print("Device config error: \(error)")
+        }
+        let cb = onCameraChanged
+        DispatchQueue.main.async { cb?(position, stops) }
     }
 
     private func applyConnectionSettings() {
         guard let conn = videoOutput.connection(with: .video) else { return }
         if conn.isVideoRotationAngleSupported(90) { conn.videoRotationAngle = 90 }
-        lock.lock(); let mirror = _config.mirror; lock.unlock()
+        lock.lock(); let mirror = _config.mirror && _position == .front; lock.unlock()
         if conn.isVideoMirroringSupported {
             conn.automaticallyAdjustsVideoMirroring = false
             conn.isVideoMirrored = mirror
@@ -210,19 +281,44 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             .cropped(to: ext)
     }
 
-    /// The current on-screen picture (fake card included), cropped to the visible aspect.
-    func snapshot(visibleAspect: CGFloat) -> UIImage? {
-        guard let img = latestImage else { return nil }
-        let ext = img.extent
-        var crop = ext
-        if ext.width / ext.height < visibleAspect {
-            let h = ext.width / visibleAspect
-            crop = CGRect(x: ext.minX, y: ext.midY - h / 2, width: ext.width, height: h)
-        } else {
-            let w = ext.height * visibleAspect
-            crop = CGRect(x: ext.midX - w / 2, y: ext.minY, width: w, height: ext.height)
+    /// Maps a rectangle in the full-screen preview (aspect-filled) to normalized frame coordinates
+    /// (origin top-left).
+    func normalizedRect(viewRect: CGRect, viewSize: CGSize) -> CGRect {
+        guard let ext = latestImage?.extent, ext.width > 0, viewSize.width > 0 else {
+            return CGRect(x: 0, y: 0, width: 1, height: 1)
         }
-        guard let cg = ciContext.createCGImage(img, from: crop,
+        let s = max(viewSize.width / ext.width, viewSize.height / ext.height)
+        let dw = ext.width * s, dh = ext.height * s
+        let ox = (viewSize.width - dw) / 2, oy = (viewSize.height - dh) / 2
+        let r = CGRect(x: (viewRect.minX - ox) / dw, y: (viewRect.minY - oy) / dh,
+                       width: viewRect.width / dw, height: viewRect.height / dh)
+        return r.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+    }
+
+    /// Maps a point in the full-screen preview to normalized frame coordinates (origin top-left), clamped.
+    func normalizedPoint(viewPoint p: CGPoint, viewSize: CGSize) -> CGPoint {
+        guard let ext = latestImage?.extent, ext.width > 0, viewSize.width > 0 else { return CGPoint(x: 0.5, y: 0.5) }
+        let s = max(viewSize.width / ext.width, viewSize.height / ext.height)
+        let dw = ext.width * s, dh = ext.height * s
+        let ox = (viewSize.width - dw) / 2, oy = (viewSize.height - dh) / 2
+        return CGPoint(x: min(max((p.x - ox) / dw, 0), 1), y: min(max((p.y - oy) / dh, 0), 1))
+    }
+
+    /// The picture currently on screen (fake card included), cropped to `crop`
+    /// (normalized, origin top-left). Selfies are saved un-mirrored, like the built-in camera.
+    func snapshot(crop: CGRect) -> UIImage? {
+        guard var img = latestImage else { return nil }
+        let ext = img.extent
+        let r = CGRect(x: ext.minX + crop.minX * ext.width,
+                       y: ext.minY + (1 - crop.maxY) * ext.height,
+                       width: crop.width * ext.width,
+                       height: crop.height * ext.height).integral.intersection(ext)
+        lock.lock(); let unmirror = _config.mirror && _position == .front; lock.unlock()
+        img = img.cropped(to: r)
+        if unmirror {
+            img = img.transformed(by: CGAffineTransform(scaleX: -1, y: 1).translatedBy(x: -(r.minX * 2 + r.width), y: 0))
+        }
+        guard let cg = ciContext.createCGImage(img, from: img.extent,
                                                format: .RGBA8,
                                                colorSpace: CGColorSpace(name: CGColorSpace.sRGB)) else { return nil }
         return UIImage(cgImage: cg)
@@ -232,134 +328,74 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let frame = CIImage(cvPixelBuffer: pb)
+        let t = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
 
         lock.lock()
         let cfg = _config
         let armed = _armed
-        let albedo = cfg.mirror ? _albedoMirrored : _albedo
+        let mirrored = cfg.mirror && _position == .front
+        let albedo = mirrored ? _albedoMirrored : _albedo
         let gating = _gateUntilReady
         let gateStart = _gateStart
         let gateImage = _gateImage
+        let autoRearm = _onAutoRearm
         lock.unlock()
 
-        let state = tracker.process(pb)
+        if lastFrameTime > 0, t > lastFrameTime { fps = 0.9 * fps + 0.1 / (t - lastFrameTime) }
+        lastFrameTime = t
+
+        let result = pipeline.process(pb, time: t, cfg: cfg, armed: armed, albedo: albedo)
+        var out = result.image
+        let extent = out.extent
         let now = CACurrentMediaTime()
-        var out = frame
-        var drewOverlay = false
-        var trackingLabel = "searching"
-        var cardness = 0.0
-
-        switch state {
-        case .locked(let q):
-            trackingLabel = "locked"
-            lastCardSeen = now
-            lastQuadForBlur = q
-            if armed, let albedo = albedo, let a = compositor.analyze(frame: frame, quad: q) {
-                cardness = a.cardness
-                let isCard = a.cardness > 0.45 && (a.faceUp || !cfg.facesOnly)
-                if isCard {
-                    out = compositor.overlay(frame: frame, quad: q, albedo: albedo, analysis: a, cfg: cfg)
-                    lastAnalysis = a
-                    drewOverlay = true
-                } else if cfg.debug {
-                    out = compositor.debugCorners(frame, quad: q, color: CIColor(red: 1, green: 0.2, blue: 0.2))
-                }
-            } else if cfg.debug {
-                out = compositor.debugCorners(frame, quad: q, color: CIColor(red: 0.3, green: 0.6, blue: 1))
-            }
-
-        case .coasting(let q, let n):
-            trackingLabel = "coasting \(n)"
-            lastQuadForBlur = q
-            if armed, framesSinceOverlay < 30, let albedo = albedo, let a = lastAnalysis {
-                if n <= 8 {
-                    // Brief dropout: keep the fake card in place (lighting from the last good frame).
-                    out = compositor.overlay(frame: frame, quad: q, albedo: albedo, analysis: a, cfg: cfg)
-                    drewOverlay = true
-                } else {
-                    // Card moving too fast to track: blur where it was, like natural motion blur,
-                    // fading out over the next ~half second.
-                    let strength = max(0, 1 - Double(n - 8) / 16)
-                    if strength > 0 { out = blurRegion(frame, around: q, strength: strength) }
-                }
-            }
-
-        case .searching:
-            trackingLabel = "searching"
-        }
-
-        framesSinceOverlay = drewOverlay ? 0 : framesSinceOverlay + 1
 
         // Start-up / camera-flip cover.
         if gating {
             let elapsed = now - gateStart
             let ready: Bool
             if armed {
-                ready = (drewOverlay && tracker.stableFrames >= 3) || elapsed > 2.0
+                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 2) || elapsed > 1.2
             } else {
                 ready = elapsed > 0.35
             }
             if ready {
                 lock.lock(); _gateUntilReady = false; lock.unlock()
                 gateFade = 6
+            } else {
+                out = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
             }
-            let cover = gateImage ?? CIImage(color: .black).cropped(to: frame.extent)
-            if !ready { out = cover.cropped(to: frame.extent) }
         }
-        if gateFade > 0, let cover = gateImage {
-            let t = CGFloat(gateFade) / 6
-            out = fade(cover, over: out, alpha: t, extent: frame.extent)
-            gateFade -= 1
-        } else if gateFade > 0 {
-            let black = CIImage(color: .black).cropped(to: frame.extent)
-            out = fade(black, over: out, alpha: CGFloat(gateFade) / 6, extent: frame.extent)
+        if gateFade > 0 {
+            let cover = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
+            out = fade(cover, over: out, alpha: CGFloat(gateFade) / 6, extent: extent)
             gateFade -= 1
         }
 
         // Auto re-arm once the card has been out of view for a couple of seconds.
-        if !armed, let cb = onAutoRearm, now - lastCardSeen > 2.0, lastCardSeen > 0 {
-            lastCardSeen = 0
+        if !armed, let cb = autoRearm, pipeline.lastCardSeen > 0, t - pipeline.lastCardSeen > 2.0,
+           rearmFiredFor != pipeline.lastCardSeen {
+            rearmFiredFor = pipeline.lastCardSeen
             DispatchQueue.main.async { cb() }
         }
 
         lock.lock()
-        _latest = out.cropped(to: frame.extent)
+        _latest = out
         lock.unlock()
 
         if now - lastStatusSent > 0.2, let cb = onStatus {
             lastStatusSent = now
-            let st = EngineStatus(tracking: trackingLabel, cardness: cardness, armed: armed)
+            let s = result.status
+            let st = EngineStatus(tracking: s.tracking, source: s.source, reason: s.reason,
+                                  cardness: s.cardness, armed: armed, fps: fps)
             DispatchQueue.main.async { cb(st) }
         }
     }
 
     private func fade(_ top: CIImage, over base: CIImage, alpha: CGFloat, extent: CGRect) -> CIImage {
-        // Cross-dissolve (both images are opaque): base * (1 - alpha) + top * alpha.
         let d = CIFilter.dissolveTransition()
         d.inputImage = base
         d.targetImage = top.cropped(to: extent)
         d.time = Float(alpha)
         return (d.outputImage ?? base).cropped(to: extent)
-    }
-
-    private func blurRegion(_ frame: CIImage, around q: Quad, strength: Double) -> CIImage {
-        let box = q.boundingBox.insetBy(dx: -q.width * 0.25, dy: -q.height * 0.25).intersection(frame.extent)
-        guard !box.isNull, box.width > 4, box.height > 4 else { return frame }
-        let sigma = 22 * strength
-        let blurred = frame.clampedToExtent().applyingGaussianBlur(sigma: sigma).cropped(to: box)
-        // Feathered mask so the blurred patch has no hard edge.
-        let r = CIFilter.radialGradient()
-        r.center = CGPoint(x: box.midX, y: box.midY)
-        r.radius0 = Float(min(box.width, box.height) * 0.35)
-        r.radius1 = Float(max(box.width, box.height) * 0.6)
-        r.color0 = CIColor.white
-        r.color1 = CIColor.black
-        guard let mask = r.outputImage?.cropped(to: box) else { return frame }
-        let b = CIFilter.blendWithMask()
-        b.inputImage = blurred
-        b.backgroundImage = frame
-        b.maskImage = mask
-        return (b.outputImage ?? frame).cropped(to: frame.extent)
     }
 }
