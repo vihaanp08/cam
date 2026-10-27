@@ -75,17 +75,16 @@ def quad_for(cx, cy, size, rot, tilt_x, tilt_y):
 
 def pose(i, n):
     """Scripted motion: drift, still hold, fast swipe, leave and return."""
-    t = i / FPS
+    seg = i / n
+    # time freezes during the still hold, then carries on smoothly (no teleport)
+    h0, h1 = int(0.30 * n), int(0.42 * n)
+    t = (min(i, h0) + max(0, i - h1)) / FPS
     cx = FW / 2 + 120 * math.sin(t * 0.9)
     cy = FH * 0.46 + 140 * math.sin(t * 0.7 + 1)
     rot = math.radians(14 * math.sin(t * 0.8))
     tx = math.radians(12 * math.sin(t * 0.5))
     ty = math.radians(14 * math.sin(t * 0.6 + 0.5))
     size = 300 + 30 * math.sin(t * 0.4)
-    seg = i / n
-    if 0.30 <= seg < 0.42:            # still hold
-        j = int(0.30 * n)
-        return pose(j, n) if j != i else (cx, cy, size, rot, tx, ty)
     if 0.55 <= seg < 0.60:            # fast swipe to the right and back
         k = (seg - 0.55) / 0.05
         cx += 260 * math.sin(k * math.pi)

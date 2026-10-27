@@ -99,6 +99,8 @@ final class FramePipeline {
             } else {
                 badStreak += 1
                 if badStreak >= badFramesToDrop { overlayOn = false }
+                // Locked onto something that isn't a card face for a while: search again.
+                if isFace && badStreak % 10 == 0 { tracker.forceRedetect() }
             }
             if a == nil { st.reason = "analysis failed" }
             else if !isFace { st.reason = "card back" }

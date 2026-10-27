@@ -5,12 +5,15 @@ import CoreGraphics
 
 /// Finds the playing card in each frame and follows it.
 ///
-/// - Detection uses two Vision detectors together: document segmentation (a neural net that copes
-///   well with fingers over the card and busy backgrounds) finds the card, and rectangle detection
-///   snaps to its exact edges when it can see them.
-/// - Between detections, Vision's rectangle tracker follows the card.
-/// - A One Euro filter removes jitter without adding much lag.
-/// - Vision runs on a half-size copy of the frame; results are scaled back up.
+/// - Finding: Vision's document detector (copes with fingers and busy backgrounds) plus rectangle
+///   detection (exact edges when it can see them).
+/// - Following: optical flow on the card's own printed texture (PlanarTracker), which keeps working
+///   when the card's outline is hard to see (white card on a white ceiling) or partly covered by
+///   fingers. Each frame the edges are then snapped to the real card edges, so the fake card stays
+///   aligned and doesn't drift.
+/// - Vision re-checks every few frames and takes over if the flow tracker has latched onto
+///   something else.
+/// - A One Euro filter removes the last bit of jitter.
 /// All returned coordinates are Core Image pixels of the full frame (origin bottom-left).
 final class CardTracker {
     enum State {
@@ -23,8 +26,6 @@ final class CardTracker {
     private var pool: CVPixelBufferPool?
     private var poolW = 0, poolH = 0
 
-    private var sequenceHandler = VNSequenceRequestHandler()
-    private var trackRequest: VNTrackRectangleRequest?
     private var smoother = QuadSmoother()
     private var lastQuad: Quad?
     private var lastTime: Double = -1
@@ -32,17 +33,25 @@ final class CardTracker {
     private var frameIndex = 0
     private var disagreeCount = 0
     private(set) var stableFrames = 0
-    /// What produced the last measurement: "track", "doc+rect", "doc", "rect" or "none". For the debug view.
+    /// What produced the last measurement ("flow", "flow+edge", "doc+rect", "doc", "rect", "none").
     private(set) var lastSource = "none"
+
+    // Flow tracker state (gray-image coordinates, origin top-left)
+    private var grayQuad: [CGPoint]?
+    private var prevPyramid: [GrayImage]?
+    private var points: [CGPoint] = []
+    private var rowsTopDown: Bool?
 
     /// How many frames we keep predicting the pose after losing the card.
     let maxCoastFrames = 30
     /// Vision works on a copy of the frame scaled by this factor.
     var analysisScale: CGFloat = 0.5
-    /// Re-run detection this often while the tracker is following the card.
-    var detectEvery = 3
+    /// While the flow tracker has the card, re-check with Vision this often.
+    var detectEvery = 10
     /// Use Vision's document detector alongside rectangle detection.
     var useDocumentDetector = true
+    /// Use the optical-flow tracker between detections.
+    var useFlowTracker = true
     /// How many times the document detector threw an error (for the test harness).
     private(set) var documentErrors = 0
 
@@ -51,8 +60,6 @@ final class CardTracker {
     }
 
     func reset() {
-        trackRequest = nil
-        sequenceHandler = VNSequenceRequestHandler()   // drops any trackers Vision is holding
         smoother.reset()
         lastQuad = nil
         lastTime = -1
@@ -60,74 +67,96 @@ final class CardTracker {
         stableFrames = 0
         disagreeCount = 0
         lastSource = "none"
+        grayQuad = nil
+        prevPyramid = nil
+        points = []
+    }
+
+    /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
+    func forceRedetect() {
+        grayQuad = nil
+        points = []
     }
 
     /// `time` is the frame's presentation time in seconds.
     func process(_ fullBuffer: CVPixelBuffer, time: Double) -> State {
         frameIndex += 1
-        let w = CGFloat(CVPixelBufferGetWidth(fullBuffer))
-        let h = CGFloat(CVPixelBufferGetHeight(fullBuffer))
+        let W = CGFloat(CVPixelBufferGetWidth(fullBuffer))
+        let H = CGFloat(CVPixelBufferGetHeight(fullBuffer))
         let dt = lastTime < 0 ? 1.0 / 30 : min(0.2, max(0.001, time - lastTime))
         lastTime = time
 
         let buffer = analysisBuffer(fullBuffer)
+        let gray = useFlowTracker ? renderGray(buffer) : nil
+        let pyramid = gray?.pyramid(levels: 4)
+        let gw = CGFloat(gray?.w ?? 1), gh = CGFloat(gray?.h ?? 1)
+        let topDown = rowsTopDown ?? true
+
+        func toGray(_ p: CGPoint) -> CGPoint {
+            CGPoint(x: p.x * gw / W, y: topDown ? (H - p.y) * gh / H : p.y * gh / H)
+        }
+        func toCI(_ p: CGPoint) -> CGPoint {
+            CGPoint(x: p.x * W / gw, y: topDown ? H - p.y * H / gh : p.y * H / gh)
+        }
+        func quadCI(_ g: [CGPoint]) -> Quad { Quad(g.map(toCI)) }
+
         var measured: Quad?
         var source = "none"
 
-        // 1. Follow the card with the tracker if we have one.
-        if let req = trackRequest {
-            do {
-                try sequenceHandler.perform([req], on: buffer, orientation: .up)
-                if let obs = req.results?.first as? VNRectangleObservation, obs.confidence > 0.2 {
-                    req.inputObservation = obs
-                    measured = quad(from: obs, w: w, h: h)
-                    source = "track"
+        // 1. Follow the card's texture with optical flow.
+        if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid {
+            if let next = flowStep(prev: prev, cur: cur, quad: gq) {
+                let q = quadCI(next.quad)
+                if plausible(q, w: W, h: H) {
+                    grayQuad = next.quad
+                    points = next.points
+                    measured = q
+                    source = next.snapped > 0 ? "flow+edge" : "flow"
                 } else {
-                    endTracking(buffer)
+                    grayQuad = nil
                 }
-            } catch {
-                endTracking(buffer)
+            } else {
+                grayQuad = nil
             }
         }
 
-        // 2. Detect every frame while searching, and every few frames to correct tracker drift.
+        // 2. Detect when lost, and every few frames to catch a wrong lock.
         if measured == nil || frameIndex % detectEvery == 0 {
-            if let det = detect(buffer, w: w, h: h) {
+            if let det = detect(buffer, w: W, h: H) {
                 let (obs, how) = det
-                let q = quad(from: obs, w: w, h: h)
+                let q = quad(from: obs, w: W, h: H)
+                var adopt = false
                 if let m = measured {
                     let size = max(q.width, q.height)
-                    let drift = meanCornerDistance(m, q)
-                    if drift > size * 0.35 {
-                        // Detector and tracker disagree badly. Trust the detector if it happens twice.
+                    if meanCornerDistance(m, q) > size * 0.3 {
                         disagreeCount += 1
-                        if disagreeCount >= 2 {
-                            reseedTracker(with: obs, buffer: buffer)
-                            measured = q
-                            source = how
-                            disagreeCount = 0
-                        }
+                        adopt = disagreeCount >= 2
                     } else {
                         disagreeCount = 0
-                        if how.contains("rect") {
-                            // Edge-snapped detection is more accurate than the tracker: use it.
-                            measured = q
-                            source = how
-                        }
-                        if drift > size * 0.04 { reseedTracker(with: obs, buffer: buffer) }
                     }
                 } else {
+                    adopt = true
+                }
+                if adopt {
+                    disagreeCount = 0
                     measured = q
                     source = how
-                    reseedTracker(with: obs, buffer: buffer)
+                    if let g = gray {
+                        var gq = q.points.map(toGray)
+                        let (snappedQuad, n) = PlanarTracker.snapEdges(g, quad: gq)
+                        if n > 0 { gq = snappedQuad; measured = quadCI(gq) }
+                        grayQuad = gq
+                        points = PlanarTracker.goodFeatures(g, quad: gq)
+                    }
                 }
             }
         }
+        prevPyramid = pyramid
 
         // 3. Sanity: reject shapes that are clearly not a card held up to the camera.
-        if let m = measured, !plausible(m, w: w, h: h) {
+        if let m = measured, !plausible(m, w: W, h: H) {
             measured = nil
-            endTracking(buffer)
+            grayQuad = nil
         }
 
         if var m = measured {
@@ -141,6 +170,8 @@ final class CardTracker {
             return .locked(s)
         }
 
+        grayQuad = nil
+        points = []
         lastSource = "none"
         stableFrames = 0
         framesSinceSeen += 1
@@ -155,22 +186,85 @@ final class CardTracker {
         return .coasting(predicted, framesSinceSeen)
     }
 
-    // MARK: - Tracker management
+    // MARK: - Optical flow step
 
-    private func reseedTracker(with obs: VNRectangleObservation, buffer: CVPixelBuffer) {
-        endTracking(buffer)
-        let tr = VNTrackRectangleRequest(rectangleObservation: obs)
-        tr.trackingLevel = .accurate
-        trackRequest = tr
+    private struct FlowResult {
+        var quad: [CGPoint]
+        var points: [CGPoint]
+        var snapped: Int
     }
 
-    /// Tells Vision this tracking sequence is over so it frees the tracker.
-    private func endTracking(_ buffer: CVPixelBuffer) {
-        if let req = trackRequest {
-            req.isLastFrame = true
-            try? sequenceHandler.perform([req], on: buffer, orientation: .up)
+    private func flowStep(prev: [GrayImage], cur: [GrayImage], quad: [CGPoint]) -> FlowResult? {
+        var pts = points
+        if pts.count < 30 {
+            let fresh = PlanarTracker.goodFeatures(prev[0], quad: quad)
+            for p in fresh where !pts.contains(where: { hypot($0.x - p.x, $0.y - p.y) < 6 }) {
+                pts.append(p)
+                if pts.count >= 60 { break }
+            }
         }
-        trackRequest = nil
+        guard pts.count >= 8 else { return nil }
+        let fwd = PlanarTracker.lucasKanade(prev: prev, cur: cur, pts: pts)
+        var orig: [CGPoint] = [], moved: [CGPoint] = []
+        for (p, q) in zip(pts, fwd) {
+            if let q = q { orig.append(p); moved.append(q) }
+        }
+        guard moved.count >= 8 else { return nil }
+        // Forward-backward check: a point must track back to where it started.
+        let back = PlanarTracker.lucasKanade(prev: cur, cur: prev, pts: moved)
+        var a: [CGPoint] = [], b: [CGPoint] = []
+        for i in 0..<moved.count {
+            if let r = back[i], hypot(r.x - orig[i].x, r.y - orig[i].y) < 1.0 {
+                a.append(orig[i]); b.append(moved[i])
+            }
+        }
+        guard a.count >= 8, let fit = PlanarTracker.ransacSimilarity(a, b) else { return nil }
+        let m = fit.0, inliers = fit.1
+        var nq = quad.map { m.apply($0) }
+        var snapped = 0
+        let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq)
+        if n > 0 { nq = sq; snapped = n }
+        let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
+        return FlowResult(quad: nq, points: kept, snapped: snapped)
+    }
+
+    // MARK: - Gray image for the flow tracker
+
+    private func renderGray(_ buffer: CVPixelBuffer) -> GrayImage? {
+        let w = CVPixelBufferGetWidth(buffer), h = CVPixelBufferGetHeight(buffer)
+        guard w > 16, h > 16 else { return nil }
+        if rowsTopDown == nil { rowsTopDown = detectRowOrder() }
+        let src = CIImage(cvPixelBuffer: buffer)
+        let ext = src.extent
+        let luma = src.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 0.299, y: 0.587, z: 0.114, w: 0),
+            "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1)
+        ])
+        // Perceptual (gamma) values, so edge thresholds behave the same in dim and bright light.
+        .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.4545])
+        .clampedToExtent()
+        .applyingGaussianBlur(sigma: 1.0)
+        .cropped(to: ext)
+        var px = [Float](repeating: 0, count: w * h)
+        px.withUnsafeMutableBytes { raw in
+            ciContext.render(luma, toBitmap: raw.baseAddress!, rowBytes: w * 4, bounds: ext, format: .Rf, colorSpace: nil)
+        }
+        return GrayImage(w: w, h: h, px: px)
+    }
+
+    /// Whether `render(toBitmap:)` writes the top of the image first (checked once at runtime).
+    private func detectRowOrder() -> Bool {
+        let top = CIImage(color: CIColor(red: 1, green: 1, blue: 1)).cropped(to: CGRect(x: 0, y: 1, width: 1, height: 1))
+        let bottom = CIImage(color: CIColor(red: 0, green: 0, blue: 0)).cropped(to: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let img = top.composited(over: bottom)
+        var v = [Float](repeating: 0, count: 2)
+        v.withUnsafeMutableBytes { raw in
+            ciContext.render(img, toBitmap: raw.baseAddress!, rowBytes: 4, bounds: CGRect(x: 0, y: 0, width: 1, height: 2),
+                             format: .Rf, colorSpace: nil)
+        }
+        return v[0] > v[1]
     }
 
     // MARK: - Detection
