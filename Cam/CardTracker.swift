@@ -94,6 +94,9 @@ final class CardTracker {
 
         let buffer = analysisBuffer(fullBuffer)
         let gray = useFlowTracker ? renderGray(buffer) : nil
+        // CPU view of the analysis frame's colours, for the "is this paper?" checks.
+        let paper = PaperReader(buffer, topDown: rowsTopDown ?? true)
+        defer { paper?.unlock() }
         let pyramid = gray?.pyramid(levels: 4)
         let gw = CGFloat(gray?.w ?? 1), gh = CGFloat(gray?.h ?? 1)
         let topDown = rowsTopDown ?? true
@@ -113,7 +116,7 @@ final class CardTracker {
         var trackedScore = -1.0
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
-                trackedScore = cardLikeness(g, buffer, next.quad)
+                trackedScore = cardLikeness(g, paper, next.quad)
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it.
@@ -143,16 +146,20 @@ final class CardTracker {
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
                     guard plausible(quadCI(gq), w: W, h: H) else { return }
-                    let sc = cardLikeness(g, buffer, gq)
+                    let sc = cardLikeness(g, paper, gq)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
                 }
                 if let tq = grayQuad {
-                    // the current lock might be half the card
+                    // the current lock might be half the card, or have grown onto the fingers
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
+                    if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
                 }
                 for (q, how) in cands {
                     let gq = q.points.map(toGray)
                     consider(gq, how)
+                    // Vision's outline often includes the fingers behind the card: pull each side in
+                    // to the real paper edge.
+                    if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
                 if let b = best, b.score >= minScore,
@@ -249,26 +256,57 @@ final class CardTracker {
 
     // MARK: - Card check
 
+    /// Reads colours straight from the BGRA analysis buffer (locked while it exists).
+    struct PaperReader {
+        let buffer: CVPixelBuffer
+        let base: UnsafePointer<UInt8>
+        let w: Int, h: Int, rb: Int
+        let topDown: Bool
+
+        init?(_ buffer: CVPixelBuffer, topDown: Bool) {
+            guard CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA else { return nil }
+            CVPixelBufferLockBaseAddress(buffer, .readOnly)
+            guard let b = CVPixelBufferGetBaseAddress(buffer) else {
+                CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
+                return nil
+            }
+            self.buffer = buffer
+            base = UnsafePointer(b.assumingMemoryBound(to: UInt8.self))
+            w = CVPixelBufferGetWidth(buffer); h = CVPixelBufferGetHeight(buffer)
+            rb = CVPixelBufferGetBytesPerRow(buffer)
+            self.topDown = topDown
+        }
+
+        func unlock() { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+
+        /// Bright and close to neutral: white card paper (even under warm or cool light), not skin.
+        /// (x, y) in gray-image coordinates.
+        func isPaper(_ x: CGFloat, _ y: CGFloat) -> Bool {
+            guard x.isFinite, y.isFinite, abs(x) < 1e6, abs(y) < 1e6 else { return false }
+            let xi = Int(x.rounded())
+            var yi = Int(y.rounded())
+            if !topDown { yi = h - 1 - yi }
+            guard xi >= 0, xi < w, yi >= 0, yi < h else { return false }
+            let o = yi * rb + xi * 4
+            let bb = Double(base[o]), gg = Double(base[o + 1]), rr = Double(base[o + 2])
+            let mx = max(rr, gg, bb), mn = min(rr, gg, bb)
+            return mx > 64 && (mx - mn) / mx < 0.3
+        }
+    }
+
     /// PlanarTracker.cardScore (edges, even border, shape) times how much the border looks like
-    /// white paper in colour, so a finger or a patch of palm (even, card-shaped, but skin-coloured)
-    /// never wins over the card.
-    private func cardLikeness(_ g: GrayImage, _ buffer: CVPixelBuffer, _ quad: [CGPoint]) -> Double {
+    /// white paper in colour, so a finger, a patch of palm or the gap between two fingers never
+    /// wins over the card.
+    private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> Double {
         let s = PlanarTracker.cardScore(g, quad: quad)
         guard s > 0 else { return 0 }
-        let p = paperFraction(buffer, quad, topDown: rowsTopDown ?? true)
+        guard let paper = paper else { return s }
+        let p = paperFraction(paper, quad)
         return s * p * p
     }
 
-    /// Fraction of points just inside the quad's edges that are bright and close to neutral
-    /// (paper), read straight from the BGRA analysis buffer. Quad is in gray-image coordinates.
-    private func paperFraction(_ buffer: CVPixelBuffer, _ quad: [CGPoint], topDown: Bool) -> Double {
-        guard CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA else { return 1 }
-        CVPixelBufferLockBaseAddress(buffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return 1 }
-        let w = CVPixelBufferGetWidth(buffer), h = CVPixelBufferGetHeight(buffer)
-        let rb = CVPixelBufferGetBytesPerRow(buffer)
-        let px = base.assumingMemoryBound(to: UInt8.self)
+    /// Fraction of points just inside the quad's edges that look like paper.
+    private func paperFraction(_ paper: PaperReader, _ quad: [CGPoint]) -> Double {
         let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
         let size = (0..<4).map { k in hypot(quad[(k + 1) % 4].x - quad[k].x, quad[(k + 1) % 4].y - quad[k].y) }.max() ?? 0
         guard size > 8, size.isFinite else { return 0 }
@@ -281,18 +319,67 @@ final class CardTracker {
             if n.dx * ((a.x + b.x) / 2 - cx) + n.dy * ((a.y + b.y) / 2 - cy) < 0 { n = CGVector(dx: -n.dx, dy: -n.dy) }
             for s in 0..<20 {
                 let t = 0.12 + 0.76 * CGFloat(s) / 19
-                let x = Int((a.x + t * (b.x - a.x) - 0.04 * size * n.dx).rounded())
-                var y = Int((a.y + t * (b.y - a.y) - 0.04 * size * n.dy).rounded())
-                if !topDown { y = h - 1 - y }
-                guard x >= 0, x < w, y >= 0, y < h else { continue }
-                let o = y * rb + x * 4
-                let bb = Double(px[o]), gg = Double(px[o + 1]), rr = Double(px[o + 2])
-                let mx = max(rr, gg, bb), mn = min(rr, gg, bb)
+                let x = a.x + t * (b.x - a.x) - 0.04 * size * n.dx
+                let y = a.y + t * (b.y - a.y) - 0.04 * size * n.dy
                 total += 1
-                if mx > 64 && (mx - mn) / mx < 0.3 { ok += 1 }
+                if paper.isPaper(x, y) { ok += 1 }
             }
         }
         return total == 0 ? 0 : Double(ok) / Double(total)
+    }
+
+    /// Moves each side of an oversized outline inward (or slightly outward) to the line with the
+    /// most evidence of a card edge: a brightness step with paper on the inner side. Fixes outlines
+    /// that include the fingers or thumb around the card. Gray-image coordinates.
+    private func refitInward(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> [CGPoint]? {
+        guard let paper = paper, quad.count == 4,
+              quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
+        var lines: [(CGPoint, CGVector)] = []
+        var moved = false
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            let L = hypot(b.x - a.x, b.y - a.y)
+            guard L > 4 else { return nil }
+            let d = CGVector(dx: (b.x - a.x) / L, dy: (b.y - a.y) / L)
+            var n = CGVector(dx: -d.dy, dy: d.dx)
+            if n.dx * ((a.x + b.x) / 2 - cx) + n.dy * ((a.y + b.y) / 2 - cy) < 0 { n = CGVector(dx: -n.dx, dy: -n.dy) }
+            let p1 = quad[(k + 1) % 4], p2 = quad[(k + 2) % 4], p3 = quad[(k + 3) % 4]
+            let D = (hypot(p2.x - p1.x, p2.y - p1.y) + hypot(a.x - p3.x, a.y - p3.y)) / 2
+            let step = max(1, D / 60)
+            var bestOff: CGFloat = 0, bestEv = 0.0
+            var o = 0.05 * D
+            while o >= -0.45 * D {
+                var hits = 0
+                for s in 0..<20 {
+                    let t = 0.12 + 0.76 * CGFloat(s) / 19
+                    let px = a.x + t * (b.x - a.x) + o * n.dx, py = a.y + t * (b.y - a.y) + o * n.dy
+                    var gr: Float = 0
+                    for e in [-1.0, 0.0, 1.0] as [CGFloat] {
+                        let qx = px + e * n.dx, qy = py + e * n.dy
+                        let v = abs(g.sample(Float(qx - 2 * n.dx), Float(qy - 2 * n.dy)) - g.sample(Float(qx + 2 * n.dx), Float(qy + 2 * n.dy)))
+                        gr = max(gr, v)
+                    }
+                    if gr > 0.02 && paper.isPaper(px - 3 * n.dx, py - 3 * n.dy) { hits += 1 }
+                }
+                let ev = Double(hits) / 20
+                if ev > bestEv + 1e-9 { bestEv = ev; bestOff = o }
+                o -= step
+            }
+            let off = bestEv >= 0.3 ? bestOff : 0
+            if abs(off) > 1 { moved = true }
+            lines.append((CGPoint(x: a.x + off * n.dx, y: a.y + off * n.dy), d))
+        }
+        guard moved else { return nil }
+        var out: [CGPoint] = []
+        for k in 0..<4 {
+            let (p, r) = lines[(k + 3) % 4], (q, s) = lines[k]
+            let det = r.dx * (-s.dy) - (-s.dx) * r.dy
+            guard abs(det) > 1e-6 else { return nil }
+            let t = ((q.x - p.x) * (-s.dy) - (-s.dx) * (q.y - p.y)) / det
+            out.append(CGPoint(x: p.x + t * r.dx, y: p.y + t * r.dy))
+        }
+        return out
     }
 
     // MARK: - Gray image for the flow tracker
