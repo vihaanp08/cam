@@ -24,6 +24,7 @@ struct GrayImage {
 
     /// Bilinear sample with edge clamping.
     @inline(__always) func sample(_ x: Float, _ y: Float) -> Float {
+        guard x.isFinite, y.isFinite else { return 0 }
         let fx = min(max(x, 0), Float(w - 1)), fy = min(max(y, 0), Float(h - 1))
         let x0 = Int(fx), y0 = Int(fy)
         let x1 = min(x0 + 1, w - 1), y1 = min(y0 + 1, h - 1)
@@ -64,6 +65,7 @@ enum PlanarTracker {
     /// Corners with strong texture inside the card (the quad shrunk by `shrink`), at least `minDist` apart.
     static func goodFeatures(_ g: GrayImage, quad: [CGPoint], shrink: CGFloat = 0.14, maxCount: Int = 60,
                              quality: Float = 0.01, minDist: Float = 6) -> [CGPoint] {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return [] }
         let inner = shrunk(quad, shrink)
         let xs = inner.map(\.x), ys = inner.map(\.y)
         let x0 = max(2, Int(xs.min()!.rounded(.down))), x1 = min(g.w - 3, Int(xs.max()!.rounded(.up)))
@@ -188,9 +190,11 @@ enum PlanarTracker {
                     // solve G * eta = -b
                     let ex = (-gyy * bx + gxy * by) / det
                     let ey = (gxy * bx - gxx * by) / det
+                    if !ex.isFinite || !ey.isFinite || abs(vx + ex) > 64 || abs(vy + ey) > 64 { ok = false; break }
                     vx += ex; vy += ey
                     if ex * ex + ey * ey < 1e-4 { break }
                 }
+                if !ok { break }
                 if L > 0 { gx = 2 * (gx + vx); gy = 2 * (gy + vy) } else { gx += vx; gy += vy }
             }
             let nx = Float(pt.x) + gx, ny = Float(pt.y) + gy
@@ -273,9 +277,11 @@ enum PlanarTracker {
     /// parts of it), and rebuilds the corners from the four lines. Returns the refined quad and how
     /// many edges were snapped.
     static func snapEdges(_ g: GrayImage, quad: [CGPoint]) -> ([CGPoint], Int) {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return (quad, 0) }
         let q = quad.map { (Double($0.x), Double($0.y)) }
         func len(_ a: (Double, Double), _ b: (Double, Double)) -> Double { hypot(b.0 - a.0, b.1 - a.1) }
         let size = max(len(q[0], q[1]), len(q[0], q[3]))
+        guard size > 8, size < 1e4 else { return (quad, 0) }
         let rad = max(4.0, 0.06 * size)
         let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
         let samples = 28
@@ -291,6 +297,7 @@ enum PlanarTracker {
         for k in 0..<4 {
             let a = q[k], b = q[(k + 1) % 4]
             let L = len(a, b)
+            guard L > 1 else { return (quad, 0) }
             var d = ((b.0 - a.0) / L, (b.1 - a.1) / L)
             var nrm = (-d.1, d.0)
             let mid = ((a.0 + b.0) / 2, (a.1 + b.1) / 2)

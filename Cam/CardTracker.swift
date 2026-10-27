@@ -242,6 +242,10 @@ final class CardTracker {
             "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 0),
             "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1)
         ])
+        .applyingFilter("CIColorClamp", parameters: [
+            "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1)
+        ])
         // Perceptual (gamma) values, so edge thresholds behave the same in dim and bright light.
         .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.4545])
         .clampedToExtent()

@@ -85,14 +85,19 @@ jobs:
       - name: Build harness
         run: |
           set -o pipefail
-          swiftc -O -o /tmp/harness \
+          swiftc -O -g -o /tmp/harness \
             Cam/Geometry.swift Cam/PlanarTracker.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
             harness/Stubs.swift harness/main.swift 2>&1 | tee results/harness_build.log | grep -E "error" || true
           test -x /tmp/harness
 
       - name: Synthetic test
         continue-on-error: true
-        run: /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tee results/synth_log.txt
+        run: |
+          set -o pipefail
+          if ! /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tee results/synth_log.txt; then
+            echo "harness crashed; backtrace:" | tee -a results/synth_log.txt
+            lldb --batch -o run -k "bt 30" -k quit -- /tmp/harness synth /tmp/syn /tmp/fake_7d.png results/synth 0.75 2>&1 | tail -80 | tee -a results/synth_log.txt
+          fi
 
       - name: Real video tests
         run: |

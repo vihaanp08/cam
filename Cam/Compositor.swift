@@ -28,6 +28,7 @@ final class Compositor {
     private var fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
     private var regionMask: CIImage?
     private var regionInset: Double = -1
+    private var prevCenter: CGPoint?
 
     struct Analysis {
         var lighting: CIImage      // card space, predicted paper colour under the real light
@@ -44,6 +45,7 @@ final class Compositor {
     func resetTemporalState() {
         coeffs = nil
         fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
+        prevCenter = nil
     }
 
     // MARK: - Analysis
@@ -167,44 +169,50 @@ final class Compositor {
         }
         let faceUp = inP > 0 && (inL / inP) > 0.38
 
-        // 4. Fingers: non-paper pixels touching the edge bands (index corners excluded).
+        // 4. Fingers: skin that comes in over the card's outer edge (index corners excluded).
+        // A finger has to start right at the edge of the card and is followed inward only while it
+        // stays skin. Printed ink never touches the edge (there's always a white border first), so
+        // the real card's pips and indices can never be mistaken for a finger and show through.
         var finger = [Float](repeating: 0, count: gw * gh)
-        func isInk(_ x: Int, _ y: Int) -> Bool {
+        func isSkin(_ x: Int, _ y: Int) -> Bool {
             let c = rgb(x, y)
             let p = predict(Double(x) / Double(gw - 1), Double(y) / Double(gh - 1))
             let lc = lum(c), lp = max(lum(p), 1e-4)
+            let mx = max(c.0, c.1, c.2), mn = min(c.0, c.1, c.2)
+            let sat = (mx - mn) / max(mx, 1e-4)
+            // printed ink: near-black and neutral, or pure saturated red
+            if lc < 0.22 * lp && sat < 0.45 { return false }
+            if sat > 0.88 { return false }
             if lc < 0.74 * lp { return true }
             // colour shift relative to the paper (skin reads warmer than paper)
             let dr = c.0 / max(lc, 1e-4) - p.0 / lp
             let db = c.2 / max(lc, 1e-4) - p.2 / lp
             return abs(dr) + abs(db) > 0.22
         }
-        let bandIn = 2, bandOut = 7, reachLimit = 11
+        let reachLimit = 11
         let sideY0 = 27, sideY1 = gh - 28          // keep clear of the index corners
         let endX0 = 16, endX1 = gw - 17
-        for y in sideY0...sideY1 {
-            var x = bandIn
-            while x <= reachLimit {                // left edge, walking inward
-                if isInk(x, y) { finger[y * gw + x] = 1 } else if x > bandOut { break }
-                x += 1
-            }
-            x = gw - 1 - bandIn
-            while x >= gw - 1 - reachLimit {       // right edge
-                if isInk(x, y) { finger[y * gw + x] = 1 } else if x < gw - 1 - bandOut { break }
-                x -= 1
+        // Walk inward from the edge: (start x, start y, step x, step y)
+        func walk(_ x0: Int, _ y0: Int, _ dx: Int, _ dy: Int) {
+            // must be skin in the outermost cells
+            guard isSkin(x0, y0) || isSkin(x0 + dx, y0 + dy) else { return }
+            var x = x0, y = y0, n = 0
+            var misses = 0
+            while n <= reachLimit {
+                if isSkin(x, y) { finger[y * gw + x] = 1; misses = 0 } else {
+                    misses += 1
+                    if misses > 1 { break }          // allow one noisy cell, then stop
+                }
+                x += dx; y += dy; n += 1
             }
         }
+        for y in sideY0...sideY1 {
+            walk(1, y, 1, 0)                       // left edge
+            walk(gw - 2, y, -1, 0)                 // right edge
+        }
         for x in endX0...endX1 {
-            var y = bandIn
-            while y <= reachLimit {                // top edge
-                if isInk(x, y) { finger[y * gw + x] = 1 } else if y > bandOut { break }
-                y += 1
-            }
-            y = gh - 1 - bandIn
-            while y >= gh - 1 - reachLimit {       // bottom edge
-                if isInk(x, y) { finger[y * gw + x] = 1 } else if y < gh - 1 - bandOut { break }
-                y -= 1
-            }
+            walk(x, 1, 0, 1)                       // top edge
+            walk(x, gh - 2, 0, -1)                 // bottom edge
         }
         // Temporal smoothing, then a 1-cell dilation so the cut covers the whole fingertip.
         for i in finger.indices { finger[i] = 0.5 * finger[i] + 0.5 * fingerPrev[i] }
@@ -412,6 +420,24 @@ final class Compositor {
             let box = quad.boundingBox.insetBy(dx: -8, dy: -8)
             warped = warped.applyingGaussianBlur(sigma: sigma).cropped(to: box)
         }
+        // Match motion blur: when the card moves, the real one smears along the motion, so the
+        // fake has to as well or it looks pasted on.
+        let c = quad.center
+        if let pc = prevCenter {
+            let vx = c.x - pc.x, vy = c.y - pc.y
+            let speed = hypot(vx, vy)
+            if speed > 3 && speed < quad.width * 0.35 {
+                let radius = min(40, 0.4 * speed * CGFloat(cfg.blurScale))
+                let mb = CIFilter.motionBlur()
+                mb.inputImage = warped
+                mb.radius = Float(radius)
+                mb.angle = Float(atan2(vy, vx))
+                if let o = mb.outputImage {
+                    warped = o.cropped(to: quad.boundingBox.insetBy(dx: -radius - 8, dy: -radius - 8))
+                }
+            }
+        }
+        prevCenter = c
 
         var out = warped.composited(over: frame)
         if cfg.debug { out = debugCorners(out, quad: quad) }
