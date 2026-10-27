@@ -185,9 +185,8 @@ final class CardTracker {
                 // Cards found by their printing (works when the outline is hard to see).
                 if let pr = paper {
                     for q in InkFinder.candidates(pr) {
-                        consider(q, "ink")
-                        if let f = InkFinder.fitEdges(g, pr, q) {
-                            consider(f, "ink fit")
+                        if let f = InkFinder.refine(g, pr, q) {
+                            consider(f, "ink")
                             for full in PlanarTracker.completeTruncated(f, w: g.w, h: g.h) { consider(full, "ink part") }
                         }
                     }
@@ -201,6 +200,7 @@ final class CardTracker {
                     // Vision's outline often includes the fingers behind the card: pull each side in
                     // to the real paper edge.
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
+                    if let pr = paper, let r = InkFinder.refine(g, pr, gq) { consider(r, how + " ref") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
                 lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " +
