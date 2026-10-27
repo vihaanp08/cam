@@ -375,6 +375,56 @@ enum PlanarTracker {
         return (out, snapped)
     }
 
+    // MARK: - How much does this quad look like a playing card?
+
+    /// 0...1. High when all four edges are real edges with brighter paper inside than outside,
+    /// the band just inside the edges is even (the white border), and the shape is card-like.
+    /// Used to choose between detections and to notice when the tracker has latched onto
+    /// something else (a card-plus-fingers blob, a patch of palm, a window).
+    static func cardScore(_ g: GrayImage, quad: [CGPoint]) -> Double {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return 0 }
+        let sides = (0..<4).map { k -> Double in
+            let a = quad[k], b = quad[(k + 1) % 4]
+            return Double(hypot(b.x - a.x, b.y - a.y))
+        }
+        let size = sides.max()!
+        guard size > 16, sides.min()! > 8 else { return 0 }
+        let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
+        var hits = 0, total = 0
+        var ring: [Float] = []
+        let inset = 0.04 * size
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            let L = sides[k]
+            let d = (Double(b.x - a.x) / L, Double(b.y - a.y) / L)
+            var n = (-d.1, d.0)
+            let mx = Double(a.x + b.x) / 2 - Double(cx), my = Double(a.y + b.y) / 2 - Double(cy)
+            if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }      // outward
+            for s in 0..<20 {
+                let t = 0.12 + 0.76 * Double(s) / 19
+                let px = Double(a.x) + t * Double(b.x - a.x), py = Double(a.y) + t * Double(b.y - a.y)
+                var best: Float = -1
+                for o in [-1.5, -0.75, 0, 0.75, 1.5] {
+                    let qx = px + o * n.0, qy = py + o * n.1
+                    let inside = g.sample(Float(qx - 2 * n.0), Float(qy - 2 * n.1))
+                    let outside = g.sample(Float(qx + 2 * n.0), Float(qy + 2 * n.1))
+                    best = max(best, inside - outside)
+                }
+                total += 1
+                if best > 0.012 { hits += 1 }
+                ring.append(g.sample(Float(px - inset * n.0), Float(py - inset * n.1)))
+            }
+        }
+        let edgeScore = Double(hits) / Double(max(1, total))
+        let sorted = ring.sorted()
+        let med = sorted[sorted.count / 2]
+        let even = Double(ring.filter { abs($0 - med) < 0.06 }.count) / Double(ring.count)
+        let w = (sides[0] + sides[2]) / 2, h = (sides[1] + sides[3]) / 2
+        let r = min(w, h) / max(w, h)
+        let aspect = exp(-pow((r - 0.716) / 0.15, 2))
+        return edgeScore * even * aspect
+    }
+
     // MARK: - Geometry helpers
 
     static func shrunk(_ q: [CGPoint], _ f: CGFloat) -> [CGPoint] {

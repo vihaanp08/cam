@@ -41,6 +41,11 @@ final class CardTracker {
     private var prevPyramid: [GrayImage]?
     private var points: [CGPoint] = []
     private var rowsTopDown: Bool?
+    private var weakFrames = 0
+    /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
+    private(set) var lastScore = -1.0
+    /// Below this a shape isn't accepted as a card.
+    var minScore = 0.14
 
     /// How many frames we keep predicting the pose after losing the card.
     let maxCoastFrames = 30
@@ -70,6 +75,7 @@ final class CardTracker {
         grayQuad = nil
         prevPyramid = nil
         points = []
+        weakFrames = 0
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -104,53 +110,57 @@ final class CardTracker {
         var source = "none"
 
         // 1. Follow the card's texture with optical flow.
-        if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid {
-            if let next = flowStep(prev: prev, cur: cur, quad: gq) {
-                let q = quadCI(next.quad)
-                if plausible(q, w: W, h: H) {
+        var trackedScore = -1.0
+        if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
+            if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
+                trackedScore = PlanarTracker.cardScore(g, quad: next.quad)
+                // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
+                // a weak track is kept while detection looks for something better (step 2); only a
+                // long run of clearly-not-a-card frames drops it.
+                weakFrames = trackedScore < minScore ? weakFrames + 1 : 0
+                if weakFrames < 10 || trackedScore >= minScore * 0.5 {
                     grayQuad = next.quad
                     points = next.points
-                    measured = q
+                    measured = quadCI(next.quad)
                     source = next.snapped > 0 ? "flow+edge" : "flow"
                 } else {
                     grayQuad = nil
+                    trackedScore = -1
                 }
             } else {
                 grayQuad = nil
             }
         }
 
-        // 2. Detect when lost, and every few frames to catch a wrong lock.
-        if measured == nil || frameIndex % detectEvery == 0 {
-            if let det = detect(buffer, w: W, h: H) {
-                let (obs, how) = det
-                let q = quad(from: obs, w: W, h: H)
-                var adopt = false
-                if let m = measured {
-                    let size = max(q.width, q.height)
-                    if meanCornerDistance(m, q) > size * 0.3 {
-                        disagreeCount += 1
-                        adopt = disagreeCount >= 2
-                    } else {
-                        disagreeCount = 0
-                    }
-                } else {
-                    adopt = true
+        // 2. Detect when lost, every few frames as a check, and sooner while the track looks weak.
+        if measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0) {
+            let cands = detectCandidates(buffer, w: W, h: H)
+            if let g = gray {
+                // Snap every candidate to the real edges, score it, keep the most card-like.
+                var best: (quad: [CGPoint], how: String, score: Double)?
+                for (q, how) in cands {
+                    var gq = q.points.map(toGray)
+                    let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
+                    if n > 0 { gq = sq }
+                    guard plausible(quadCI(gq), w: W, h: H) else { continue }
+                    let sc = PlanarTracker.cardScore(g, quad: gq)
+                    if best == nil || sc > best!.score { best = (gq, how, sc) }
                 }
-                if adopt {
-                    disagreeCount = 0
-                    measured = q
-                    source = how
-                    if let g = gray {
-                        var gq = q.points.map(toGray)
-                        let (snappedQuad, n) = PlanarTracker.snapEdges(g, quad: gq)
-                        if n > 0 { gq = snappedQuad; measured = quadCI(gq) }
-                        grayQuad = gq
-                        points = PlanarTracker.goodFeatures(g, quad: gq)
-                    }
+                if let b = best, b.score >= minScore,
+                   measured == nil || b.score > trackedScore + 0.12 {
+                    grayQuad = b.quad
+                    points = PlanarTracker.goodFeatures(g, quad: b.quad)
+                    measured = quadCI(b.quad)
+                    source = b.how
+                    weakFrames = 0
+                    trackedScore = b.score
                 }
+            } else if measured == nil, let first = cands.first {
+                measured = first.0
+                source = first.1
             }
         }
+        lastScore = trackedScore
         prevPyramid = pyramid
 
         // 3. Sanity: reject shapes that are clearly not a card held up to the camera.
@@ -273,53 +283,38 @@ final class CardTracker {
 
     // MARK: - Detection
 
-    private func detect(_ buffer: CVPixelBuffer, w: CGFloat, h: CGFloat) -> (VNRectangleObservation, String)? {
+    /// Card candidates from Vision, most likely first: the document outline and every rectangle.
+    private func detectCandidates(_ buffer: CVPixelBuffer, w: CGFloat, h: CGFloat) -> [(Quad, String)] {
         let doc = VNDetectDocumentSegmentationRequest()
         let rect = VNDetectRectanglesRequest()
         rect.minimumAspectRatio = 0.45
         rect.maximumAspectRatio = 0.95
         rect.quadratureTolerance = 30
-        rect.minimumSize = 0.1
-        rect.minimumConfidence = 0.4
-        rect.maximumObservations = 6
+        rect.minimumSize = 0.08
+        rect.minimumConfidence = 0.2
+        rect.maximumObservations = 10
         let handler = VNImageRequestHandler(cvPixelBuffer: buffer, orientation: .up, options: [:])
         // Run separately so one detector failing never takes the other down with it.
         try? handler.perform([rect])
         if useDocumentDetector {
             do { try handler.perform([doc]) } catch { documentErrors += 1 }
         }
-
-        let rects = (rect.results ?? []).filter { plausible(quad(from: $0, w: w, h: h), w: w, h: h) }
-
+        var out: [(Quad, String)] = []
         if useDocumentDetector, let d = doc.results?.first, d.confidence > 0.3 {
             let dq = quad(from: d, w: w, h: h)
-            if plausible(dq, w: w, h: h) {
-                // Prefer a precise rectangle that matches the document outline.
-                let dSize = max(dq.width, dq.height)
-                let dArea = dq.width * dq.height
-                let matches = rects.filter { r in
-                    let rq = quad(from: r, w: w, h: h)
-                    let ratio = (rq.width * rq.height) / max(dArea, 1)
-                    return rq.center.distance(to: dq.center) < dSize * 0.2 && ratio > 0.7 && ratio < 1.4
-                }
-                if let best = matches.max(by: { $0.confidence < $1.confidence }) {
-                    return (best, "doc+rect")
-                }
-                return (d, "doc")
-            }
+            if plausible(dq, w: w, h: h) { out.append((dq, "doc")) }
         }
-
-        guard !rects.isEmpty else { return nil }
-        // No document found: the rectangle nearest the last card, otherwise the biggest confident one.
+        let rects = (rect.results ?? [])
+            .sorted { area($0) * CGFloat($0.confidence) > area($1) * CGFloat($1.confidence) }
+        for r in rects {
+            let q = quad(from: r, w: w, h: h)
+            if plausible(q, w: w, h: h) { out.append((q, "rect")) }
+        }
         if let last = lastQuad {
-            let best = rects.min { a, b in
-                quad(from: a, w: w, h: h).center.distance(to: last.center) <
-                quad(from: b, w: w, h: h).center.distance(to: last.center)
-            }!
-            return (best, "rect")
+            // nearest to where the card was comes first
+            out.sort { $0.0.center.distance(to: last.center) < $1.0.center.distance(to: last.center) }
         }
-        let best = rects.max { area($0) * CGFloat($0.confidence) < area($1) * CGFloat($1.confidence) }!
-        return (best, "rect")
+        return out
     }
 
     // MARK: - Helpers
@@ -372,6 +367,22 @@ final class CardTracker {
         let ratio = short / long
         // A 63 x 88 mm card is 0.716; allow for perspective.
         guard ratio > 0.45, ratio < 0.95 else { return false }
+        // Convex, roughly rectangular (no corner angle far from 90 degrees), opposite sides similar.
+        let p = q.points
+        var sign: CGFloat = 0
+        for k in 0..<4 {
+            let a = p[(k + 3) % 4], b = p[k], c = p[(k + 1) % 4]
+            let u = CGVector(dx: a.x - b.x, dy: a.y - b.y), v = CGVector(dx: c.x - b.x, dy: c.y - b.y)
+            let lu = hypot(u.dx, u.dy), lv = hypot(v.dx, v.dy)
+            guard lu > 1, lv > 1 else { return false }
+            let cross = u.dx * v.dy - u.dy * v.dx
+            if sign == 0 { sign = cross } else if (cross > 0) != (sign > 0) { return false }
+            let cosA = (u.dx * v.dx + u.dy * v.dy) / (lu * lv)
+            if abs(cosA) > 0.64 { return false }         // outside 50...130 degrees
+        }
+        let s0 = p[0].distance(to: p[1]), s1 = p[1].distance(to: p[2])
+        let s2 = p[2].distance(to: p[3]), s3 = p[3].distance(to: p[0])
+        guard s0 / s2 > 0.6, s0 / s2 < 1.67, s1 / s3 > 0.6, s1 / s3 < 1.67 else { return false }
         // Not the whole frame (e.g. a doorway or the edge of a screen).
         return q.boundingBox.width < w * 0.98 || q.boundingBox.height < h * 0.98
     }
