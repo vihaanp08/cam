@@ -180,6 +180,16 @@ final class CardTracker {
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
                 }
+                // Cards found by their printing (works when the outline is hard to see).
+                if let pr = paper {
+                    for q in InkFinder.candidates(pr) {
+                        consider(q, "ink")
+                        if let f = InkFinder.fitEdges(g, pr, q) {
+                            consider(f, "ink fit")
+                            for full in PlanarTracker.completeTruncated(f, w: g.w, h: g.h) { consider(full, "ink part") }
+                        }
+                    }
+                }
                 for (q, how) in cands {
                     let gq = q.points.map(toGray)
                     consider(gq, how)
@@ -373,6 +383,14 @@ final class CardTracker {
 
         /// Bright and close to neutral: white card paper (even under warm or cool light), not skin.
         /// (x, y) in gray-image coordinates.
+        /// (r, g, b) 0...255 at integer gray-image coordinates (no bounds surprises), or nil outside.
+        func colorAt(_ x: Int, _ y: Int) -> (UInt8, UInt8, UInt8)? {
+            let yy = topDown ? y : h - 1 - y
+            guard x >= 0, x < w, yy >= 0, yy < h else { return nil }
+            let o = yy * rb + x * 4
+            return (base[o + 2], base[o + 1], base[o])
+        }
+
         /// (r, g, b) 0...255 at gray-image coordinates, or nil outside the picture.
         func color(_ x: CGFloat, _ y: CGFloat) -> (Double, Double, Double)? {
             guard x.isFinite, y.isFinite, abs(x) < 1e6, abs(y) < 1e6 else { return nil }

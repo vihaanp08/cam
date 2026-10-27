@@ -358,7 +358,7 @@ private struct ModePill: View {
 
     private var font: UIFont { .systemFont(ofSize: 13 * s, weight: .semibold) }
     private var kern: CGFloat { 1.1 * s }
-    private var spacing: CGFloat { 33 * s }
+    private var spacing: CGFloat { 30 * s }
 
     private func width(_ t: String) -> CGFloat {
         (t as NSString).size(withAttributes: [.font: font, .kern: kern]).width
@@ -399,10 +399,10 @@ private struct ModePill: View {
                 // fade the labels out towards the ends of the pill, like the real one
                 .mask(
                     LinearGradient(stops: [
-                        .init(color: .clear, location: 0.02),
-                        .init(color: .black, location: 0.16),
-                        .init(color: .black, location: 0.84),
-                        .init(color: .clear, location: 0.98)
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black, location: 0.07),
+                        .init(color: .black, location: 0.88),
+                        .init(color: .clear, location: 1.0)
                     ], startPoint: .leading, endPoint: .trailing)
                 )
             }

@@ -87,7 +87,7 @@ jobs:
         run: |
           set -o pipefail
           swiftc -O -g -o /tmp/harness \
-            Cam/Geometry.swift Cam/PlanarTracker.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
+            Cam/Geometry.swift Cam/PlanarTracker.swift Cam/InkFinder.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
             harness/Stubs.swift harness/main.swift 2>&1 | tee results/harness_build.log | grep -E "error" || true
           test -x /tmp/harness
 
