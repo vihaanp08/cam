@@ -120,7 +120,7 @@ final class CardTracker {
         var trackedScore = -1.0
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
-                trackedScore = cardLikeness(g, paper, next.quad) * sizeConsistency(next.quad)
+                trackedScore = cardLikeness(g, paper, next.quad)
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it.
@@ -187,7 +187,7 @@ final class CardTracker {
             }
         }
         lastScore = trackedScore
-        if trackedScore >= 0.4, let gq = grayQuad {
+        if trackedScore >= 0.25, let gq = grayQuad {
             lastGood = (gq, quadSize(gq), frameIndex)
         }
         prevPyramid = pyramid

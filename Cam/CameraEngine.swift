@@ -32,6 +32,16 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var _gateImage: CIImage?
     private var _position: AVCaptureDevice.Position = .front
     private var _onAutoRearm: (() -> Void)?
+    /// Rotation that makes this camera's frames upright with the phone held in portrait.
+    /// 90 for sensors mounted sideways (most), 0 for the newer portrait-mounted square selfie sensor.
+    private var _portraitAngle: CGFloat = 90
+    private var _learnedAngles: [Int: CGFloat] = [:]     // by camera position
+    private var _deviceIsPortrait = true
+
+    // Session-queue-only state
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var rotationObservation: NSKeyValueObservation?
+    private var orientationObserver: NSObjectProtocol?
 
     // Video-queue-only state
     private var gateFade = 0
@@ -127,6 +137,21 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     // MARK: - Session
 
     func start() {
+        if orientationObserver == nil {
+            // Remember whether the phone is held upright, so the camera rotation is only learned
+            // from the system while the phone is in portrait (the app's only orientation).
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            let update = { [weak self] in
+                guard let self = self else { return }
+                let o = UIDevice.current.orientation
+                guard o.isValidInterfaceOrientation else { return }   // ignore face up / down
+                self.lock.lock(); self._deviceIsPortrait = (o == .portrait); self.lock.unlock()
+                if o == .portrait { self.sessionQueue.async { self.learnPortraitAngle() } }
+            }
+            update()
+            orientationObserver = NotificationCenter.default.addObserver(
+                forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in update() }
+        }
         sessionQueue.async {
             if self.session.inputs.isEmpty { self.configure(position: self.position) }
             self.beginGate(cover: nil)
@@ -168,10 +193,17 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     func focus(at p: CGPoint) {
         sessionQueue.async {
             guard let d = self.device else { return }
-            // Device coordinates are in the sensor's landscape orientation.
+            // Device coordinates are in the sensor's own orientation: undo the rotation.
             var x = p.x
             if self.position == .front && self.currentConfig.mirror { x = 1 - x }
-            let devicePoint = CGPoint(x: p.y, y: 1 - x)
+            self.lock.lock(); let angle = self._portraitAngle; self.lock.unlock()
+            let devicePoint: CGPoint
+            switch Int(angle.rounded()) % 360 {
+            case 0: devicePoint = CGPoint(x: x, y: p.y)
+            case 180: devicePoint = CGPoint(x: 1 - x, y: 1 - p.y)
+            case 270: devicePoint = CGPoint(x: 1 - p.y, y: x)
+            default: devicePoint = CGPoint(x: p.y, y: 1 - x)
+            }
             do {
                 try d.lockForConfiguration()
                 // Keep focus/exposure continuous (just biased to the tapped point) so tracking never
@@ -209,6 +241,8 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
                 ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
         } else {
             d = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+                ?? AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .front)
+                ?? AVCaptureDevice.default(.builtInTrueDepthCamera, for: .video, position: .front)
         }
         guard let dev = d, let newInput = try? AVCaptureDeviceInput(device: dev), session.canAddInput(newInput) else {
             session.commitConfiguration()
@@ -218,6 +252,28 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         input = newInput
         device = dev
         lock.lock(); _position = position; lock.unlock()
+
+        // Which way up are this camera's frames? Newer phones mount the selfie sensor in portrait,
+        // older ones sideways, so ask the system instead of assuming 90 degrees.
+        rotationObservation = nil
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: dev, previewLayer: nil)
+        rotationCoordinator = coordinator
+        lock.lock(); let portraitNow = _deviceIsPortrait; lock.unlock()
+        let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+        lock.lock()
+        if portraitNow {
+            // Held upright: the system's horizon-level angle is the one we need.
+            _portraitAngle = angle
+            _learnedAngles[position.rawValue] = angle
+        } else if let known = _learnedAngles[position.rawValue] {
+            _portraitAngle = known
+        } else {
+            _portraitAngle = position == .back ? 90 : angle
+        }
+        lock.unlock()
+        rotationObservation = coordinator.observe(\.videoRotationAngleForHorizonLevelCapture, options: [.new]) { [weak self] _, _ in
+            self?.sessionQueue.async { self?.learnPortraitAngle() }
+        }
 
         if !session.outputs.contains(videoOutput) {
             videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
@@ -258,9 +314,28 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         DispatchQueue.main.async { cb?(position, stops) }
     }
 
+    /// While the phone is upright, the system's horizon-level angle is exactly the rotation the
+    /// portrait-only app needs; keep it (session queue).
+    private func learnPortraitAngle() {
+        guard let c = rotationCoordinator else { return }
+        lock.lock()
+        let portrait = _deviceIsPortrait
+        let changed = portrait && _portraitAngle != c.videoRotationAngleForHorizonLevelCapture
+        if portrait {
+            _portraitAngle = c.videoRotationAngleForHorizonLevelCapture
+            _learnedAngles[_position.rawValue] = _portraitAngle
+        }
+        lock.unlock()
+        if changed {
+            applyConnectionSettings()
+            videoQueue.async { self.pipeline.reset() }
+        }
+    }
+
     private func applyConnectionSettings() {
         guard let conn = videoOutput.connection(with: .video) else { return }
-        if conn.isVideoRotationAngleSupported(90) { conn.videoRotationAngle = 90 }
+        lock.lock(); let angle = _portraitAngle; lock.unlock()
+        if conn.isVideoRotationAngleSupported(angle) { conn.videoRotationAngle = angle }
         lock.lock(); let mirror = _config.mirror && _position == .front; lock.unlock()
         if conn.isVideoMirroringSupported {
             conn.automaticallyAdjustsVideoMirroring = false
