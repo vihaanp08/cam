@@ -153,7 +153,7 @@ final class CardTracker {
                     let sc = cardLikeness(g, paper, gq) * sizeConsistency(gq)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
                 }
-                if let lg = lastGood, frameIndex - lg.frame < 90 {
+                if grayQuad == nil, let lg = lastGood, frameIndex - lg.frame < 90 {
                     // where the card was last seen clearly (it often comes back after a fast move)
                     consider(lg.quad, "last")
                     if let r = refitInward(g, paper, lg.quad) { consider(r, "last fit") }
@@ -171,8 +171,9 @@ final class CardTracker {
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
+                // Taking over from a working track needs a clearly better, clearly card-like shape.
                 if let b = best, b.score >= minScore,
-                   measured == nil || b.score > trackedScore + 0.12 {
+                   measured == nil || (b.score > trackedScore + 0.12 && b.score >= 0.3) {
                     grayQuad = b.quad
                     points = PlanarTracker.goodFeatures(g, quad: b.quad)
                     measured = quadCI(b.quad)
@@ -186,7 +187,7 @@ final class CardTracker {
             }
         }
         lastScore = trackedScore
-        if trackedScore >= 0.3, let gq = grayQuad {
+        if trackedScore >= 0.4, let gq = grayQuad {
             lastGood = (gq, quadSize(gq), frameIndex)
         }
         prevPyramid = pyramid
@@ -532,7 +533,8 @@ final class CardTracker {
 
     private func plausible(_ q: Quad, w: CGFloat, h: CGFloat) -> Bool {
         let short = min(q.width, q.height), long = max(q.width, q.height)
-        guard short > 40, long > 0 else { return false }
+        // In a close-up the card is never tiny: rules out pips, fingertips and other small boxes.
+        guard short > max(40, 0.1 * min(w, h)), long > 0 else { return false }
         let ratio = short / long
         // A 63 x 88 mm card is 0.716; allow for perspective.
         guard ratio > 0.45, ratio < 0.95 else { return false }
