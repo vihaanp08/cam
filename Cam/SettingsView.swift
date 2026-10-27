@@ -97,7 +97,8 @@ struct SettingsView: View {
                 }
 
                 Section("Camera") {
-                    Toggle("Mirror selfie view", isOn: $s.mirror)
+                    Toggle("Mirror selfie view (like the real camera)", isOn: $s.mirror)
+                    Toggle("Grid", isOn: $s.showGrid)
                     Toggle("Only replace card faces", isOn: $s.facesOnly)
                     Toggle("Debug overlay", isOn: $s.debug)
                 }

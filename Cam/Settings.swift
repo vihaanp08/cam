@@ -24,6 +24,7 @@ final class AppSettings: ObservableObject {
     @Published var autoRearm: Bool { didSet { d.set(autoRearm, forKey: "autoRearm") } }
     @Published var facesOnly: Bool { didSet { d.set(facesOnly, forKey: "facesOnly") } }
     @Published var debug: Bool { didSet { d.set(debug, forKey: "debug") } }
+    @Published var showGrid: Bool { didSet { d.set(showGrid, forKey: "showGrid") } }
 
     // Look tuning
     @Published var brightness: Double { didSet { d.set(brightness, forKey: "brightness") } }   // -0.3...0.3
@@ -36,7 +37,7 @@ final class AppSettings: ObservableObject {
             "rank": 7, "suit": 3,
             "snapEnabled": true, "snapSensitivity": 0.55,
             "buttonsEnabled": true, "tapEnabled": false,
-            "mirror": false, "haptics": true, "autoRearm": false,
+            "mirror": true, "showGrid": true, "haptics": true, "autoRearm": false,
             "facesOnly": true, "debug": false,
             "brightness": 0.0, "blurScale": 1.0, "noiseScale": 1.0, "insetScale": 1.0
         ])
@@ -52,6 +53,7 @@ final class AppSettings: ObservableObject {
         autoRearm = d.bool(forKey: "autoRearm")
         facesOnly = d.bool(forKey: "facesOnly")
         debug = d.bool(forKey: "debug")
+        showGrid = d.bool(forKey: "showGrid")
         brightness = d.double(forKey: "brightness")
         blurScale = d.double(forKey: "blurScale")
         noiseScale = d.double(forKey: "noiseScale")

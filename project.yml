@@ -44,6 +44,7 @@ targets:
         NSCameraUsageDescription: "Cam uses the camera to take photos."
         NSMicrophoneUsageDescription: "Cam listens for a snap to take its shot."
         NSPhotoLibraryAddUsageDescription: "Cam saves your photos to your library."
+        NSPhotoLibraryUsageDescription: "Cam shows your latest photo next to the shutter."
 schemes:
   Cam:
     build:

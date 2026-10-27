@@ -114,7 +114,7 @@ struct PreviewRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PreviewView {
         let v = PreviewView(engine: model.engine)
-        v.onTap = { p in model.handleTap(at: p) }
+        v.onTap = { [weak v] p in model.handleTap(at: p, in: v?.bounds.size ?? .zero) }
         v.onOpenSettings = { model.showSettings = true }
         v.onRearm = { model.rearm() }
         v.onHardwareButton = { model.hardwareButtonPressed() }

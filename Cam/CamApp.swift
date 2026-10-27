@@ -9,7 +9,6 @@ struct CamApp: App {
         WindowGroup {
             CameraScreen(model: model)
                 .statusBarHidden(true)
-                .persistentSystemOverlays(.hidden)
                 .preferredColorScheme(.dark)
                 .onAppear { model.start() }
                 .onChange(of: phase) { _, newPhase in

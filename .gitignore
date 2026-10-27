@@ -6,3 +6,4 @@ Payload/
 xcuserdata/
 Cam/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 .venv/
+__pycache__/
