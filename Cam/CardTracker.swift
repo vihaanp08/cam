@@ -596,7 +596,7 @@ final class CardTracker {
     private func plausible(_ q: Quad, w: CGFloat, h: CGFloat) -> Bool {
         let short = min(q.width, q.height), long = max(q.width, q.height)
         // In a close-up the card is never tiny: rules out pips, fingertips and other small boxes.
-        guard short > max(40, 0.1 * min(w, h)), long > 0 else { return false }
+        guard short > max(40, 0.13 * min(w, h)), long > 0 else { return false }
         let ratio = short / long
         // A 63 x 88 mm card is 0.716; allow for perspective.
         guard ratio > 0.45, ratio < 0.95 else { return false }
