@@ -1,0 +1,8 @@
+*.xcodeproj
+build/
+Payload/
+*.ipa
+.DS_Store
+xcuserdata/
+Cam/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+.venv/
