@@ -129,7 +129,10 @@ final class CardTracker {
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it.
                 weakFrames = trackedScore < minScore ? weakFrames + 1 : 0
-                if weakFrames < 10 || trackedScore >= minScore * 0.5 {
+                // Shrunk onto part of the card (paper carries on past two sides): drop it at once so
+                // detection replaces it this very frame, never keep painting a card inside the card.
+                let insideCard = lastInside >= 2
+                if !insideCard && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
                     points = next.points
                     measured = quadCI(next.quad)
@@ -237,7 +240,19 @@ final class CardTracker {
         }
 
         if var m = measured {
-            m = lastQuad.map { m.aligned(to: $0) } ?? m.uprightPortrait()
+            // The fake's long side must always lie along the card's long side (never drawn
+            // sideways), so only the two labellings with the short sides on top and bottom are
+            // allowed; of those, the one matching the last frame (or reading upright) wins.
+            let r = PlanarTracker.trueWidthOverHeight(m.points, f: 0.75 * Double(min(W, H)),
+                                                     cx: Double(W) / 2, cy: Double(H) / 2)
+            if r > 1 { m = m.rotatedLabels(1) }
+            let flipped = m.rotatedLabels(2)
+            if let lq = lastQuad {
+                func cost(_ q: Quad) -> CGFloat { zip(q.points, lq.points).reduce(0) { $0 + $1.0.distance(to: $1.1) } }
+                if cost(flipped) < cost(m) { m = flipped }
+            } else if (m.tl.y + m.tr.y) < (m.bl.y + m.br.y) {
+                m = flipped
+            }
             // After a gap or a jump to a different place, start fresh at the new position instead of
             // sliding there (a sliding fake card is a visible ghost).
             let jumped = lastQuad.map { meanCornerDistance(m, $0) > 0.25 * max(m.width, m.height) } ?? true
@@ -422,10 +437,20 @@ final class CardTracker {
     /// wins over the card.
     private var partsNote = ""
 
+    /// Sides of the last scored quad with plain paper carrying on past them (see cardLikeness).
+    private var lastInside = 0
+
     private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> Double {
-        let s = PlanarTracker.cardScore(g, quad: quad)
+        lastInside = 0
+        let s0 = PlanarTracker.cardScore(g, quad: quad)
         partsNote = "edge/shape 0"
-        guard s > 0 else { return 0 }
+        guard s0 > 0 else { return 0 }
+        // A box drawn inside a card (round some of its pips, or half of it): paper carries straight
+        // on across its sides. That is the "card inside a card" look, so it must never win.
+        let inside = PlanarTracker.paperContinuesSides(g, quad: quad)
+        lastInside = inside
+        let s = s0 * (inside == 0 ? 1 : inside == 1 ? 0.35 : 0)
+        guard s > 0 else { partsNote = "inside a card"; return 0 }
         guard let paper = paper else { return s }
         let p = paperFraction(paper, quad)
         // A card face always has printing on it (indices, pips); a blank patch of wall or ceiling

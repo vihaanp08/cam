@@ -390,6 +390,13 @@ enum PlanarTracker {
     /// focal length `f` (pixels) and the principal point at the image centre. A card tilted away
     /// from the camera looks squashed in the picture but still comes out near 63/88 = 0.716 here.
     static func trueAspect(_ quad: [CGPoint], f: Double, cx: Double, cy: Double) -> Double {
+        let r = trueWidthOverHeight(quad, f: f, cx: cx, cy: cy)
+        return min(r, 1 / max(r, 1e-6))
+    }
+
+    /// The real length of the tl-tr side over the real length of the tl-bl side, undoing perspective.
+    /// Below 1 means the quad is labelled with the short sides on top and bottom (upright card).
+    static func trueWidthOverHeight(_ quad: [CGPoint], f: Double, cx: Double, cy: Double) -> Double {
         // Zhang & He (whiteboard scanning): rectangle aspect from its four imaged corners.
         func v(_ p: CGPoint) -> (Double, Double, Double) { (Double(p.x) - cx, Double(p.y) - cy, 1) }
         func cross(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> (Double, Double, Double) {
@@ -402,7 +409,7 @@ enum PlanarTracker {
         func simple() -> Double {
             let w = (hypot(Double(quad[1].x - quad[0].x), Double(quad[1].y - quad[0].y)) + hypot(Double(quad[2].x - quad[3].x), Double(quad[2].y - quad[3].y))) / 2
             let h = (hypot(Double(quad[3].x - quad[0].x), Double(quad[3].y - quad[0].y)) + hypot(Double(quad[2].x - quad[1].x), Double(quad[2].y - quad[1].y))) / 2
-            return min(w, h) / max(max(w, h), 1e-6)
+            return w / max(h, 1e-6)
         }
         guard abs(d2) > 1e-9, abs(d3) > 1e-9 else { return simple() }
         let k2 = dot(c14, m3) / d2, k3 = dot(c14, m2) / d3
@@ -413,8 +420,52 @@ enum PlanarTracker {
         let b = n3.0 * n3.0 + n3.1 * n3.1 + f2 * n3.2 * n3.2
         guard a > 0, b > 0, a.isFinite, b.isFinite else { return simple() }
         let r = (a / b).squareRoot()
-        let ratio = min(r, 1 / r)
-        return ratio.isFinite ? ratio : simple()
+        return r.isFinite && r > 0 ? r : simple()
+    }
+
+    /// For each side: does plain paper carry on straight across it, with no edge? That happens when
+    /// the quad is drawn inside a card (round a few pips, or half the card) instead of around it.
+    /// Returns the number of such sides.
+    static func paperContinuesSides(_ g: GrayImage, quad: [CGPoint]) -> Int {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return 0 }
+        let sides = (0..<4).map { k in Double(hypot(quad[(k + 1) % 4].x - quad[k].x, quad[(k + 1) % 4].y - quad[k].y)) }
+        let size = sides.max() ?? 0
+        guard size > 16 else { return 0 }
+        let cx = Double(quad.map(\.x).reduce(0, +) / 4), cy = Double(quad.map(\.y).reduce(0, +) / 4)
+        let reachIn = 0.03 * size, reachOut = 0.06 * size
+        var count = 0
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            let L = sides[k]
+            guard L > 4 else { continue }
+            let d = (Double(b.x - a.x) / L, Double(b.y - a.y) / L)
+            var n = (-d.1, d.0)
+            let mx = Double(a.x + b.x) / 2 - cx, my = Double(a.y + b.y) / 2 - cy
+            if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }
+            var cont = 0, seen = 0
+            for s in 0..<16 {
+                let t = 0.15 + 0.7 * Double(s) / 15
+                let px = Double(a.x) + t * Double(b.x - a.x), py = Double(a.y) + t * Double(b.y - a.y)
+                guard g.contains(px - reachIn * n.0, py - reachIn * n.1), g.contains(px + reachOut * n.0, py + reachOut * n.1) else { continue }
+                seen += 1
+                // walk across the side one pixel at a time: bright all the way and no step anywhere
+                var o = -reachIn
+                var prev = g.sample(Float(px + o * n.0), Float(py + o * n.1))
+                let first = prev
+                var lo = prev, hi = prev
+                var smooth = true
+                while o < reachOut {
+                    o += 1
+                    let v = g.sample(Float(px + o * n.0), Float(py + o * n.1))
+                    if abs(v - prev) > 0.035 { smooth = false; break }
+                    lo = min(lo, v); hi = max(hi, v)
+                    prev = v
+                }
+                if smooth && first > 0.3 && hi - lo < 0.07 { cont += 1 }
+            }
+            if seen >= 6 && Double(cont) / Double(seen) >= 0.6 { count += 1 }
+        }
+        return count
     }
 
     /// Focal length guess for the gray image (about 70 degrees across the short side).

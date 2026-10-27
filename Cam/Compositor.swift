@@ -159,7 +159,9 @@ final class Compositor {
         }
         resid = accepted.isEmpty ? 0 : sqrt(resid / Double(accepted.count))
         let downscale = Double(max(ext.width / CGFloat(gw), 1))
-        let noise = min(0.05, resid * sqrt(downscale) * 0.5)
+        // (the border residual also holds the card's linen texture and edge misfit, so it reads high:
+        // keep the grain light, a heavy grain is what makes the fake look hazy)
+        let noise = min(0.012, resid * sqrt(downscale) * 0.25)
 
         // 3. Face or back? A face's interior is mostly paper; a back is mostly ink.
         var inL = 0.0, inP = 0.0
@@ -423,8 +425,9 @@ final class Compositor {
         guard var warped = pt.outputImage else { return frame }
 
         // Match the camera's softness.
-        let sigma = 0.45 * cfg.blurScale * Double(max(0.7, quad.width / 500))
-        if sigma > 0.15 {
+        // (only a touch: the real card in the picture is crisp, and too much blur is the haze)
+        let sigma = 0.25 * cfg.blurScale * Double(max(0.7, quad.width / 500))
+        if sigma > 0.2 {
             let box = quad.boundingBox.insetBy(dx: -8, dy: -8)
             warped = warped.applyingGaussianBlur(sigma: sigma).cropped(to: box)
         }
@@ -434,8 +437,10 @@ final class Compositor {
         if let pc = prevCenter {
             let vx = c.x - pc.x, vy = c.y - pc.y
             let speed = hypot(vx, vy)
-            if speed > 3 && speed < quad.width * 0.35 {
-                let radius = min(40, 0.4 * speed * CGFloat(cfg.blurScale))
+            // (radius is each way, so 0.2 x speed smears about 0.4 of a frame's movement, like the
+            // real exposure; small hand tremor gets none at all)
+            if speed > 6 && speed < quad.width * 0.35 {
+                let radius = min(30, 0.2 * speed * CGFloat(cfg.blurScale))
                 let mb = CIFilter.motionBlur()
                 mb.inputImage = warped
                 mb.radius = Float(radius)

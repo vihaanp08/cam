@@ -88,7 +88,7 @@ def inframe_fraction(quad):
 def real_card():
     """The performer's real card (5 of spades traced from a photo of his deck), with rounded corners."""
     from render_face import render
-    im = render("5_spades", paper=(246, 246, 243), scale_ink=1.0).convert("RGBA")
+    im = render("7_clubs", paper=(246, 246, 243), scale_ink=1.0).convert("RGBA")
     mask = Image.new("L", im.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, im.size[0] - 1, im.size[1] - 1), radius=26, fill=255)
     im.putalpha(mask)
