@@ -152,9 +152,11 @@ final class CardTracker {
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
                     guard plausible(quadCI(gq), w: W, h: H) else { return }
-                    // Size consistency only helps re-finding a lost card; it must never stop a
-                    // clearly better card from replacing a weak lock.
-                    let sc = cardLikeness(g, paper, gq) * (grayQuad == nil ? sizeConsistency(gq) : 1)
+                    // Prefer the card's recent size when re-finding it or when the current lock is
+                    // healthy, but never let it stop a clearly better card replacing a weak lock
+                    // (the weak lock may itself have been a wrong, odd-sized shape).
+                    let useSize = grayQuad == nil || trackedScore >= minScore
+                    let sc = cardLikeness(g, paper, gq) * (useSize ? sizeConsistency(gq) : 1)
                     if best == nil || sc > best!.score { best = (gq, how, sc) }
                 }
                 if grayQuad == nil, let lg = lastGood, frameIndex - lg.frame < 90 {
