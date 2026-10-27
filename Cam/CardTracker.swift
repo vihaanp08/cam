@@ -150,6 +150,7 @@ final class CardTracker {
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
                 var tried = 0, shapeOK = 0
+                var bestNote = ""
                 func consider(_ q: [CGPoint], _ how: String) {
                     tried += 1
                     var gq = q
@@ -161,8 +162,9 @@ final class CardTracker {
                     // healthy, but never let it stop a clearly better card replacing a weak lock
                     // (the weak lock may itself have been a wrong, odd-sized shape).
                     let useSize = grayQuad == nil || trackedScore >= minScore
-                    let sc = cardLikeness(g, paper, gq) * (useSize ? sizeConsistency(gq) : 1)
-                    if best == nil || sc > best!.score { best = (gq, how, sc) }
+                    let sz = useSize ? sizeConsistency(gq) : 1
+                    let sc = cardLikeness(g, paper, gq) * sz
+                    if best == nil || sc > best!.score { best = (gq, how, sc); bestNote = partsNote + String(format: " size %.2f", sz) }
                 }
                 if grayQuad == nil, let lg = lastGood, frameIndex - lg.frame < 90 {
                     // where the card was last seen clearly (it often comes back after a fast move)
@@ -202,7 +204,7 @@ final class CardTracker {
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
                 lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " +
-                    (best.map { "\($0.how) \(String(format: "%.2f", $0.score))" } ?? "-")
+                    (best.map { "\($0.how) \(String(format: "%.2f", $0.score)) [\(bestNote)]" } ?? "-")
                 // Taking over from a working track needs a clearly better, clearly card-like shape.
                 // Starting a lock from nothing needs a clearly card-like shape (a weak first lock is how
                 // a fake card ends up painted on a wall).
@@ -418,14 +420,18 @@ final class CardTracker {
     /// PlanarTracker.cardScore (edges, even border, shape) times how much the border looks like
     /// white paper in colour, so a finger, a patch of palm or the gap between two fingers never
     /// wins over the card.
+    private var partsNote = ""
+
     private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> Double {
         let s = PlanarTracker.cardScore(g, quad: quad)
+        partsNote = "edge/shape 0"
         guard s > 0 else { return 0 }
         guard let paper = paper else { return s }
         let p = paperFraction(paper, quad)
         // A card face always has printing on it (indices, pips); a blank patch of wall or ceiling
         // with straight edges around it does not.
         let ink = inkFraction(paper, quad)
+        partsNote = String(format: "edge/shape %.2f paper %.2f ink %.2f", s, p, ink)
         return s * p * p * min(1, ink / 0.04)
     }
 
