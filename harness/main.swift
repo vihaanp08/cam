@@ -224,7 +224,12 @@ if mode == "synth" {
         for k in 0..<4 {
             let xs = aligned.map { Double($0[k].x) }, ys = aligned.map { Double($0[k].y) }
             let mx = xs.reduce(0, +) / Double(xs.count), my = ys.reduce(0, +) / Double(ys.count)
-            total += sqrt(zip(xs, ys).map { ($0 - mx) * ($0 - mx) + ($1 - my) * ($1 - my) }.reduce(0, +) / Double(xs.count))
+            var sq = 0.0
+            for (x, y) in zip(xs, ys) {
+                let dx = x - mx, dy = y - my
+                sq += dx * dx + dy * dy
+            }
+            total += (sq / Double(xs.count)).squareRoot()
         }
         jitter = total / 4
     }
