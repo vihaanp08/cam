@@ -155,14 +155,14 @@ var msPerFrame: [Double] = []
 var thumbs: [Thumb] = []
 var frameSize = CGSize.zero
 
-var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3\n"
+var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3,debug\n"
 
 func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
     drew.append(out.drewOverlay)
     let q = out.quad.map { q in q.points.map { CGPoint(x: $0.x, y: h - $0.y) } }
     quads.append(q)
     let qs = q.map { $0.map { String(format: "%.1f,%.1f", $0.x, $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
-    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", pipe.tracker.lastScore)),\(qs)\n"
+    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", pipe.tracker.lastScore)),\(qs),\(pipe.tracker.lastDebug)\n"
     sources[out.status.source, default: 0] += 1
     let r = out.status.reason.hasPrefix("low paper") ? "low paper" : out.status.reason
     reasons[r, default: 0] += 1

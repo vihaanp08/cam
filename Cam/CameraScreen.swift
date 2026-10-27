@@ -356,7 +356,7 @@ private struct ModePill: View {
     @ObservedObject var model: CameraModel
     let s: CGFloat
 
-    private var font: UIFont { .systemFont(ofSize: 16 * s, weight: .semibold) }
+    private var font: UIFont { .systemFont(ofSize: 13 * s, weight: .semibold) }
     private var kern: CGFloat { 1.1 * s }
     private var spacing: CGFloat { 33 * s }
 
@@ -383,7 +383,7 @@ private struct ModePill: View {
                 HStack(spacing: spacing) {
                     ForEach(Array(model.modes.enumerated()), id: \.offset) { i, m in
                         Text(m)
-                            .font(.system(size: 16 * s, weight: .semibold))
+                            .font(.system(size: 13 * s, weight: .semibold))
                             .kerning(kern)
                             .foregroundStyle(i == model.modeIndex ? CameraScreen.yellow : Color.white)
                             .lineLimit(1)

@@ -298,7 +298,7 @@ enum PlanarTracker {
         }
         var lines: [((Double, Double), (Double, Double))] = []   // (point, unit direction)
         var snapped = 0
-        let cosLimit = cos(8.0 * Double.pi / 180)
+        let cosLimit = cos(12.0 * Double.pi / 180)
         for k in 0..<4 {
             let a = q[k], b = q[(k + 1) % 4]
             let L = len(a, b)

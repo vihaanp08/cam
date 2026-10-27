@@ -48,6 +48,8 @@ final class CardTracker {
     private var lastGoodPyramid: [GrayImage]?
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
+    /// What detection saw on the last frame it ran (for the test harness and the debug view).
+    private(set) var lastDebug = ""
     /// Below this a shape isn't accepted as a card.
     var minScore = 0.14
 
@@ -147,11 +149,14 @@ final class CardTracker {
             if let g = gray {
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
+                var tried = 0, shapeOK = 0
                 func consider(_ q: [CGPoint], _ how: String) {
+                    tried += 1
                     var gq = q
                     let (sq, n) = PlanarTracker.snapEdges(g, quad: gq)
                     if n > 0 { gq = sq }
                     guard plausible(quadCI(gq), w: W, h: H) else { return }
+                    shapeOK += 1
                     // Prefer the card's recent size when re-finding it or when the current lock is
                     // healthy, but never let it stop a clearly better card replacing a weak lock
                     // (the weak lock may itself have been a wrong, odd-sized shape).
@@ -186,6 +191,8 @@ final class CardTracker {
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
+                lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " +
+                    (best.map { "\($0.how) \(String(format: "%.2f", $0.score))" } ?? "-")
                 // Taking over from a working track needs a clearly better, clearly card-like shape.
                 if let b = best, b.score >= minScore,
                    measured == nil || (b.score > trackedScore + 0.12 && b.score >= 0.3) {
@@ -202,6 +209,7 @@ final class CardTracker {
             }
         }
         lastScore = trackedScore
+        if !(measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)) { lastDebug = "" }
         if trackedScore >= 0.25, let gq = grayQuad {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
@@ -612,7 +620,7 @@ final class CardTracker {
         guard short > max(40, 0.13 * min(w, h)), long > 0 else { return false }
         // A card's proportions once perspective is undone (63 x 88 mm = 0.716), so tilted cards pass.
         let r = PlanarTracker.trueAspect(p, f: Double(0.75 * min(w, h)), cx: Double(w / 2), cy: Double(h / 2))
-        guard r > 0.5, r < 0.93 else { return false }
+        guard r > 0.45, r < 0.97 else { return false }
         // Convex, no corner angle wildly far from square, opposite sides not wildly different.
         var sign: CGFloat = 0
         for k in 0..<4 {

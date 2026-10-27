@@ -57,19 +57,22 @@ def background(t):
 
 
 def quad_for(cx, cy, size, rot, tilt_x, tilt_y):
-    """Card corners for a card centred at (cx, cy), `size` px wide, rotated and tilted in 3D."""
-    hw, hh = size / 2, size / 2 * 88 / 63
+    """Card corners for a card centred at (cx, cy), about `size` px wide, rotated and tilted in 3D,
+    seen by a pinhole camera like a phone's selfie camera (about 70 degrees across the short side,
+    principal point at the image centre)."""
+    f = 0.75 * FW
+    w_mm, h_mm = 63.0, 88.0
+    Z = f * w_mm / size                       # distance that makes the card `size` px wide
+    X = (cx - FW / 2) * Z / f
+    Y = (cy - FH / 2) * Z / f
     pts = []
-    f = 900.0
-    for (px, py) in [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]:
-        # tilt around x and y axes, then rotate in plane, then perspective-project
-        z = px * math.sin(tilt_y) + py * math.sin(tilt_x)
-        x = px * math.cos(tilt_y)
-        yv = py * math.cos(tilt_x)
-        xr = x * math.cos(rot) - yv * math.sin(rot)
-        yr = x * math.sin(rot) + yv * math.cos(rot)
-        s = f / (f + z)
-        pts.append((cx + xr * s, cy + yr * s))
+    for (px, py) in [(-w_mm / 2, -h_mm / 2), (w_mm / 2, -h_mm / 2), (w_mm / 2, h_mm / 2), (-w_mm / 2, h_mm / 2)]:
+        # tilt around the x and y axes, then rotate in plane
+        y1 = py * math.cos(tilt_x); z1 = py * math.sin(tilt_x)
+        x2 = px * math.cos(tilt_y) + z1 * math.sin(tilt_y); z2 = -px * math.sin(tilt_y) + z1 * math.cos(tilt_y)
+        xr = x2 * math.cos(rot) - y1 * math.sin(rot)
+        yr = x2 * math.sin(rot) + y1 * math.cos(rot)
+        pts.append((FW / 2 + f * (X + xr) / (Z + z2), FH / 2 + f * (Y + yr) / (Z + z2)))
     return pts
 
 

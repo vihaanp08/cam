@@ -137,7 +137,7 @@ jobs:
           xcrun simctl bootstatus "$DEV" -b
           xcrun simctl install "$DEV" "$APP"
           BID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP/Info.plist")
-          for s in camera microphone photos; do xcrun simctl privacy "$DEV" grant $s "$BID" || true; done
+          xcrun simctl privacy "$DEV" grant all "$BID" || true
           xcrun simctl launch "$DEV" "$BID" -demoFront
           sleep 8
           xcrun simctl io "$DEV" screenshot results/ui_front.png
