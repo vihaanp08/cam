@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AudioToolbox
 import Combine
 import Photos
 import UIKit
@@ -14,26 +15,41 @@ final class CameraModel: ObservableObject {
 
     @Published var showSettings = false
     @Published var armed = true
-    @Published var trackingStatus = "searching"
-    @Published var cardness = 0.0
+    @Published var status = CameraEngine.EngineStatus(tracking: "searching", source: "none", reason: "",
+                                                      cardness: 0, armed: true, fps: 0)
     @Published var snapLevel: Float = 0
     @Published var lastPhoto: UIImage?
     @Published var flash = false
     @Published var focusPoint: CGPoint?
-    @Published var flashMode = 0         // purely cosmetic: 0 off, 1 auto, 2 on
     @Published var settingsVisible = false { didSet { updateMeter() } }
+
+    // Camera chrome state (mostly cosmetic, like the built-in camera's toggles)
+    @Published var position: AVCaptureDevice.Position = .front
+    @Published var zoomStops: [CameraEngine.ZoomStop] = []
+    @Published var zoomIndex = 0
+    @Published var flashMode = 0          // 0 auto, 1 on, 2 off
+    @Published var liveOn = true
+    @Published var centerStageOn = true
+    @Published var modeIndex = 4          // index into `modes`
+    let modes = ["TIME-LAPSE", "SLO-MO", "CINEMATIC", "VIDEO", "PHOTO", "PORTRAIT", "PANO"]
+    @Published var recording = false
+    var isVideoMode: Bool { ["TIME-LAPSE", "SLO-MO", "CINEMATIC", "VIDEO"].contains(modes[modeIndex]) }
 
     /// Read from the audio thread; only feed the level meter when someone can see it.
     private var meterActive = false
     private func updateMeter() { meterActive = settings.debug || settingsVisible }
 
-    /// Visible preview aspect (width / height), shared with the layout.
-    let previewAspect: CGFloat = 3.0 / 4.0
+    /// Screen size and the 3:4 photo area on it (set by the layout).
+    var viewSize = CGSize(width: 402, height: 874)
+    var photoRect = CGRect(x: 0, y: 128, width: 402, height: 536)
 
     init() {
-        engine.onStatus = { [weak self] st in
-            self?.trackingStatus = st.tracking
-            self?.cardness = st.cardness
+        engine.onStatus = { [weak self] st in self?.status = st }
+        engine.onCameraChanged = { [weak self] pos, stops in
+            guard let self = self else { return }
+            self.position = pos
+            self.zoomStops = stops
+            self.zoomIndex = stops.firstIndex { $0.label == "1" } ?? 0
         }
         snap.onSnap = { [weak self] in self?.trigger(source: "snap") }
         snap.onLevel = { [weak self] lvl in
@@ -41,7 +57,6 @@ final class CameraModel: ObservableObject {
             DispatchQueue.main.async { self.snapLevel = max(lvl, self.snapLevel * 0.85) }
         }
 
-        // Push setting changes into the pipeline.
         settings.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -49,6 +64,7 @@ final class CameraModel: ObservableObject {
             }
             .store(in: &bag)
         applySettings()
+        loadLatestLibraryPhoto()
     }
 
     func applySettings() {
@@ -60,7 +76,6 @@ final class CameraModel: ObservableObject {
         }
         snap.sensitivity = settings.snapSensitivity
         if settings.snapEnabled { snap.start() } else { snap.stop() }
-        // PreviewView is main-actor isolated (UIView); applySettings always runs on main.
         let buttonsOn = settings.buttonsEnabled
         MainActor.assumeIsolated { previewView?.setHardwareButtonsEnabled(buttonsOn) }
         updateMeter()
@@ -97,8 +112,7 @@ final class CameraModel: ObservableObject {
         engine.setArmed(false)
         armed = false
         if settings.haptics {
-            let g = UIImpactFeedbackGenerator(style: .light)
-            g.impactOccurred()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 
@@ -115,27 +129,76 @@ final class CameraModel: ObservableObject {
         trigger(source: "button")
     }
 
-    func handleTap(at p: CGPoint) {
+    /// `p` in view points, `size` the full preview size.
+    func handleTap(at p: CGPoint, in size: CGSize) {
         withAnimation(.easeOut(duration: 0.15)) { focusPoint = p }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            withAnimation(.easeIn(duration: 0.2)) { self?.focusPoint = nil }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            withAnimation(.easeIn(duration: 0.25)) { self?.focusPoint = nil }
         }
+        engine.focus(at: engine.normalizedPoint(viewPoint: p, viewSize: size))
         if settings.tapEnabled { trigger(source: "tap") }
     }
+
+    // MARK: - Camera chrome
 
     func flipCamera() {
         engine.switchCamera()
     }
 
+    func selectZoom(_ i: Int) {
+        guard zoomStops.indices.contains(i) else { return }
+        zoomIndex = i
+        engine.setZoom(zoomStops[i].factor)
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    func selectMode(_ i: Int) {
+        guard modes.indices.contains(i) else { return }
+        recording = false
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { modeIndex = i }
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    func openPhotos() {
+        if let url = URL(string: "photos-redirect://") {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    private func loadLatestLibraryPhoto() {
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
+            guard status == .authorized || status == .limited else { return }
+            let opts = PHFetchOptions()
+            opts.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+            opts.fetchLimit = 1
+            guard let asset = PHAsset.fetchAssets(with: .image, options: opts).firstObject else { return }
+            let ro = PHImageRequestOptions()
+            ro.deliveryMode = .highQualityFormat
+            ro.isNetworkAccessAllowed = true
+            PHImageManager.default().requestImage(for: asset, targetSize: CGSize(width: 200, height: 200),
+                                                  contentMode: .aspectFill, options: ro) { img, _ in
+                guard let img = img else { return }
+                DispatchQueue.main.async {
+                    if self?.lastPhoto == nil { self?.lastPhoto = img }
+                }
+            }
+        }
+    }
+
     // MARK: - Shutter
 
     func takePhoto() {
+        if isVideoMode {
+            withAnimation(.easeInOut(duration: 0.2)) { recording.toggle() }
+            return
+        }
+        AudioServicesPlaySystemSound(1108)   // the standard camera shutter sound
         withAnimation(.linear(duration: 0.05)) { flash = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             withAnimation(.easeOut(duration: 0.2)) { self?.flash = false }
         }
-        guard let img = engine.snapshot(visibleAspect: previewAspect) else { return }
-        lastPhoto = img
+        guard let img = engine.snapshot(crop: engine.normalizedRect(viewRect: photoRect, viewSize: viewSize)) else { return }
+        withAnimation(.easeOut(duration: 0.25)) { lastPhoto = img }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { return }
             PHPhotoLibrary.shared().performChanges {
