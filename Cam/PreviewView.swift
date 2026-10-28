@@ -18,6 +18,8 @@ final class PreviewView: UIView, MTKViewDelegate {
     var onHardwareButton: (() -> Void)?
 
     private var buttonInteraction: AVCaptureEventInteraction?
+    private let volumeButtons = VolumeButtons()
+    private var buttonsOn = true
 
     init(engine: CameraEngine) {
         self.engine = engine
@@ -63,12 +65,22 @@ final class PreviewView: UIView, MTKViewDelegate {
         }
         addInteraction(interaction)
         buttonInteraction = interaction
+
+        // Volume buttons, heard through the system volume (works whether or not the camera-button
+        // API above delivers them; a press heard both ways is only counted once by the model).
+        volumeButtons.attach(to: self)
+        volumeButtons.onPress = { [weak self] in
+            guard let self = self, self.buttonsOn else { return }
+            self.onHardwareButton?()
+        }
+        volumeButtons.start()
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
     func setHardwareButtonsEnabled(_ on: Bool) {
         buttonInteraction?.isEnabled = on
+        buttonsOn = on
     }
 
     @objc private func handleSettings(_ g: UILongPressGestureRecognizer) {

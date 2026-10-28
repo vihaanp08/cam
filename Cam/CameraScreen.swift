@@ -436,6 +436,7 @@ private struct DebugHUD: View {
             Text("\(model.armed ? "ARMED" : "REVEALED")  \(st.tracking)  \(Int(st.fps.rounded())) fps")
             Text("src \(st.source)  paper \(String(format: "%.2f", st.cardness))")
             Text(st.reason)
+            Text(st.info).lineLimit(3).frame(maxWidth: 300, alignment: .leading)
             HStack(spacing: 6) {
                 Text("snap")
                 GeometryReader { g in

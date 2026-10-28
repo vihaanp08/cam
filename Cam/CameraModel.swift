@@ -150,6 +150,7 @@ final class CameraModel: ObservableObject {
     func hardwareButtonPressed() {
         guard settings.buttonsEnabled else { return }
         let now = CACurrentMediaTime()
+        // (also drops the same press arriving twice, once from each way of hearing the buttons)
         guard now - lastButtonChange > 0.8 else { return }
         lastButtonChange = now
         if engine.isArmed { trigger(source: "button") } else { rearm() }

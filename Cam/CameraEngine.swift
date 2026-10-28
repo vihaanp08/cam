@@ -82,6 +82,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         var cardness: Double
         var armed: Bool
         var fps: Double
+        var info: String = ""      // frame size, rotation, what detection saw (debug view)
     }
 
     /// A zoom button: its label and the device zoom factor it maps to.
@@ -484,8 +485,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         if now - lastStatusSent > 0.2, let cb = onStatus {
             lastStatusSent = now
             let s = result.status
+            lock.lock(); let rot = Int(_portraitAngle); lock.unlock()
+            let info = "\(Int(extent.width))x\(Int(extent.height)) rot \(rot)  \(s.debug.prefix(70))"
             let st = EngineStatus(tracking: s.tracking, source: s.source, reason: s.reason,
-                                  cardness: s.cardness, armed: armed, fps: fps)
+                                  cardness: s.cardness, armed: armed, fps: fps, info: info)
             DispatchQueue.main.async { cb(st) }
         }
     }
