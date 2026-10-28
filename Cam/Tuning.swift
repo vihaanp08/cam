@@ -21,4 +21,10 @@ enum Tuning {
     /// A card coming into view is taken by where its corner index is, long before most of it is in
     /// the picture (CardTracker `completions`). (a switch, to compare in the test harness)
     static var entryByIndex = true
+    /// A side with the card's paper and printing carrying on past it (a court card's printed frame
+    /// taken for its edge) is moved out to the edge, and such outlines lose to the whole card.
+    static var printingGuard = true
+    /// With the card's picture known, a card held so close that it runs off two edges of the picture
+    /// is found from its one corner in view (CardTracker `cornerFits`).
+    static var cornerSearch = true
 }

@@ -1,2 +1,3 @@
-nohold hold=0 syn,syn4
 noentry entry=0 syn4
+noprint print=0 syn3,syn5
+nocorner corner=0 syn5

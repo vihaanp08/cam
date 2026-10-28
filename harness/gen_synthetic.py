@@ -316,6 +316,62 @@ def pose_entries(i, n):
     return cx, cy, size, math.radians(rot + 3 * wob), tx, ty
 
 
+# Fifth script: a court card shown at an ordinary distance, then brought back close to the camera,
+# running off two edges of the picture (left and top), twice; the second time long enough after that
+# the card's size is no longer known. (start, held at, size, turn, leaves to, speed in, speed out,
+# frames held, frames away after)
+CLOSE_EVENTS = [
+    ((1000.0, 860.0), (380.0, 860.0), 260.0, 4.0, (380.0, 2000.0), 60.0, 60.0, 30, 30),
+    ((760.0, -560.0), (230.0, 300.0), 600.0, -3.0, (-300.0, 1700.0), 70.0, 70.0, 30, 100),
+    ((-500.0, 1700.0), (180.0, 1000.0), 560.0, 6.0, (-420.0, 1900.0), 70.0, 70.0, 30, 20),
+]
+CLOSE_LEAD = 6
+
+
+def close_schedule():
+    """[(first frame, frames coming in, frames held, frames leaving, frames away)] and segments."""
+    out, segs, f = [], [], CLOSE_LEAD
+    for e, (a, b, size, rot, away, vin, vout, hold, gap) in enumerate(CLOSE_EVENTS):
+        d_in = math.hypot(b[0] - a[0], b[1] - a[1])
+        d_out = math.hypot(away[0] - b[0], away[1] - b[1])
+        n_in = int(math.ceil(_approach_frames(0.0, d_in, vin)))
+        n_out = int(math.ceil((d_out - vout * 2) / vout + 4))
+        out.append((f, n_in, hold, n_out, gap))
+        segs += [(f, f + n_in, f"enter{e + 1}"), (f + n_in, f + n_in + hold, f"held{e + 1}"),
+                 (f + n_in + hold, f + n_in + hold + n_out, f"leave{e + 1}"),
+                 (f + n_in + hold + n_out, f + n_in + hold + n_out + gap, f"away{e + 1}")]
+        f += n_in + hold + n_out + gap
+    return out, segs, f
+
+
+def pose_closecourt(i, n):
+    """Fifth script (see CLOSE_EVENTS)."""
+    t = i / FPS
+    tx = math.radians(5 * math.sin(t * 0.5))
+    ty = math.radians(5 * math.sin(t * 0.6 + 0.5))
+    sched, _, _ = close_schedule()
+    k = 0
+    while k + 1 < len(sched) and i >= sched[k + 1][0]:
+        k += 1
+    a, b, size, rot, away, vin, vout, hold, gap = CLOSE_EVENTS[k]
+    f0, n_in, n_hold, n_out, _ = sched[k]
+    j = i - f0
+    d_in = math.hypot(b[0] - a[0], b[1] - a[1])
+    d_out = math.hypot(away[0] - b[0], away[1] - b[1])
+    if j < 0:
+        x, y = a
+    elif j < n_in:
+        f = _approach(j, 0.0, d_in, vin) / d_in
+        x, y = a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1])
+    elif j < n_in + n_hold:
+        h = j - n_in
+        x, y = b[0] + 18 * math.sin(h * 0.21), b[1] + 14 * math.sin(h * 0.17 + 1)
+    else:
+        f = _leave(j - n_in - n_hold, 0.0, d_out, vout) / d_out
+        x, y = b[0] + f * (away[0] - b[0]), b[1] + f * (away[1] - b[1])
+    return x, y, size, math.radians(rot), tx, ty
+
+
 def hand_layer(quad, behind):
     """Skin-coloured palm behind the card, or fingers/thumb in front of it."""
     layer = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
@@ -343,12 +399,14 @@ def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
     kind = sys.argv[3] if len(sys.argv) > 3 else "main"
-    script = {"close": pose_close, "court": pose_court, "entries": pose_entries}.get(kind, pose)
+    script = {"close": pose_close, "court": pose_court, "entries": pose_entries, "closecourt": pose_closecourt}.get(kind, pose)
     if kind == "entries":
         n = entries_schedule()[2]
+    if kind == "closecourt":
+        n = close_schedule()[2]
     os.makedirs(out, exist_ok=True)
-    face = court_card() if kind == "court" else real_card()
-    still = {"court": (0.30, 0.40), "entries": (2.0, 2.0)}.get(kind, (0.30, 0.42))
+    face = court_card() if kind in ("court", "closecourt") else real_card()
+    still = {"court": (0.30, 0.40), "entries": (2.0, 2.0), "closecourt": (2.0, 2.0)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
     prev = None
@@ -372,7 +430,7 @@ def main():
         frame = frame.convert("RGB")
         speed = 0 if prev is None else math.hypot(cx - prev[0], cy - prev[1])
         # (out of view, the card's jumps from where it left to where it comes in next blur nothing)
-        if kind == "entries" and inframe_fraction(quad) == 0:
+        if kind in ("entries", "closecourt") and inframe_fraction(quad) == 0:
             speed = 0
         prev = (cx, cy)
         frame = frame.filter(ImageFilter.GaussianBlur(0.7 + min(3.0, speed / 25)))
@@ -384,6 +442,8 @@ def main():
     meta = {"width": FW, "height": FH, "fps": FPS, "frames": gts}
     if kind == "entries":
         meta["segments"] = entries_schedule()[1]
+    if kind == "closecourt":
+        meta["segments"] = close_schedule()[1]
     json.dump(meta, open(os.path.join(out, "gt.json"), "w"))
     print("wrote", n, "frames to", out)
 

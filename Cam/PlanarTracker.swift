@@ -561,7 +561,10 @@ enum PlanarTracker {
     /// a little further out, too far for the usual small corrections): it stayed there, and the real
     /// card showed along it like a cut-out. The two neighbouring sides keep their lines. nil when no
     /// such edge is found along most of the side.
-    static func pushSideOut(_ g: GrayImage, quad: [CGPoint], side k: Int, reach: Double) -> [CGPoint]? {
+    /// `throughGap`: walk on over printing (a corner index, a pip) to where the paper ends for good,
+    /// with nothing paper-bright for this many pixels after it (for a side found on a line printed
+    /// inside the card, with the corner index between it and the real edge).
+    static func pushSideOut(_ g: GrayImage, quad: [CGPoint], side k: Int, reach: Double, throughGap: Double? = nil) -> [CGPoint]? {
         guard quad.count == 4, reach > 3,
               quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
         let q = quad.map { (Double($0.x), Double($0.y)) }
@@ -590,6 +593,25 @@ enum PlanarTracker {
         for s in 0..<samples {
             let t = 0.15 + 0.7 * Double(s) / Double(samples - 1)
             let px = a.0 + t * (b.0 - a.0), py = a.1 + t * (b.1 - a.1)
+            if let gap = throughGap {
+                // walk out over the paper and any printing on it to where the paper ends for good
+                var lastPaper = -1.0
+                var ended = false
+                var off = 1.0
+                while off <= reach + gap {
+                    let x = px + off * nrm.0, y = py + off * nrm.1
+                    guard g.contains(x, y) else { break }
+                    if g.sample(Float(x), Float(y)) >= paperMin {
+                        lastPaper = off
+                    } else if lastPaper > 0, off - lastPaper > gap {
+                        ended = true
+                        break
+                    }
+                    off += 1
+                }
+                if ended, lastPaper > 2, lastPaper <= reach { pts.append((px + (lastPaper + 0.5) * nrm.0, py + (lastPaper + 0.5) * nrm.1)) }
+                continue
+            }
             // walk out over the paper; the strongest step before the paper ends is the card's edge
             var best = 0.0, bestOff = -1.0
             var off = 1.0
@@ -658,6 +680,15 @@ enum PlanarTracker {
         let movedB = (Double(nb.x) - b.0) * nrm.0 + (Double(nb.y) - b.1) * nrm.1
         guard movedA > 0, movedB > 0, max(movedA, movedB) <= reach * 1.3 else { return nil }
         return out
+    }
+
+    /// Twice the signed area of the outline; above 0 for corners going round clockwise on screen
+    /// (y down), the way every outline is labelled (top left, top right, bottom right, bottom left).
+    static func signedArea2(_ q: [CGPoint]) -> CGFloat {
+        guard q.count == 4 else { return 0 }
+        var a: CGFloat = 0
+        for k in 0..<4 { let p = q[k], n = q[(k + 1) % 4]; a += p.x * n.y - n.x * p.y }
+        return a
     }
 
     // MARK: - How much does this quad look like a playing card?

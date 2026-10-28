@@ -161,6 +161,8 @@ if args.count > 6 {
         case "cf": Tuning.confirmFrames = Int(v)
         case "entry": Tuning.entryByIndex = v != 0
         case "hold": pipe.entryHoldMax = Int(v)
+        case "print": Tuning.printingGuard = v != 0
+        case "corner": Tuning.cornerSearch = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
