@@ -135,6 +135,8 @@ final class CardTracker {
     /// How well `quad` (Core Image coordinates) in that frame shows the card's own printing (its
     /// picture, see "The card's picture"): about 0.9-1 on the card, low anywhere else (where the card
     /// was a moment ago before a fast move, the wall beside it). nil while the picture isn't known.
+    var hasPicture: Bool { cardPicture != nil }
+
     func pictureMatch(_ quad: Quad, in view: FrameView) -> Float? {
         guard let pic = cardPicture, !view.pyramid.isEmpty else { return nil }
         let gq = quad.points.map(view.toGray)
@@ -225,6 +227,7 @@ final class CardTracker {
 
         var measured: Quad?
         var source = "none"
+        let previousMatch = lastPictureMatch
         lastPictureMatch = -1
         lastWasCorrection = false
 
@@ -253,7 +256,10 @@ final class CardTracker {
                 // and let the short prediction and detection take over.
                 // (not when most of the card is out of the picture: held very close, too little of
                 // it is in view to score, but the flow is still following it)
-                let collapsed = !verified && trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8
+                // (and once the card's picture is known: its printing stopped matching from one frame
+                // to the next, the outline has lost the card; a fast exit, or the flow slid off)
+                let pictureLost = cardPicture != nil && lastPictureMatch >= 0 && lastPictureMatch < 0.7 && previousMatch >= 0.9
+                let collapsed = (!verified && trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8) || pictureLost
                 if !insideCard && !collapsed && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
                     points = next.points
@@ -277,8 +283,12 @@ final class CardTracker {
         // And more often while the lock doesn't show a card's corner indices where they should be
         // (it may have slid off the card: one side on the printing or on the palm).
         let lockIndex = grayQuad.flatMap { indexPattern(paper, $0)?.both }
+        // (and at once when the lock is a box printed on the card, the frame round a court card's
+        // picture: the card is the paper round it)
+        var lockIsBox = false
+        if let tq = grayQuad, let g = gray { lockIsBox = PlanarTracker.printedLineSides(g, quad: tq) >= 3 }
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
-            || stableFrames < 3 || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0)
+            || stableFrames < 3 || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0) || lockIsBox
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
@@ -287,6 +297,7 @@ final class CardTracker {
                 var bestMatch: Float = -2
                 var all: [(quad: [CGPoint], how: String, score: Double)] = []
                 var found: [(quad: [CGPoint], how: String, score: Double, match: Float, note: String)] = []
+                var boxes: [[CGPoint]] = []
                 var tried = 0, shapeOK = 0
                 var bestNote = ""
                 func consider(_ q: [CGPoint], _ how: String) {
@@ -302,14 +313,21 @@ final class CardTracker {
                     let useSize = grayQuad == nil || trackedScore >= minScore
                     let sz = useSize ? sizeConsistency(gq) : 1
                     var sc = cardLikeness(g, paper, gq) * sz
-                    let note = partsNote + String(format: " size %.2f", sz)
+                    var note = partsNote + String(format: " size %.2f", sz)
                     // Fully in view but not a card face (a printed sheet on the wall, a poster) and not
                     // where the card was just seen: it can't be the card.
                     if sc > 0, let ip = indexPattern(paper, gq), !ip.cardLike, !nearLastCard(gq) { sc *= 0.3 }
+                    // A box printed on the card (the frame round a court card's picture) isn't the
+                    // card: the card is the paper round it (tried below).
+                    if sc > 0, PlanarTracker.printedLineSides(g, quad: gq) >= 3 {
+                        sc *= 0.2
+                        note += " box"
+                        if boxes.count < 3 { boxes.append(gq) }
+                    }
                     // How well its printing matches the card's picture, once that is known (turned
                     // the way the picture was taken)
                     var m: Float = -2
-                    if sc > 0, let pic = cardPicture, let pyr = pyramid {
+                    if let pic = cardPicture, let pyr = pyramid {
                         let (mm, turned) = CardTracker.bestPictureMatch(pic, pyr, gq)
                         gq = turned
                         m = mm
@@ -353,6 +371,18 @@ final class CardTracker {
                     if let pr = paper, let r = InkFinder.refine(g, pr, gq) { consider(r, how + " ref") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
+                // The card round each box printed on it that was found (or that is locked on): the
+                // box grown by about the card's margin round a court card's picture, two ways, and
+                // snapped onto the card's real edges.
+                var toGrow = boxes
+                if lockIsBox, let tq = grayQuad { toGrow.append(tq) }
+                for box in toGrow {
+                    for margins in [(CGFloat(0.2), CGFloat(0.13)), (CGFloat(0.26), CGFloat(0.18))] {
+                        if let grown = PlanarTracker.cardRoundPrintedBox(box, across: margins.0, along: margins.1) {
+                            consider(grown, "box out")
+                        }
+                    }
+                }
                 // Once the card's picture is known: line the most promising finds up with it (a find
                 // a few pixels off, or with a corner on a finger, then fits exactly and matches well),
                 // and let the match weigh in, so an outline whose printing doesn't line up with the
@@ -361,12 +391,13 @@ final class CardTracker {
                 // card face, both corner indices showing, is enough.
                 if let pic = cardPicture, let pyr = pyramid {
                     var promising: [Int] = found.indices.filter { k in
-                        found[k].score > 0.1 && found[k].match >= 0.3 && found[k].match < 0.95
+                        found[k].match >= 0.3 && found[k].match < 0.95 && (found[k].score > 0.02 || found[k].match >= 0.6)
                     }
-                    promising.sort { found[$0].score > found[$1].score }
+                    let key: [Double] = found.map { Double($0.match) + $0.score }
+                    promising.sort { key[$0] > key[$1] }
                     for k in promising.prefix(3) {
                         let q = found[k].quad
-                        guard let al = CardTracker.alignPicture(pic, pyr, q), al.match > found[k].match else { continue }
+                        guard let al = CardTracker.alignPicture(pic, pyr, q, iterations: 12), al.match > found[k].match else { continue }
                         let moved: CGFloat = zip(al.quad, q).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
                         if moved < 0.15 * quadSize(q), plausible(quadCI(al.quad), w: W, h: H) {
                             found[k].quad = al.quad
@@ -382,6 +413,9 @@ final class CardTracker {
                     if m > -2 {
                         let newCard = cardGone && (indexPattern(paper, found[k].quad)?.both ?? 0) >= 0.15
                         if !newCard { sc *= Double(max(0.15, min(1, (m - 0.45) / 0.4))) }
+                        // Lined up with the card's own printing: it is the card, however little of
+                        // its outline shows (going out of the picture, steeply tilted, blurred).
+                        if m >= 0.85 { sc = max(sc, 0.3 + 2 * Double(m - 0.85)) }
                     }
                     all.append((found[k].quad, found[k].how, sc))
                     if bestIdx < 0 || sc > all[bestIdx].score { bestIdx = k }
@@ -457,7 +491,8 @@ final class CardTracker {
                 // Something fully in view that isn't a card face (no index in a corner with the
                 // corners beside it blank: a printed sheet on the wall, a poster, a sign) never
                 // starts a lock or takes one over, unless it is right where the card was just seen.
-                let notCardFace = bestPattern.map { !$0.cardLike } ?? false
+                // (its printing lining up with the card's picture overrules that)
+                let notCardFace = (bestPattern.map { !$0.cardLike } ?? false) && bestMatch < 0.9
                 let mayStart = !notCardFace || (winQuad.map { nearLastCard($0) } ?? false)
                 // The lock drifting off the card (a side slid onto the printing or the palm, or lost
                 // track while out of view): a fresh find of the same card that fits it better (a
@@ -648,6 +683,7 @@ final class CardTracker {
         // than this in one frame, so it can't be thrown onto some other line.
         var snapped = 0
         let side = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
+        let flowQuad = nq
         let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(2, 0.04 * Double(side)))
         if n > 0 { nq = sq; snapped = n }
         snapStreak4 = snapped == 4 ? snapStreak4 + 1 : 0
@@ -655,7 +691,19 @@ final class CardTracker {
         lastMotion = zip(nq, quad).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
         // Then line the card's printing up with its picture (see "The card's picture").
         lastPictureMatch = -1
-        if let pic = cardPicture, let al = CardTracker.alignPicture(pic, cur, nq) {
+        var aligned: (quad: [CGPoint], match: Float)? = nil
+        if let pic = cardPicture {
+            let fromEdges = CardTracker.alignPicture(pic, cur, nq)
+            let firstMatch: Float = fromEdges?.match ?? -1
+            aligned = fromEdges
+            // Not quite lined up from the edges (a side may have slid onto a line printed on the
+            // card, steeply tilted): try again from where the printing alone said the card went.
+            if firstMatch < 0.95, snapped > 0,
+               let again = CardTracker.alignPicture(pic, cur, flowQuad, iterations: 12), again.match > firstMatch {
+                aligned = again
+            }
+        }
+        if let al = aligned {
             let shift = zip(al.quad, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
             // (lined up only by moving far from where the card was followed to: not this outline's match)
             lastPictureMatch = shift < 0.12 * side ? al.match : -1
@@ -980,7 +1028,8 @@ final class CardTracker {
     /// Moves the four corners so the card's printing lines up with its picture: Gauss-Newton on the
     /// eight corner coordinates, with robust weights so fingers over part of the card don't pull it.
     /// Returns the new outline and how well it then matches.
-    static func alignPicture(_ pic: [Float], _ pyr: [GrayImage], _ quad: [CGPoint]) -> (quad: [CGPoint], match: Float)? {
+    static func alignPicture(_ pic: [Float], _ pyr: [GrayImage], _ quad: [CGPoint],
+                             iterations: Int = 8) -> (quad: [CGPoint], match: Float)? {
         guard !pyr.isEmpty, quad.count == 4,
               quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
         let L = pictureLevel(quad, levels: pyr.count)
@@ -996,7 +1045,7 @@ final class CardTracker {
         }
         guard uv.count >= picW * picH / 3 else { return nil }
         let d: CGFloat = 0.5
-        for _ in 0..<8 {
+        for _ in 0..<max(1, iterations) {
             guard let H = PlanarTracker.fitHomography(unitSquare, c) else { return nil }
             // how each grid point moves when each corner coordinate moves by d
             var Hd: [PlanarTracker.Homography] = []

@@ -277,7 +277,7 @@ final class FramePipeline {
             let stillThere = n <= holdFrames && FramePipeline.fractionInside(q, frame.extent) > 0.6
                 && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
                 && (slot.view.map { CardTracker.hasPrinting($0, q) } ?? false)
-                && (slot.view.flatMap { tracker.pictureMatch(q, in: $0) }.map { $0 >= 0.5 } ?? true)
+                && (slot.view.flatMap { tracker.pictureMatch(q, in: $0) }.map { $0 >= 0.75 } ?? true)
             if overlayOn, stillThere, let a = lastAnalysis {
                 slot.draw = true
                 slot.analysis = a
@@ -299,7 +299,7 @@ final class FramePipeline {
         if !slot.draw, followStreak < 8, let prev = lastDecided, prev.draw, let pq = prev.quad,
            let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
            q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q),
-           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.5 }) ?? true) {
+           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.75 }) ?? true) {
             let an = compositor.analyze(frame: frame, quad: q)
             if an.map({ $0.cardness > 0.3 }) ?? true {
                 slot.quad = q
@@ -335,6 +335,8 @@ final class FramePipeline {
             var q: Quad?
             if let a = next.view, let b = queue[j].view {
                 q = CardTracker.follow(nq, from: a, to: b)
+                // (a follow that doesn't land on the card's printing, once that is known, is no follow)
+                if let f = q, (tracker.pictureMatch(f, in: b) ?? 1) < 0.75 { q = nil }
             }
             // A frame that was waiting for the new card to be confirmed has its own measurement
             // (used when the card can't be followed back to it).
@@ -356,8 +358,9 @@ final class FramePipeline {
                 } else {
                     q = nq
                 }
+                // (and, once the card's picture is known, it must be seen to be the card's printing)
                 if let guess = q, let v = queue[j].view,
-                   !CardTracker.hasPrinting(v, guess) || (tracker.pictureMatch(guess, in: v).map { $0 < 0.5 } ?? false) { q = nil }
+                   !CardTracker.hasPrinting(v, guess) || (tracker.hasPicture && (tracker.pictureMatch(guess, in: v) ?? 0) < 0.75) { q = nil }
             }
             guard let found = q else { break }
             // Stop once the card is out of the picture (nothing to cover).

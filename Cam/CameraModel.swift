@@ -154,14 +154,15 @@ final class CameraModel: ObservableObject {
     }
 
     /// Volume up, volume down or Camera Control: a press reveals, the next press re-arms. A press
-    /// within 0.8 s of the last change is ignored, so a quick double press does one thing only
+    /// within 0.4 s of the last change is ignored, so a quick double press does one thing only
     /// (revealed + double press = re-armed, and it stays armed).
     private var lastButtonChange: CFTimeInterval = -10
     func hardwareButtonPressed() {
         guard settings.buttonsEnabled else { return }
         let now = CACurrentMediaTime()
-        // (also drops the same press arriving twice, once from each way of hearing the buttons)
-        guard now - lastButtonChange > 0.8 else { return }
+        // (also drops the same press arriving twice, once from each way of hearing the buttons: those
+        // come within a tenth of a second; a quick second press to put the fake back is kept)
+        guard now - lastButtonChange > 0.4 else { return }
         lastButtonChange = now
         if engine.isArmed { trigger(source: "button") } else { rearm() }
     }

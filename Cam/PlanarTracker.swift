@@ -765,6 +765,82 @@ enum PlanarTracker {
         return out
     }
 
+    // MARK: - A box printed on the card
+
+    /// How many sides of `quad` are a line printed on a card rather than the card's edge: a dark
+    /// stripe right on the side with the card's white paper just outside it (the frame round a
+    /// court card's picture; a card's own edge has the background outside, and no dark line on it
+    /// even against a white wall). Sides out of the picture don't count. Gray coordinates.
+    static func printedLineSides(_ g: GrayImage, quad: [CGPoint]) -> Int {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return 0 }
+        var sides: [Double] = []
+        for k in 0..<4 { sides.append(Double(hypot(quad[(k + 1) % 4].x - quad[k].x, quad[(k + 1) % 4].y - quad[k].y))) }
+        let size = sides.max() ?? 0
+        guard size > 24, size < 1e4 else { return 0 }
+        let cx = Double(quad.map(\.x).reduce(0, +)) / 4, cy = Double(quad.map(\.y).reduce(0, +)) / 4
+        let near = max(2.0, 0.02 * size), far = max(4.0, 0.045 * size)
+        // the paper's brightness: the bright end of what is just outside the sides
+        var outs: [Float] = []
+        var normals: [(Double, Double)] = []
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            let L = max(1e-6, sides[k])
+            var n = (-Double(b.y - a.y) / L, Double(b.x - a.x) / L)
+            let mx = Double(a.x + b.x) / 2 - cx, my = Double(a.y + b.y) / 2 - cy
+            if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }
+            normals.append(n)
+            for s in 0..<8 {
+                let t = 0.2 + 0.6 * Double(s) / 7
+                let x = Double(a.x) + t * Double(b.x - a.x) + far * n.0, y = Double(a.y) + t * Double(b.y - a.y) + far * n.1
+                if g.contains(x, y) { outs.append(g.sample(Float(x), Float(y))) }
+            }
+        }
+        guard outs.count >= 8 else { return 0 }
+        outs.sort()
+        let paper = outs[Int(Double(outs.count - 1) * 0.8)]
+        guard paper > 0.3 else { return 0 }
+        var count = 0
+        for k in 0..<4 {
+            let a = quad[k], b = quad[(k + 1) % 4]
+            guard sides[k] > 8 else { continue }
+            let n = normals[k]
+            var seen = 0, lines = 0
+            for s in 0..<12 {
+                let t = 0.2 + 0.6 * Double(s) / 11
+                let px = Double(a.x) + t * Double(b.x - a.x), py = Double(a.y) + t * Double(b.y - a.y)
+                guard g.contains(px - near * n.0, py - near * n.1), g.contains(px + far * n.0, py + far * n.1) else { continue }
+                seen += 1
+                var lo: Float = 1
+                var o = -near
+                while o <= near {
+                    lo = min(lo, g.sample(Float(px + o * n.0), Float(py + o * n.1)))
+                    o += 1
+                }
+                let outside = g.sample(Float(px + far * n.0), Float(py + far * n.1))
+                if lo < 0.45 * paper && outside > 0.85 * paper { lines += 1 }
+            }
+            if seen >= 6 && 2 * lines >= seen { count += 1 }
+        }
+        return count
+    }
+
+    /// The card round a box printed on it (the frame round a court card's picture sits about a
+    /// fifth of its width in from the card's sides and about a seventh of its height in from the
+    /// ends): the box grown by `across` of its width on each side and `along` of its height at each
+    /// end, in perspective. The sides are then snapped onto the card's real edges.
+    static func cardRoundPrintedBox(_ quad: [CGPoint], across: CGFloat, along: CGFloat) -> [CGPoint]? {
+        guard quad.count == 4 else { return nil }
+        let s01 = hypot(quad[1].x - quad[0].x, quad[1].y - quad[0].y) + hypot(quad[2].x - quad[3].x, quad[2].y - quad[3].y)
+        let s03 = hypot(quad[3].x - quad[0].x, quad[3].y - quad[0].y) + hypot(quad[2].x - quad[1].x, quad[2].y - quad[1].y)
+        // u runs along quad[0] -> quad[1]; the short side gets `across`
+        let gu = s01 <= s03 ? across : along, gv = s01 <= s03 ? along : across
+        let unit = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]
+        guard let H = fitHomography(unit, quad) else { return nil }
+        let grown = [CGPoint(x: -gu, y: -gv), CGPoint(x: 1 + gu, y: -gv), CGPoint(x: 1 + gu, y: 1 + gv), CGPoint(x: -gu, y: 1 + gv)].map { H.apply($0) }
+        guard grown.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        return grown
+    }
+
     // MARK: - Geometry helpers
 
     static func shrunk(_ q: [CGPoint], _ f: CGFloat) -> [CGPoint] {
