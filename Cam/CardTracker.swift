@@ -283,12 +283,8 @@ final class CardTracker {
         // And more often while the lock doesn't show a card's corner indices where they should be
         // (it may have slid off the card: one side on the printing or on the palm).
         let lockIndex = grayQuad.flatMap { indexPattern(paper, $0)?.both }
-        // (and at once when the lock is a box printed on the card, the frame round a court card's
-        // picture: the card is the paper round it)
-        var lockIsBox = false
-        if let tq = grayQuad, let g = gray { lockIsBox = PlanarTracker.printedLineSides(g, quad: tq) >= 3 }
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
-            || stableFrames < 3 || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0) || lockIsBox
+            || stableFrames < 3 || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0)
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
@@ -297,7 +293,6 @@ final class CardTracker {
                 var bestMatch: Float = -2
                 var all: [(quad: [CGPoint], how: String, score: Double)] = []
                 var found: [(quad: [CGPoint], how: String, score: Double, match: Float, note: String)] = []
-                var boxes: [[CGPoint]] = []
                 var tried = 0, shapeOK = 0
                 var bestNote = ""
                 func consider(_ q: [CGPoint], _ how: String) {
@@ -313,17 +308,10 @@ final class CardTracker {
                     let useSize = grayQuad == nil || trackedScore >= minScore
                     let sz = useSize ? sizeConsistency(gq) : 1
                     var sc = cardLikeness(g, paper, gq) * sz
-                    var note = partsNote + String(format: " size %.2f", sz)
+                    let note = partsNote + String(format: " size %.2f", sz)
                     // Fully in view but not a card face (a printed sheet on the wall, a poster) and not
                     // where the card was just seen: it can't be the card.
                     if sc > 0, let ip = indexPattern(paper, gq), !ip.cardLike, !nearLastCard(gq) { sc *= 0.3 }
-                    // A box printed on the card (the frame round a court card's picture) isn't the
-                    // card: the card is the paper round it (tried below).
-                    if sc > 0, PlanarTracker.printedLineSides(g, quad: gq) >= 3 {
-                        sc *= 0.2
-                        note += " box"
-                        if boxes.count < 3 { boxes.append(gq) }
-                    }
                     // How well its printing matches the card's picture, once that is known (turned
                     // the way the picture was taken)
                     var m: Float = -2
@@ -386,18 +374,6 @@ final class CardTracker {
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
                     if let pr = paper, let r = InkFinder.refine(g, pr, gq) { consider(r, how + " ref") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
-                }
-                // The card round each box printed on it that was found (or that is locked on): the
-                // box grown by about the card's margin round a court card's picture, two ways, and
-                // snapped onto the card's real edges.
-                var toGrow = boxes
-                if lockIsBox, let tq = grayQuad { toGrow.append(tq) }
-                for box in toGrow {
-                    for margins in [(CGFloat(0.2), CGFloat(0.13)), (CGFloat(0.26), CGFloat(0.18))] {
-                        if let grown = PlanarTracker.cardRoundPrintedBox(box, across: margins.0, along: margins.1) {
-                            consider(grown, "box out")
-                        }
-                    }
                 }
                 // Once the card's picture is known: line the most promising finds up with it (a find
                 // a few pixels off, or with a corner on a finger, then fits exactly and matches well),
