@@ -13,6 +13,7 @@ final class CameraModel: ObservableObject {
     private var bag = Set<AnyCancellable>()
     weak var previewView: PreviewView?
 
+    private var e2e: E2ETest?
     @Published var showSettings = false
     @Published var armed = true
     @Published var status = CameraEngine.EngineStatus(tracking: "searching", source: "none", reason: "",
@@ -108,6 +109,14 @@ final class CameraModel: ObservableObject {
     }
 
     func start() {
+        if let name = E2ETest.argument("-e2e") {
+            guard e2e == nil else { return }
+            let presses = Set((E2ETest.argument("-e2ePress") ?? "").split(separator: ",").compactMap { Int($0) })
+            let test = E2ETest(engine: engine) { [weak self] in self?.hardwareButtonPressed() }
+            e2e = test
+            test.run(name: name, presses: presses)
+            return
+        }
         AVCaptureDeviceAuthorization.request { [weak self] ok in
             guard ok, let self = self else { return }
             self.engine.start()
