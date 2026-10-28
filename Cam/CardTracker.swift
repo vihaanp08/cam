@@ -347,15 +347,31 @@ final class CardTracker {
                 if let tq = grayQuad {
                     for full in PlanarTracker.completeTruncated(tq, w: g.w, h: g.h) { consider(full, "flow part") }
                     // the current lock might be half the card, or have grown onto the fingers
-                    for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
+                    // (or be a corner of a card coming into view: doubled, then completed)
+                    for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) {
+                        consider(bigger, "flow x2")
+                        if stableFrames < 15 {
+                            for full in PlanarTracker.completeTruncated(bigger, w: g.w, h: g.h) { consider(full, "flow x2 part") }
+                        }
+                    }
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
                 }
-                // Cards found by their printing (works when the outline is hard to see).
+                // Cards found by their printing (works when the outline is hard to see). The printing
+                // found may be only a corner or half of the card (an index and part of a court card's
+                // picture, the rest blurred or out of the picture): it is doubled across the sides
+                // with no edge under them, and completed where the picture cuts it off.
                 if let pr = paper {
-                    for q in InkFinder.candidates(pr) {
+                    for (n, q) in InkFinder.candidates(pr).enumerated() {
                         if let f = InkFinder.refine(g, pr, q) {
                             consider(f, "ink")
                             for full in PlanarTracker.completeTruncated(f, w: g.w, h: g.h) { consider(full, "ink part") }
+                            // (while finding the card, not while a good lock is followed)
+                            if n < 2, grayQuad == nil || trackedScore < 0.4 {
+                                for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: f) {
+                                    consider(bigger, "ink x2")
+                                    for full in PlanarTracker.completeTruncated(bigger, w: g.w, h: g.h) { consider(full, "ink x2 part") }
+                                }
+                            }
                         }
                     }
                 }
