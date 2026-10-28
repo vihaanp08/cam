@@ -8,8 +8,9 @@ enum Tuning {
     static var smoothMinCutoff = 1.5
     /// Higher = less lag while the card moves.
     static var smoothBeta = 0.12
-    /// Hz. How quickly the filter notices the card has started (or stopped) moving.
-    static var smoothDCutoff = 1.0
+    /// Hz. How quickly the filter notices the card has started (or stopped) moving. (at 1 Hz it took
+    /// several frames to notice a fast move, and the fake trailed the card by up to 15 px meanwhile)
+    static var smoothDCutoff = 4.0
 
     // Starting the fake on a card
     /// Frames in a row a newly found card must be tracked before the fake is painted on it. Only

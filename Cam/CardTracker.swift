@@ -320,10 +320,16 @@ final class CardTracker {
                 // round, and the fake comes out tiny in a corner of the card or giant. So with nothing to
                 // go by a completion is only taken once most of it is in view; with the card's size
                 // known, it must be that size.
+                // (nor a small one: a card brought up to the camera is big, and a small "card" coming in
+                // at the edge is a box round its corner index and a pip)
+                let minNewShort = 0.2 * CGFloat(min(g.w, g.h))
                 func completions(_ q: [CGPoint]) -> [[CGPoint]] {
                     PlanarTracker.completeTruncated(q, w: g.w, h: g.h).filter { full in
                         let s = quadSize(full)
                         if sizeRefs.contains(where: { s > 0.75 * $0 && s < 1.35 * $0 }) { return true }
+                        let across = hypot(full[1].x - full[0].x, full[1].y - full[0].y) + hypot(full[2].x - full[3].x, full[2].y - full[3].y)
+                        let along = hypot(full[3].x - full[0].x, full[3].y - full[0].y) + hypot(full[2].x - full[1].x, full[2].y - full[1].y)
+                        guard min(across, along) / 2 >= minNewShort else { return false }
                         return FramePipeline.fractionInside(Quad(full), frameRect) >= 0.8
                     }
                 }
