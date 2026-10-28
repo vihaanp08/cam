@@ -78,7 +78,7 @@ jobs:
 
   test:
     runs-on: macos-15-intel
-    timeout-minutes: 40
+    timeout-minutes: 80
     permissions:
       contents: write
     steps:
@@ -97,13 +97,14 @@ jobs:
           .venv/bin/python harness/cards.py /tmp
           .venv/bin/python harness/gen_synthetic.py /tmp/syn 300
           .venv/bin/python harness/gen_synthetic.py /tmp/syn2 300 close
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn3 300 court
           .venv/bin/python harness/render_face.py 9_hearts /tmp/fake_9h.png
 
       - name: Build harness
         run: |
           set -o pipefail
           swiftc -O -g -o /tmp/harness \
-            Cam/Geometry.swift Cam/PlanarTracker.swift Cam/InkFinder.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
+            Cam/Tuning.swift Cam/Geometry.swift Cam/PlanarTracker.swift Cam/InkFinder.swift Cam/CardTracker.swift Cam/Compositor.swift Cam/FramePipeline.swift Cam/Settings.swift \
             harness/Stubs.swift harness/main.swift 2>&1 | tee results/harness_build.log | grep -E "error" || true
           test -x /tmp/harness
 
@@ -123,6 +124,12 @@ jobs:
           /tmp/harness synth /tmp/syn2 /tmp/fake_9h.png results/synth2 0.75 2>&1 | tee results/synth2_log.txt || true
           .venv/bin/python harness/trace_eval.py /tmp/syn2/gt.json results/synth2_trace.csv results/synth2.json results/eval_synth2.json close 2>&1 | tee results/eval_synth2.txt || true
 
+      - name: Court card on a wall test
+        continue-on-error: true
+        run: |
+          /tmp/harness synth /tmp/syn3 /tmp/fake_9h.png results/synth3 0.75 2>&1 | tee results/synth3_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn3/gt.json results/synth3_trace.csv results/synth3.json results/eval_synth3.json court 2>&1 | tee results/eval_synth3.txt || true
+
       - name: Variants
         continue-on-error: true
         run: |
@@ -132,6 +139,8 @@ jobs:
             .venv/bin/python harness/trace_eval.py /tmp/syn/gt.json "results/v_$1_trace.csv" "results/v_$1.json" "results/eval_v_$1.json" main > "results/eval_v_$1.txt" 2>&1 || true
             /tmp/harness synth /tmp/syn2 /tmp/fake_9h.png "results/v2_$1" 0.75 "$2" > "results/v2_$1_log.txt" 2>&1 || true
             .venv/bin/python harness/trace_eval.py /tmp/syn2/gt.json "results/v2_$1_trace.csv" "results/v2_$1.json" "results/eval_v2_$1.json" close > "results/eval_v2_$1.txt" 2>&1 || true
+            /tmp/harness synth /tmp/syn3 /tmp/fake_9h.png "results/v3_$1" 0.75 "$2" > "results/v3_$1_log.txt" 2>&1 || true
+            .venv/bin/python harness/trace_eval.py /tmp/syn3/gt.json "results/v3_$1_trace.csv" "results/v3_$1.json" "results/eval_v3_$1.json" court > "results/eval_v3_$1.txt" 2>&1 || true
           }
           while read -r name settings; do
             [ -n "$name" ] && run_variant "$name" "$settings"
@@ -151,9 +160,22 @@ jobs:
             /tmp/harness video "$f" /tmp/fake_9h.png "results/real_$n" 0.5 2>&1 | tee "results/real_${n}_log.txt" || true
           done
 
+      - name: Publish harness results early
+        continue-on-error: true
+        run: |
+          rm -rf /tmp/results_early && cp -R results /tmp/results_early
+          cd /tmp/results_early
+          git init -q -b results
+          git config user.name "cam-ci"
+          git config user.email "cam-ci@users.noreply.github.com"
+          echo "commit ${GITHUB_SHA} (harness only, simulator still running)" > COMMIT.txt
+          git add -A
+          git commit -qm "Harness results for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" results
+
       - name: Screenshot the camera screen in the simulator
         continue-on-error: true
-        timeout-minutes: 35
+        timeout-minutes: 50
         run: |
           set -x
           .venv/bin/python scripts/make_icon.py
@@ -192,6 +214,7 @@ jobs:
           cp testdata/real1.mov "$DATA/Documents/real1.mov" || true
           cp -R /tmp/syn "$DATA/Documents/syn"
           cp -R /tmp/syn2 "$DATA/Documents/syn2"
+          cp -R /tmp/syn3 "$DATA/Documents/syn3"
           run_e2e() {
             name=$1; stem=$2; shift 2
             xcrun simctl launch "$DEV" "$BID" -e2e "$name" "$@"
@@ -205,9 +228,11 @@ jobs:
           }
           run_e2e syn syn -e2ePress 180,240
           run_e2e syn2 syn2
+          run_e2e syn3 syn3
           run_e2e real1.mov real1
-          .venv/bin/python harness/e2e_eval.py results/e2e_syn/log.csv results/e2e_syn.json /tmp/syn/gt.json 180,240 || true
-          .venv/bin/python harness/e2e_eval.py results/e2e_syn2/log.csv results/e2e_syn2.json /tmp/syn2/gt.json || true
+          .venv/bin/python harness/e2e_eval.py results/e2e_syn/log.csv results/e2e_syn.json /tmp/syn/gt.json 180,240 results/synth.json || true
+          .venv/bin/python harness/e2e_eval.py results/e2e_syn2/log.csv results/e2e_syn2.json /tmp/syn2/gt.json "" results/synth2.json || true
+          .venv/bin/python harness/e2e_eval.py results/e2e_syn3/log.csv results/e2e_syn3.json /tmp/syn3/gt.json "" results/synth3.json || true
           .venv/bin/python harness/e2e_eval.py results/e2e_real1/log.csv results/e2e_real1.json - || true
 
       - name: Publish results branch

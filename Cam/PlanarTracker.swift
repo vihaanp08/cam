@@ -423,14 +423,24 @@ enum PlanarTracker {
                 // parts of the card outside the picture (card entering or leaving) tell us nothing
                 guard g.contains(px - rad * abs(nrm.0), py - rad * abs(nrm.1)),
                       g.contains(px + rad * abs(nrm.0), py + rad * abs(nrm.1)) else { continue }
-                var best = 0.0, bestOff = 0.0
+                var best = 0.0, bestOff = 0.0, bestI = 0
+                var mags = [Double](repeating: 0, count: steps)
+                let stepLen = 2 * rad / Double(steps - 1)
                 for i in 0..<steps {
-                    let off = -rad + 2 * rad * Double(i) / Double(steps - 1)
+                    let off = -rad + stepLen * Double(i)
                     let x = px + off * nrm.0, y = py + off * nrm.1
                     let gp = g.sample(Float(x + nrm.0), Float(y + nrm.1))
                     let gm = g.sample(Float(x - nrm.0), Float(y - nrm.1))
                     let m = abs(Double(gp - gm)) * 0.5
-                    if m > best { best = m; bestOff = off }
+                    mags[i] = m
+                    if m > best { best = m; bestOff = off; bestI = i }
+                }
+                // Sub-pixel: the top of a parabola through the strongest step and its neighbours
+                // (the edge is rarely exactly on a sample; rounding to one shows as a jiggle).
+                if bestI > 0, bestI < steps - 1 {
+                    let a = mags[bestI - 1], b = mags[bestI], c = mags[bestI + 1]
+                    let den = a - 2 * b + c
+                    if den < -1e-9 { bestOff += max(-0.5, min(0.5, 0.5 * (a - c) / den)) * stepLen }
                 }
                 pts.append((px + bestOff * nrm.0, py + bestOff * nrm.1))
                 strengths.append(best)
@@ -576,8 +586,14 @@ enum PlanarTracker {
         return count
     }
 
-    /// Focal length guess for the gray image (about 70 degrees across the short side).
-    static func focalGuess(_ g: GrayImage) -> Double { 0.75 * Double(min(g.w, g.h)) }
+    /// The camera's focal length as a fraction of the picture's short side. The app sets it from
+    /// the camera's real field of view; 0.75 (about 70 degrees across the short side) otherwise.
+    /// (a wrong value makes a strongly tilted card look the wrong shape once perspective is undone,
+    /// so it scores as "not a card" and the fake drops off it)
+    static var focalFraction = 0.75
+
+    /// Focal length for the gray image.
+    static func focalGuess(_ g: GrayImage) -> Double { focalFraction * Double(min(g.w, g.h)) }
 
     /// For each edge, the fraction of points along it where the image really has an edge
     /// (a brightness step across it, either way round: the background can be brighter or darker
@@ -696,14 +712,18 @@ enum PlanarTracker {
     /// across that side (the detector sometimes finds half the card, split by the middle pip).
     static func extendAcrossWeakSides(_ g: GrayImage, quad: [CGPoint]) -> [[CGPoint]] {
         let support = edgeSupport(g, quad: quad)
-        var out: [[CGPoint]] = []
-        for k in 0..<4 where support[k] >= 0 && support[k] < 0.5 {
+        func doubled(_ quad: [CGPoint], _ k: Int) -> [CGPoint] {
             var q = quad
             let a = k, b = (k + 1) % 4, oa = (k + 3) % 4, ob = (k + 2) % 4
             q[a] = CGPoint(x: 2 * quad[a].x - quad[oa].x, y: 2 * quad[a].y - quad[oa].y)
             q[b] = CGPoint(x: 2 * quad[b].x - quad[ob].x, y: 2 * quad[b].y - quad[ob].y)
-            out.append(q)
+            return q
         }
+        func weak(_ k: Int) -> Bool { support[k] >= 0 && support[k] < 0.5 }
+        var out: [[CGPoint]] = []
+        for k in 0..<4 where weak(k) { out.append(doubled(quad, k)) }
+        // a corner of the card (two neighbouring sides with no edge): doubled both ways
+        for k in 0..<4 where weak(k) && weak((k + 1) % 4) { out.append(doubled(doubled(quad, k), (k + 1) % 4)) }
         return out
     }
 

@@ -64,6 +64,10 @@ final class FramePipeline {
         var draw: Bool
         var analysis: Compositor.Analysis?
         var status: Status
+        /// How much the picture changed since the frame before (0 = not at all). Frames are only
+        /// skipped or repeated, to change the head start, while the picture is nearly still, so it
+        /// never shows as a jump or a stutter.
+        var motion: Double = 1
     }
     private var queue: [Slot] = []
     private var inputCount = 0
@@ -76,6 +80,7 @@ final class FramePipeline {
     private var missStreak = 0
     private var live = false
     private var tick = 0
+    private var ticksSinceAdjust = 0
     private var pool: CVPixelBufferPool?
     private var poolSize = CGSize.zero
 
@@ -97,6 +102,7 @@ final class FramePipeline {
         drawnStreak = 0
         missStreak = 0
         live = false
+        ticksSinceAdjust = 0
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -147,20 +153,47 @@ final class FramePipeline {
         if missStreak >= 15 { live = false }    // (a short tracking hiccup doesn't count)
 
         // The head start is only needed for the moment the card comes into view. Once the fake has
-        // been on the card for a few frames the picture catches up to live (dropping every other
-        // frame for a moment, which isn't noticeable), and it falls back behind again (repeating
-        // the odd frame) once the card has gone.
+        // been on the card for a few frames the picture catches up to live (skipping a frame now
+        // and then while the picture is still), and it falls back behind again (showing the odd
+        // frame twice, again only while still) once the card has gone.
         let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
         while queue.count > maxDelay + 1 { queue.removeFirst() }
         let behind = queue.count - 1
-        if behind > target {
-            if tick % 2 == 0 && queue.count >= 2 { queue.removeFirst() }
+        guard cfg.adaptiveHeadStart else {
+            // fixed head start (test harness): fill it up at the start, then keep it
+            if behind < target { return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false) }
             return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
         }
-        if behind < target && (!cfg.adaptiveHeadStart || tick % 3 == 0) {
+        // Catching up (skipping a frame) or falling back (showing one twice) only while the picture
+        // is nearly still, at most every other frame, so neither is ever seen; if the picture keeps
+        // moving, do it anyway after a while.
+        ticksSinceAdjust += 1
+        let around = queue.prefix(2).map(\.motion).max() ?? 1
+        let mayAdjust = ticksSinceAdjust >= 2 && (around < FramePipeline.stillMotion || ticksSinceAdjust >= 24)
+        if behind > target && mayAdjust && queue.count >= 2 {
+            ticksSinceAdjust = 0
+            queue.removeFirst()
+        } else if behind < target && mayAdjust {
+            ticksSinceAdjust = 0
             return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false)
         }
         return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
+    }
+
+    /// Mean brightness change per pixel (0...1, at 1/8 scale) below which the picture counts as
+    /// still: a hand-held phone pointed at a still scene, sensor noise.
+    static let stillMotion = 0.012
+
+    /// Mean absolute difference between two frames' smallest pyramid levels.
+    private static func motion(_ a: CardTracker.FrameView?, _ b: CardTracker.FrameView?) -> Double {
+        guard let a = a?.pyramid.last, let b = b?.pyramid.last, a.w == b.w, a.h == b.h, !a.px.isEmpty else { return 1 }
+        var sum: Float = 0
+        a.px.withUnsafeBufferPointer { pa in
+            b.px.withUnsafeBufferPointer { pb in
+                for i in 0..<pa.count { sum += abs(pa[i] - pb[i]) }
+            }
+        }
+        return Double(sum) / Double(a.px.count)
     }
 
     /// The frames still waiting to be shown (for the test harness at the end of a clip).
@@ -181,6 +214,7 @@ final class FramePipeline {
         st.raw = tracker.lastRawQuad
         var slot = Slot(index: inputCount, time: time, image: frame, view: tracker.lastView,
                         quad: nil, draw: false, analysis: nil, status: st)
+        slot.motion = FramePipeline.motion(lastDecided?.view, tracker.lastView)
 
         switch state {
         case .locked(let q):
@@ -198,7 +232,17 @@ final class FramePipeline {
             // border look less like paper.
             let threshold = overlayOn ? 0.12 : 0.3
             let good = a != nil && slot.status.cardness > threshold && isFace
-            if good {
+            // A card just found has to hold for a frame or two before the fake goes on, so a wrong
+            // find that lasts a single frame never shows. Only while the picture runs behind (the
+            // head start hides the wait, and the frames before get the fake painted on too).
+            let confirmed = overlayOn || tracker.stableFrames >= Tuning.confirmFrames
+                || queue.count < Tuning.confirmFrames - 1
+            if good && !confirmed {
+                badStreak = 0
+                lastAnalysis = a
+                slot.analysis = a
+                slot.status.reason = "confirming"
+            } else if good {
                 badStreak = 0
                 lastAnalysis = a
                 overlayOn = true
@@ -211,7 +255,7 @@ final class FramePipeline {
             if a == nil { slot.status.reason = "analysis failed" }
             else if !isFace { slot.status.reason = "card back" }
             else if !good { slot.status.reason = String(format: "low paper %.2f", slot.status.cardness) }
-            else { slot.status.reason = "ok" }
+            else if slot.status.reason != "confirming" { slot.status.reason = "ok" }
             if overlayOn, let use = good ? a : lastAnalysis {
                 slot.draw = true
                 slot.analysis = use
@@ -272,6 +316,17 @@ final class FramePipeline {
             var q: Quad?
             if let a = next.view, let b = queue[j].view {
                 q = CardTracker.follow(nq, from: a, to: b)
+            }
+            // A frame that was waiting for the new card to be confirmed has its own measurement
+            // (used when the card can't be followed back to it).
+            if q == nil, queue[j].status.reason == "confirming", let own = queue[j].quad, let a = queue[j].analysis {
+                queue[j].quad = own
+                queue[j].draw = true
+                queue[j].analysis = a
+                queue[j].status.reason = "confirmed"
+                queue[j].status.overlay = true
+                j -= 1
+                continue
             }
             if q == nil {
                 // Too blurred or too little in view to follow: continue its motion backwards.

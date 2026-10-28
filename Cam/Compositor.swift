@@ -6,8 +6,9 @@ import Foundation
 /// Paints the fake card over the real one so it looks like it belongs in the shot.
 ///
 /// How it hides the seams:
-/// - Both cards have the same white border, so the overlay only replaces the area *inside*
-///   the border and fades into it. Fingertips on the edges sit on the border and stay real.
+/// - Both cards have the same white border, so the overlay stops just short of the card's edge
+///   (the real edge, its shading and the background stay real) and is fully opaque well before the
+///   real card's printing starts, so none of the real card shows through.
 /// - Lighting is measured from the real card's own white border every frame (a smooth
 ///   bilinear fit, so shadows and gradients across the card carry over), and the fake face
 ///   is multiplied by it.
@@ -321,7 +322,9 @@ final class Compositor {
 
     /// The fake is painted from this far in from the card's edges (fractions of its width and
     /// height), with a soft edge of this width (a fraction of the card's width).
-    static let paintInsetX = 0.032, paintInsetY = 0.025, edgeSoftness = 0.007
+    /// (the real deck's printing starts 3.4% in from the sides and 4.3% from the ends: the fake must
+    /// be fully opaque well before that, or the real indices show through at their edges)
+    static let paintInsetX = 0.014, paintInsetY = 0.012, edgeSoftness = 0.003
 
     /// Where the fake ends, and where it is fully opaque (two softness widths further in), as
     /// fractions of the card's width and height from each edge (for the test harness).

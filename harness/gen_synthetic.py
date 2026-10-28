@@ -95,6 +95,85 @@ def real_card():
     return im
 
 
+def court_card():
+    """A king: corner indices, and a printed frame round a colourful picture (the frame is a strong,
+    card-shaped rectangle inside the card: the classic way to end up with a card inside a card)."""
+    im = card(13, 0, rounded=False)
+    d = ImageDraw.Draw(im)
+    W, H = im.size
+    x0, y0, x1, y1 = int(0.16 * W), int(0.12 * H), int(0.84 * W), int(0.88 * H)
+    rng = np.random.default_rng(7)
+    cols = [(204, 18, 33, 255), (30, 60, 160, 255), (240, 190, 40, 255), (36, 36, 36, 255)]
+    for k in range(40):        # the picture: overlapping blocks of colour, mirrored top to bottom
+        cx, cy = rng.uniform(x0, x1), rng.uniform(y0, (y0 + y1) / 2)
+        rw, rh = rng.uniform(15, 70), rng.uniform(15, 60)
+        c = cols[k % 4]
+        for (yy, flip) in ((cy, False), (y0 + y1 - cy, True)):
+            xx = cx if not flip else x0 + x1 - cx
+            d.ellipse((xx - rw / 2, yy - rh / 2, xx + rw / 2, yy + rh / 2), fill=c)
+    d.line(((x0, (y0 + y1) // 2), (x1, (y0 + y1) // 2)), fill=(36, 36, 36, 255), width=3)
+    d.rectangle((x0, y0, x1, y1), outline=(36, 36, 36, 255), width=4)
+    im = im.convert("RGB").convert("RGBA")
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, W - 1, H - 1), radius=26, fill=255)
+    im.putalpha(mask)
+    # paper slightly off-white like the real deck
+    a = np.asarray(im).astype(np.float32)
+    a[..., :3] *= np.array([246, 246, 243]) / 255.0
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+
+
+def wall(t):
+    """A plain wall with a sheet of paper pinned to it (white, printed, nearly a card's shape: the
+    kind of thing a fake card must never jump onto) and a dark picture frame."""
+    y, x = np.mgrid[0:FH, 0:FW].astype(np.float32)
+    g = 214 + 10 * np.sin((x * 0.4 + y) / 300.0 + 0.2 * t)
+    rgb = np.stack([g * 1.0, g * 0.98, g * 0.94], -1)
+    img = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8))
+    d = ImageDraw.Draw(img)
+    px, py, pw, ph = 470, 120, 190, 269            # A4-ish, 0.707
+    d.rectangle((px, py, px + pw, py + ph), fill=(242, 241, 236))
+    for k in range(14):                              # lines of print
+        ly = py + 24 + k * 16
+        d.rectangle((px + 18, ly, px + pw - 18 - (k % 3) * 30, ly + 5), fill=(70, 70, 75))
+    d.rectangle((px + 18, py + ph - 70, px + 90, py + ph - 20), fill=(180, 40, 40))
+    fx, fy = 30, 980                                 # picture frame
+    d.rectangle((fx, fy, fx + 220, fy + 160), fill=(60, 45, 35))
+    d.rectangle((fx + 18, fy + 18, fx + 202, fy + 142), fill=(120, 150, 170))
+    return img.filter(ImageFilter.GaussianBlur(1.6))
+
+
+def pose_court(i, n):
+    """Third script: a court card in front of a wall with a printed sheet on it. Comes in, drifts,
+    holds still, tilts, comes closer, goes out to the side and back."""
+    seg = i / n
+    t = i / FPS
+    cx = FW * 0.42 + 70 * math.sin(t * 0.8)
+    cy = FH * 0.55 + 90 * math.sin(t * 0.6 + 1)
+    rot = math.radians(10 * math.sin(t * 0.7))
+    tx = math.radians(8 * math.sin(t * 0.5))
+    ty = math.radians(8 * math.sin(t * 0.6 + 0.5))
+    size = 300.0
+    if seg < 0.07:
+        k = 1 - seg / 0.07
+        cy += 900 * k * k
+    if 0.30 <= seg < 0.40:            # held still
+        t0 = 0.30 * n / FPS
+        cx = FW * 0.42 + 70 * math.sin(t0 * 0.8); cy = FH * 0.55 + 90 * math.sin(t0 * 0.6 + 1)
+        rot = math.radians(10 * math.sin(t0 * 0.7)); tx = math.radians(8 * math.sin(t0 * 0.5)); ty = math.radians(8 * math.sin(t0 * 0.6 + 0.5))
+    if 0.40 <= seg < 0.55:            # tipped back and to the side
+        k = (seg - 0.40) / 0.15
+        tx += math.radians(35) * math.sin(k * 2 * math.pi)
+        ty += math.radians(30) * math.sin(k * math.pi)
+    if 0.55 <= seg < 0.70:            # brought closer
+        k = (seg - 0.55) / 0.15
+        size += 260 * math.sin(k * math.pi)
+    if 0.72 <= seg < 0.82:            # out to the right and back
+        k = (seg - 0.72) / 0.10
+        cx += 700 * math.sin(k * math.pi)
+    return cx, cy, size, rot, tx, ty
+
+
 def pose(i, n):
     """Scripted motion: drift, still hold, fast swipe, leave and return."""
     seg = i / n
@@ -177,9 +256,11 @@ def hand_layer(quad, behind):
 def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
-    script = pose_close if len(sys.argv) > 3 and sys.argv[3] == "close" else pose
+    kind = sys.argv[3] if len(sys.argv) > 3 else "main"
+    script = {"close": pose_close, "court": pose_court}.get(kind, pose)
     os.makedirs(out, exist_ok=True)
-    face = real_card()
+    face = court_card() if kind == "court" else real_card()
+    still = {"court": (0.30, 0.40)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
     prev = None
@@ -187,7 +268,7 @@ def main():
         t = i / FPS
         cx, cy, size, rot, tx, ty = script(i, n)
         quad = quad_for(cx, cy, size, rot, tx, ty)
-        frame = background(t).convert("RGBA")
+        frame = (wall(t) if kind == "court" else background(t)).convert("RGBA")
         frame.alpha_composite(hand_layer(quad, behind=True))
         # lighting across the card: brighter at one corner, warm cast, slow global drift
         gain = 0.92 + 0.06 * math.sin(t * 0.7)
@@ -208,7 +289,7 @@ def main():
         Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(os.path.join(out, f"frame_{i:05d}.jpg"), quality=90)
         inside = all(0 <= x < FW and 0 <= y < FH for x, y in quad)
         gts.append({"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
-                    "still": 0.30 <= i / n < 0.42, "inframe": round(inframe_fraction(quad), 3)})
+                    "still": still[0] <= i / n < still[1], "inframe": round(inframe_fraction(quad), 3)})
     json.dump({"width": FW, "height": FH, "fps": FPS, "frames": gts}, open(os.path.join(out, "gt.json"), "w"))
     print("wrote", n, "frames to", out)
 

@@ -6,11 +6,16 @@ import SwiftUI
 
 /// Metal view that draws the engine's latest composited frame, aspect-filled.
 /// Also hosts the hidden gestures and the hardware-button listener.
+///
+/// The view checks for a new frame at the screen's full refresh rate (120 Hz on ProMotion) and
+/// draws each one as soon as it is ready, instead of on a fixed 30 Hz beat that could leave a
+/// finished frame waiting up to a whole frame before it reached the screen.
 final class PreviewView: UIView, MTKViewDelegate {
     private let mtkView: MTKView
     private let commandQueue: MTLCommandQueue
     private weak var engine: CameraEngine?
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    private var drawnSeq = -1
 
     var onTap: ((CGPoint) -> Void)?
     var onOpenSettings: (() -> Void)?
@@ -30,7 +35,7 @@ final class PreviewView: UIView, MTKViewDelegate {
 
         mtkView.framebufferOnly = false
         mtkView.colorPixelFormat = .bgra8Unorm
-        mtkView.preferredFramesPerSecond = 30
+        mtkView.preferredFramesPerSecond = max(60, UIScreen.main.maximumFramesPerSecond)
         mtkView.enableSetNeedsDisplay = false
         mtkView.isPaused = false
         mtkView.delegate = self
@@ -98,11 +103,15 @@ final class PreviewView: UIView, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
-        guard let engine = engine, let image = engine.latestImage,
+        // Nothing new since the last draw: leave the picture on screen as it is.
+        guard let engine = engine else { return }
+        let frame = engine.latestFrame
+        guard let image = frame.image, frame.seq != drawnSeq else { return }
+        let size = view.drawableSize
+        guard size.width > 0, size.height > 0, image.extent.width > 0,
               let drawable = view.currentDrawable,
               let cb = commandQueue.makeCommandBuffer() else { return }
-        let size = view.drawableSize
-        guard size.width > 0, size.height > 0, image.extent.width > 0 else { return }
+        drawnSeq = frame.seq
 
         let ext = image.extent
         let scale = max(size.width / ext.width, size.height / ext.height)

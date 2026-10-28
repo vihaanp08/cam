@@ -1,2 +1,2 @@
-hs0 hs=0
 hs2 hs=2
+cf1 cf=1

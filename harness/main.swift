@@ -155,9 +155,15 @@ if args.count > 6 {
         switch p[0] {
         case "hs": cfg.headStartFrames = Int(v)
         case "inset": cfg.insetScale = v
+        case "mc": Tuning.smoothMinCutoff = v
+        case "beta": Tuning.smoothBeta = v
+        case "dc": Tuning.smoothDCutoff = v
+        case "cf": Tuning.confirmFrames = Int(v)
+        case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
     }
+    pipe.reset()   // (picks up the new settings)
 }
 
 var drew: [Bool] = []

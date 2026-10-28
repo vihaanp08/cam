@@ -24,6 +24,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     // Shared state (guarded by `lock`)
     private let lock = NSLock()
     private var _latest: CIImage?
+    private var _seq = 0
     private var _config = RenderConfig()
     private var _albedo: CIImage?
     private var _albedoMirrored: CIImage?
@@ -37,6 +38,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     /// Rotation that makes this camera's frames upright with the phone held in portrait.
     /// 90 for sensors mounted sideways (most), 0 for the newer portrait-mounted square selfie sensor.
     private var _portraitAngle: CGFloat = 90
+    /// The active camera's horizontal field of view (degrees, across the picture's long side) and
+    /// zoom, so the tracker knows the real perspective (0 = unknown).
+    private var _fovDegrees: Double = 0
+    private var _zoom: CGFloat = 1
     private var _learnedAngles: [Int: CGFloat] = CameraEngine.loadLearnedAngles()   // by camera position
     /// Phone clearly held upright (from the motion sensor). Only then is the system's rotation
     /// trustworthy: lying down, face up or face down it can be anything.
@@ -108,6 +113,13 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     var latestImage: CIImage? {
         lock.lock(); defer { lock.unlock() }
         return _latest
+    }
+
+    /// The newest picture and its number (goes up by one with every camera frame), so the screen
+    /// can draw each new frame the moment it is ready and skip redrawing an old one.
+    var latestFrame: (image: CIImage?, seq: Int) {
+        lock.lock(); defer { lock.unlock() }
+        return (_latest, _seq)
     }
 
     /// The fake card is on screen right now (a reveal only makes sense then).
@@ -207,6 +219,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
                 if animated { d.ramp(toVideoZoomFactor: f, withRate: 12) } else { d.videoZoomFactor = f }
                 d.unlockForConfiguration()
             } catch {}
+            self.lock.lock(); self._zoom = f; self.lock.unlock()
             self.videoQueue.async { self.pipeline.reset() }
         }
     }
@@ -247,6 +260,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     }
 
     private func configure(position: AVCaptureDevice.Position) {
+        // Center Stage (the selfie camera panning and zooming to follow faces) would move the card
+        // around in the picture by itself: keep the framing fixed.
+        AVCaptureDevice.centerStageControlMode = .app
+        AVCaptureDevice.isCenterStageEnabled = false
         session.beginConfiguration()
         session.automaticallyConfiguresApplicationAudioSession = false
         if session.canSetSessionPreset(.hd1920x1080) {
@@ -333,6 +350,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         } catch {
             print("Device config error: \(error)")
         }
+        lock.lock()
+        _fovDegrees = Double(dev.activeFormat.videoFieldOfView)
+        _zoom = oneX
+        lock.unlock()
         let cb = onCameraChanged
         DispatchQueue.main.async { cb?(position, stops) }
     }
@@ -451,7 +472,16 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         let gateStart = _gateStart
         let gateImage = _gateImage
         let autoRearm = _onAutoRearm
+        let fov = _fovDegrees, zoom = _zoom
         lock.unlock()
+
+        // The camera's real focal length, as a fraction of the picture's short side.
+        if fov > 20, fov < 160 {
+            let w = Double(CVPixelBufferGetWidth(pb)), h = Double(CVPixelBufferGetHeight(pb))
+            let f = max(w, h) / 2 / tan(fov / 2 * .pi / 180) * Double(max(zoom, 1))
+            let frac = f / max(1, min(w, h))
+            if frac > 0.4, frac < 4, abs(frac - PlanarTracker.focalFraction) > 0.005 { PlanarTracker.focalFraction = frac }
+        }
 
         if lastFrameTime > 0, t > lastFrameTime { fps = 0.9 * fps + 0.1 / (t - lastFrameTime) }
         lastFrameTime = t
@@ -483,8 +513,8 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             gateFade -= 1
         }
 
-        // Auto re-arm once the card has been out of view for a couple of seconds.
-        if !armed, let cb = autoRearm, pipeline.lastCardSeen > 0, t - pipeline.lastCardSeen > 2.0,
+        // Auto re-arm once the card has been out of view for a second.
+        if !armed, let cb = autoRearm, pipeline.lastCardSeen > 0, t - pipeline.lastCardSeen > 1.0,
            rearmFiredFor != pipeline.lastCardSeen {
             rearmFiredFor = pipeline.lastCardSeen
             DispatchQueue.main.async { cb() }
@@ -492,6 +522,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
         lock.lock()
         _latest = out
+        _seq &+= 1
         if result.drewOverlay { _lastFakeShown = now }
         lock.unlock()
 

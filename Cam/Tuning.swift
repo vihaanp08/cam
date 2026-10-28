@@ -1,0 +1,19 @@
+import Foundation
+
+/// Tunable numbers gathered in one place, so the test harness can try other values against the
+/// same footage. The app always runs with these defaults.
+enum Tuning {
+    // Smoothing of the card's outline: a One Euro filter on each corner coordinate.
+    /// Hz. Lower = steadier while the card is held still.
+    static var smoothMinCutoff = 1.5
+    /// Higher = less lag while the card moves.
+    static var smoothBeta = 0.12
+    /// Hz. How quickly the filter notices the card has started (or stopped) moving.
+    static var smoothDCutoff = 1.0
+
+    // Starting the fake on a card
+    /// Frames in a row a newly found card must be tracked before the fake is painted on it. Only
+    /// while the picture runs behind the camera (the head start), which hides the wait: the fake is
+    /// then painted back onto the earlier frames too, so it still appears with the card.
+    static var confirmFrames = 2
+}

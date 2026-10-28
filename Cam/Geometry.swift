@@ -123,10 +123,17 @@ struct OneEuroFilter {
     }
 }
 
-/// Smooths all 8 corner coordinates of a quad.
+/// Smooths all 8 corner coordinates of a quad (settings in Tuning).
 struct QuadSmoother {
-    /// minCutoff: lower = steadier when still. beta: higher = less lag when moving.
-    private var filters = (0..<8).map { _ in OneEuroFilter(minCutoff: 1.5, beta: 0.12) }
+    private var filters = QuadSmoother.make()
+
+    private static func make() -> [OneEuroFilter] {
+        (0..<8).map { _ in
+            var f = OneEuroFilter(minCutoff: Tuning.smoothMinCutoff, beta: Tuning.smoothBeta)
+            f.dCutoff = Tuning.smoothDCutoff
+            return f
+        }
+    }
 
     mutating func smooth(_ q: Quad, dt: Double) -> Quad {
         var out: [CGPoint] = []
@@ -144,6 +151,6 @@ struct QuadSmoother {
     }
 
     mutating func reset() {
-        for i in filters.indices { filters[i].reset() }
+        filters = QuadSmoother.make()
     }
 }
