@@ -48,7 +48,10 @@ SEGS = {
               (216, 225, "drift3"), (225, 285, "turn"), (285, 300, "end")],
     "court": [(0, 21, "enter"), (21, 90, "drift"), (90, 120, "still"), (120, 165, "tilt"), (165, 210, "closer"),
               (210, 216, "drift2"), (216, 246, "out/back"), (246, 300, "end")],
-}[script]
+}.get(script, [])
+# (scripts that list their own segments: the entries script)
+if gt_all.get("segments"):
+    SEGS = [tuple(s) for s in gt_all["segments"]]
 
 per = {}
 seen = set()

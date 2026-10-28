@@ -159,6 +159,7 @@ if args.count > 6 {
         case "beta": Tuning.smoothBeta = v
         case "dc": Tuning.smoothDCutoff = v
         case "cf": Tuning.confirmFrames = Int(v)
+        case "entry": Tuning.entryByIndex = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }

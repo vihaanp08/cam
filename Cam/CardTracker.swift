@@ -62,6 +62,9 @@ final class CardTracker {
     /// The last lock change replaced part of the card (or a poor fit) with the whole card: frames
     /// already painted with the old outline and still waiting to be shown should be redone.
     private(set) var lastWasCorrection = false
+    /// The lock was taken on a card coming into view, by where its corner index is, and much of it is
+    /// still out of view (see `completions`).
+    private var entryLock = false
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// What detection saw on the last frame it ran (for the test harness and the debug view).
@@ -154,7 +157,9 @@ final class CardTracker {
     /// Is there printing (a card's pips and indices) inside `quad` in this frame? A plain wall, the
     /// ceiling or the empty space a card has just left has none, so the fake must not be held or
     /// guessed onto it. Core Image coordinates.
-    static func hasPrinting(_ view: FrameView, _ quad: Quad) -> Bool {
+    /// (`minSamples`: how many of the points inside it must be in the picture; fewer for the strip of a
+    /// card just coming into view)
+    static func hasPrinting(_ view: FrameView, _ quad: Quad, minSamples: Int = 30) -> Bool {
         guard let g = view.pyramid.first else { return false }
         let gq = quad.points.map(view.toGray)
         guard gq.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return false }
@@ -168,7 +173,7 @@ final class CardTracker {
                 if g.contains(x, y) { v.append(g.sample(Float(x), Float(y))) }
             }
         }
-        guard v.count >= 30 else { return false }
+        guard v.count >= max(8, minSamples) else { return false }
         let sorted = v.sorted()
         let paper = sorted[Int(Double(sorted.count - 1) * 0.8)]
         guard paper > 0.3 else { return false }
@@ -197,6 +202,7 @@ final class CardTracker {
         lastMotion = .infinity
         pictureMismatch = 0
         lastWasCorrection = false
+        entryLock = false
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -296,8 +302,12 @@ final class CardTracker {
         let lockPattern = grayQuad.flatMap { indexPattern(paper, $0) }
         let lockIndex: Double? = lockPattern.map { $0.both }
         let lockMisScaled: Bool = lockPattern.map { $0.misScaled } ?? false
+        // (and every frame while a new card is still coming into view: its outline is a completion
+        // of the part in view until all of it is in the picture)
+        let comingIn = cardPicture == nil && stableFrames < 30
+            && (grayQuad.map { FramePipeline.fractionInside(quadCI($0), CGRect(x: 0, y: 0, width: W, height: H)) < 0.95 } ?? false)
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
-            || stableFrames < 5 || lockMisScaled || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0)
+            || stableFrames < 5 || lockMisScaled || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0) || comingIn
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
@@ -323,15 +333,32 @@ final class CardTracker {
                 // (nor a small one: a card brought up to the camera is big, and a small "card" coming in
                 // at the edge is a box round its corner index and a pip)
                 let minNewShort = 0.2 * CGFloat(min(g.w, g.h))
-                func completions(_ q: [CGPoint]) -> [[CGPoint]] {
-                    PlanarTracker.completeTruncated(q, w: g.w, h: g.h).filter { full in
+                // (`early`: taken while much of it is still out of view, by where its corner index is)
+                func completions(_ q: [CGPoint]) -> [(quad: [CGPoint], early: Bool)] {
+                    let all = PlanarTracker.completeTruncated(q, w: g.w, h: g.h)
+                    var out: [(quad: [CGPoint], early: Bool)] = []
+                    var waiting: [Int] = []
+                    for (k, full) in all.enumerated() {
                         let s = quadSize(full)
-                        if sizeRefs.contains(where: { s > 0.75 * $0 && s < 1.35 * $0 }) { return true }
+                        if sizeRefs.contains(where: { s > 0.75 * $0 && s < 1.35 * $0 }) { out.append((full, false)); continue }
                         let across = hypot(full[1].x - full[0].x, full[1].y - full[0].y) + hypot(full[2].x - full[3].x, full[2].y - full[3].y)
                         let along = hypot(full[3].x - full[0].x, full[3].y - full[0].y) + hypot(full[2].x - full[1].x, full[2].y - full[1].y)
-                        guard min(across, along) / 2 >= minNewShort else { return false }
-                        return FramePipeline.fractionInside(Quad(full), frameRect) >= 0.8
+                        guard min(across, along) / 2 >= minNewShort else { continue }
+                        let inView = FramePipeline.fractionInside(Quad(full), frameRect)
+                        if inView >= 0.8 { out.append((full, false)) } else if inView >= 0.25 { waiting.append(k) }
                     }
+                    // Coming into view: the fake must cover the card from the moment it shows, long
+                    // before most of it is in the picture. A card's corner index is long and thin along
+                    // the card, so of the two ways round only the right one has an index where the card
+                    // shows one (see `entryIndex`): that one is taken as soon as an index is in view, as
+                    // long as no other way of completing it has one too.
+                    if Tuning.entryByIndex && !waiting.isEmpty {
+                        let ev = all.map { entryIndex(paper, $0) }
+                        for k in waiting where ev[k] == true {
+                            if !all.indices.contains(where: { $0 != k && ev[$0] == true }) { out.append((all[k], true)) }
+                        }
+                    }
+                    return out
                 }
                 // (an outline lying along the edge of the picture, with nothing to go by: a card cut off
                 // there, which only its completions above stand for)
@@ -389,7 +416,7 @@ final class CardTracker {
                     }
                 }
                 if let tq = grayQuad {
-                    for full in completions(tq) { consider(full, "flow part", completed: true) }
+                    for c in completions(tq) { consider(c.quad, c.early ? "flow entry" : "flow part", completed: true) }
                     // the current lock might be half the card, or have grown onto the fingers
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
@@ -399,7 +426,7 @@ final class CardTracker {
                     for q in InkFinder.candidates(pr) {
                         if let f = InkFinder.refine(g, pr, q) {
                             consider(f, "ink")
-                            for full in completions(f) { consider(full, "ink part", completed: true) }
+                            for c in completions(f) { consider(c.quad, c.early ? "ink entry" : "ink part", completed: true) }
                         }
                     }
                 }
@@ -408,7 +435,7 @@ final class CardTracker {
                     consider(gq, how)
                     // A card only partly in view (coming in or going out): complete it to a full
                     // card so the fake covers it (see `completions` for when that is believed).
-                    for full in completions(gq) { consider(full, how + " part", completed: true) }
+                    for c in completions(gq) { consider(c.quad, how + (c.early ? " entry" : " part"), completed: true) }
                     // Vision's outline often includes the fingers behind the card: pull each side in
                     // to the real paper edge.
                     if let r = refitInward(g, paper, gq) { consider(r, how + " fit") }
@@ -526,7 +553,9 @@ final class CardTracker {
                 // a little tilted, fingers on it): that pattern is very hard to get by chance. A shape
                 // with printing where a card face has none needs a much higher score, and never takes
                 // over from a card being followed.
-                let startScore = bestIndex >= 0.12 ? 0.2 : (bestIndex <= -0.08 ? 0.6 : 0.3)
+                // (so may a card coming into view with a corner index where the card has one)
+                let entering = winHow.hasSuffix(" entry")
+                let startScore = bestIndex >= 0.12 ? 0.2 : (bestIndex <= -0.08 ? 0.6 : (entering ? 0.25 : 0.3))
                 let mayTakeOver = bestIndex > -0.08 || trackedScore < minScore
                 // Something fully in view that isn't a card face (no index in a corner with the
                 // corners beside it blank: a printed sheet on the wall, a poster, a sign) never
@@ -552,9 +581,14 @@ final class CardTracker {
                 let corrects = wholeRound || (lockPart && winScore >= 0.15)
                     || (refine && winScore >= 0.2 && mayStart && !lockVerified)
                 let starts = measured == nil && mayStart
-                let takesOver = winScore > trackedScore + 0.12 && winScore >= 0.3 && mayTakeOver && mayStart && !lockVerified
+                // A lock taken on a card coming into view, by where its corner index is: as more of
+                // the card comes in, its index boxes show whether it was the right way round. When
+                // they come up blank, anything card-like takes over straight away.
+                let entryWrong = entryLock && measured != nil && (grayQuad.map { entryIndex(paper, $0) == false } ?? false)
+                let takesOver = (winScore > trackedScore + 0.12 || entryWrong) && winScore >= 0.3 && mayTakeOver && mayStart && !lockVerified
                 let needed = measured == nil ? startScore : minScore
                 if let wq = winQuad, winScore >= needed, starts || takesOver || corrects {
+                    entryLock = entering
                     if corrects, let tq = grayQuad {
                         lastWasCorrection = alignedDistance(wq, tq) > 0.04 * Double(quadSize(tq))
                         // (a lock on part of the card had its picture taken: that picture is wrong)
@@ -576,6 +610,10 @@ final class CardTracker {
             }
         }
         lastScore = trackedScore
+        // (an entry lock is an ordinary one once the card is all in view, or gone)
+        if entryLock, grayQuad.map({ FramePipeline.fractionInside(quadCI($0), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.97 }) ?? true {
+            entryLock = false
+        }
         if !runDetect { lastDebug = ""; lastCandidates = [] }
         // (only from a lock that has held for a few frames, and that matches the card's picture once
         // that is known: a wrong lock must not become the size and picture the card is searched for by)
@@ -769,7 +807,7 @@ final class CardTracker {
                 // only. (The printing alone can be a little off in scale, most of all held close with
                 // part of the card out of the picture, and the plain border has nothing to line up:
                 // the long edge then sat inside the real one and a strip of the real card showed.)
-                let (es, en) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(1.5, 0.015 * Double(side)))
+                let (es, en) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(1.5, 0.015 * Double(side)), fine: true)
                 if en > 0 { nq = es }
             }
         }
@@ -1007,6 +1045,67 @@ final class CardTracker {
         // (both indices: a white sheet with one dark mark in a corner looks like a card with a thumb
         // over one index, so only the full pattern counts as proof)
         return (both, both >= 0.1, crowded && !clean)
+    }
+
+    /// A card coming into view, completed from the part of it in the picture (one way round or the
+    /// other, see `completions`): does the part in view show a corner index where this completion
+    /// puts one? A card's index is long and thin along the card, so the wrong way round puts the index
+    /// boxes beside the real index, on blank paper. true: an index box in view is inked (and the paper
+    /// just past it along the card is blank, where that is in view); false: the index boxes in view
+    /// are blank, or inked with printing carrying on past them; nil: no index box in view yet.
+    private func entryIndex(_ paper: PaperReader?, _ quad: [CGPoint]) -> Bool? {
+        guard let paper = paper, quad.count == 4,
+              quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        var q = quad
+        let s01 = hypot(q[1].x - q[0].x, q[1].y - q[0].y) + hypot(q[2].x - q[3].x, q[2].y - q[3].y)
+        let s03 = hypot(q[3].x - q[0].x, q[3].y - q[0].y) + hypot(q[2].x - q[1].x, q[2].y - q[1].y)
+        if s01 > s03 { q = [q[1], q[2], q[3], q[0]] }
+        let unit = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]
+        guard let H = PlanarTracker.fitHomography(unit, q) else { return nil }
+        func lum(_ c: (Double, Double, Double)) -> Double { 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2 }
+        func at(_ u: CGFloat, _ v: CGFloat) -> (Double, Double, Double)? {
+            let p = H.apply(CGPoint(x: u, y: v))
+            guard p.x >= 0, p.y >= 0, p.x <= CGFloat(paper.w - 1), p.y <= CGFloat(paper.h - 1) else { return nil }
+            return paper.color(p.x, p.y)
+        }
+        // the paper's brightness, from the part in view
+        var lums: [Double] = []
+        for j in 0..<16 { for i in 0..<12 {
+            if let c = at(0.03 + 0.94 * CGFloat(i) / 11, 0.03 + 0.94 * CGFloat(j) / 15) { lums.append(lum(c)) }
+        } }
+        guard lums.count >= 24 else { return nil }
+        lums.sort()
+        let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]
+        guard paperLum > 40 else { return nil }
+        func isInk(_ c: (Double, Double, Double)) -> Bool {
+            if c.0 - max(c.1, c.2) > 60 { return true }
+            guard lum(c) < 0.6 * paperLum else { return false }
+            return !(c.0 - c.2 > 25 && c.1 > c.2 + 5)
+        }
+        // (the same boxes as `indexPattern`, but only boxes wholly in view count)
+        func inkIn(_ u0: CGFloat, _ v0: CGFloat, _ dv: CGFloat = 0.18) -> Double? {
+            var n = 0, ink = 0
+            for j in 0..<10 { for i in 0..<6 {
+                let u = u0 + 0.085 * CGFloat(i) / 5, v = v0 + dv * CGFloat(j) / 9
+                guard let c = at(u, v) else { continue }
+                n += 1
+                if isInk(c) { ink += 1 }
+            } }
+            return n >= 57 ? Double(ink) / Double(n) : nil
+        }
+        let boxes: [(CGFloat, CGFloat)] = [(0.045, 0.06), (0.87, 0.06), (0.045, 0.76), (0.87, 0.76)]
+        let pasts: [(CGFloat, CGFloat)] = [(0.045, 0.29), (0.87, 0.29), (0.045, 0.60), (0.87, 0.60)]
+        var tested = 0, indexed = 0, crowded = false
+        for k in 0..<4 {
+            guard let m = inkIn(boxes[k].0, boxes[k].1) else { continue }
+            tested += 1
+            guard m >= 0.12 else { continue }
+            // (solid dark is not an index: hair or a dark sleeve where the box is off the card)
+            if m > 0.65 { crowded = true; continue }
+            if let p = inkIn(pasts[k].0, pasts[k].1, 0.11), p >= 0.2 { crowded = true } else { indexed += 1 }
+        }
+        guard tested > 0 else { return nil }
+        return indexed > 0 && !crowded
     }
 
     // MARK: - The card's picture

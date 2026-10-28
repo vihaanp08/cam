@@ -155,7 +155,9 @@ final class FramePipeline {
         drawnStreak = slot.draw ? drawnStreak + 1 : 0
         missStreak = slot.draw ? 0 : missStreak + 1
         if drawnStreak >= 3 { live = true }
-        if missStreak >= 15 { live = false }    // (a short tracking hiccup doesn't count)
+        // (a short tracking hiccup doesn't count; once the card has gone, the head start is built
+        // back up straight away, ready for it coming back)
+        if missStreak >= 10 { live = false }
         let showArmed = armedNow?() ?? armed
 
         // The head start is only needed for the moment the card comes into view. Once the fake is on
@@ -365,8 +367,13 @@ final class FramePipeline {
                     q = nq
                 }
                 // (and, once the card's picture is known, it must be seen to be the card's printing)
-                if let guess = q, let v = queue[j].view,
-                   !CardTracker.hasPrinting(v, guess) || (tracker.hasPicture && (tracker.pictureMatch(guess, in: v) ?? 0) < 0.75) { q = nil }
+                // (a card just coming into view is a strip at the edge of the picture: a little of its
+                // printing in view is enough, its index is what must not show)
+                if let guess = q, let v = queue[j].view {
+                    let printed = CardTracker.hasPrinting(v, guess, minSamples: 12)
+                    let match = tracker.hasPicture ? tracker.pictureMatch(guess, in: v) : nil
+                    if !printed || (match.map { $0 < 0.75 } ?? false) { q = nil }
+                }
             }
             guard let found = q else { break }
             // Stop once the card is out of the picture (nothing to cover).

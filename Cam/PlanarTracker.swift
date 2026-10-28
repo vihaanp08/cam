@@ -395,13 +395,17 @@ enum PlanarTracker {
     /// and snapping onto one of those is how one side of the fake used to slide in or out and stay
     /// there. `maxShift` (pixels): a side that would move further than this keeps its place (the
     /// tracker uses it so a side can be nudged onto the edge, never thrown onto another line).
-    static func snapEdges(_ g: GrayImage, quad: [CGPoint], maxShift: Double? = nil) -> ([CGPoint], Int) {
+    /// `fine`: only a small correction of an outline already lined up some other way: edges are only
+    /// looked for close by, and `maxShift` holds even for a long straight line (a court card's
+    /// printed frame, just inside its edge, is one; the side snapped onto it and the fake came out
+    /// short, with the real card's edge and index showing).
+    static func snapEdges(_ g: GrayImage, quad: [CGPoint], maxShift: Double? = nil, fine: Bool = false) -> ([CGPoint], Int) {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return (quad, 0) }
         let q = quad.map { (Double($0.x), Double($0.y)) }
         func len(_ a: (Double, Double), _ b: (Double, Double)) -> Double { hypot(b.0 - a.0, b.1 - a.1) }
         let size = max(len(q[0], q[1]), len(q[0], q[3]))
         guard size > 8, size < 1e4 else { return (quad, 0) }
-        let rad = max(4.0, 0.07 * size)
+        let rad = fine ? max(3.0, 0.025 * size) : max(4.0, 0.07 * size)
         let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
         // The paper's brightness: the bright majority of a band just inside the sides.
         var ring: [Float] = []
@@ -517,7 +521,7 @@ enum PlanarTracker {
             if u.0 * d.0 + u.1 * d.1 < 0 { u = (-u.0, -u.1) }
             // too far from where the side was: keep it there (see maxShift), unless most of the side
             // lines up on this edge (then it is the card's edge and the side had slipped)
-            if let ms = maxShift, bestCount < Int(0.65 * Double(samples)) {
+            if let ms = maxShift, fine || bestCount < Int(0.65 * Double(samples)) {
                 let nn = (-u.1, u.0)
                 let da = abs((a.0 - mx) * nn.0 + (a.1 - my) * nn.1), db = abs((b.0 - mx) * nn.0 + (b.1 - my) * nn.1)
                 if max(da, db) > ms { lines.append((a, d0)); continue }

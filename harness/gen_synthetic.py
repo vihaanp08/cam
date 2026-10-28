@@ -230,6 +230,92 @@ def pose_close(i, n):
     return cx, cy, size, rot, tx, ty
 
 
+def _approach(t_in, start, end, speed, ease=6.0):
+    """Position `t_in` frames into a straight move from `start` to `end`: `speed` px a frame, slowing
+    to a stop over the last `ease` frames."""
+    D = abs(end - start)
+    s = 1.0 if end >= start else -1.0
+    lin = max(0.0, D - speed * ease / 2)
+    t_lin = lin / speed
+    if t_in <= t_lin:
+        d = speed * t_in
+    else:
+        u = min(1.0, (t_in - t_lin) / ease)
+        d = lin + speed * ease * (u - u * u / 2)
+    return start + s * min(d, D)
+
+
+def _approach_frames(start, end, speed, ease=6.0):
+    return max(0.0, abs(end - start) - speed * ease / 2) / speed + ease
+
+
+def _leave(t_out, start, end, speed, ease=4.0):
+    """The other way: speeding up from a stop at `start` to `speed` px a frame, towards `end`."""
+    D = abs(end - start)
+    s = 1.0 if end >= start else -1.0
+    d = speed * t_out * t_out / (2 * ease) if t_out < ease else speed * ease / 2 + speed * (t_out - ease)
+    return start + s * min(d, D)
+
+
+# Fourth script: the card brought into view again and again. Each: which way it comes in ("x" across,
+# "y" up), from, to, speed (px a frame), in-plane turn (degrees), where it is held on the other axis,
+# where it leaves to and how fast.
+ENTRIES = [
+    ("x", -420.0, FW * 0.5, 55.0, 0.0, FH * 0.5, 1150.0, 60.0),       # swept in fast from the left
+    ("y", FH + 210.0, FH * 0.77, 16.0, 15.0, FW * 0.5, FH + 600.0, 40.0),  # raised slowly from below, at an angle
+    ("x", 1150.0, FW * 0.5, 35.0, 90.0, FH * 0.45, -500.0, 50.0),     # held sideways, in from the right
+]
+ENTRY_LEAD, ENTRY_HOLD, ENTRY_GAP = 4, 24, 80
+
+
+def entries_schedule():
+    """[(first frame, frames coming in, frames held, frames leaving)] and the segment names."""
+    out, segs, f = [], [], ENTRY_LEAD
+    for e, (axis, a, b, v, rot, other, away, vout) in enumerate(ENTRIES):
+        n_in = int(math.ceil(_approach_frames(a, b, v)))
+        n_out = int(math.ceil((abs(away - b) - vout * 2) / vout + 4))
+        out.append((f, n_in, ENTRY_HOLD, n_out))
+        segs += [(f, f + n_in, f"enter{e + 1}"), (f + n_in, f + n_in + ENTRY_HOLD, f"held{e + 1}"),
+                 (f + n_in + ENTRY_HOLD, f + n_in + ENTRY_HOLD + n_out, f"leave{e + 1}"),
+                 (f + n_in + ENTRY_HOLD + n_out, f + n_in + ENTRY_HOLD + n_out + ENTRY_GAP, f"away{e + 1}")]
+        f += n_in + ENTRY_HOLD + n_out + ENTRY_GAP
+    return out, segs, f
+
+
+def pose_entries(i, n):
+    """Fourth script: the card brought into view the way a performer brings it up, again and again,
+    each time after long enough out of view that nothing is known about it (no size, no picture):
+    swept in fast from the left, raised slowly from below at an angle, brought in held sideways from
+    the right. Each is held for a moment, then taken out of view again."""
+    t = i / FPS
+    tx = math.radians(6 * math.sin(t * 0.5))
+    ty = math.radians(6 * math.sin(t * 0.6 + 0.5))
+    size = 280.0
+    sched, _, _ = entries_schedule()
+    k = 0
+    while k + 1 < len(sched) and i >= sched[k + 1][0]:
+        k += 1
+    axis, a, b, v, rot, other, away, vout = ENTRIES[k]
+    f0, n_in, n_hold, n_out = sched[k]
+    j = i - f0
+    if j < 0:
+        p = a
+    elif j < n_in:
+        p = _approach(j, a, b, v)
+    elif j < n_in + n_hold:
+        p = b
+    else:
+        p = _leave(j - n_in - n_hold, b, away, vout)
+    # (a little drift while held, as a hand does)
+    h = max(0, min(j - n_in, n_hold)) if j >= n_in else 0
+    wob = math.sin(h * 0.25) * (1 if n_in <= j < n_in + n_hold else 0)
+    if axis == "x":
+        cx, cy = p, other + 15 * wob
+    else:
+        cx, cy = other + 15 * wob, p
+    return cx, cy, size, math.radians(rot + 3 * wob), tx, ty
+
+
 def hand_layer(quad, behind):
     """Skin-coloured palm behind the card, or fingers/thumb in front of it."""
     layer = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
@@ -257,10 +343,12 @@ def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
     kind = sys.argv[3] if len(sys.argv) > 3 else "main"
-    script = {"close": pose_close, "court": pose_court}.get(kind, pose)
+    script = {"close": pose_close, "court": pose_court, "entries": pose_entries}.get(kind, pose)
+    if kind == "entries":
+        n = entries_schedule()[2]
     os.makedirs(out, exist_ok=True)
     face = court_card() if kind == "court" else real_card()
-    still = {"court": (0.30, 0.40)}.get(kind, (0.30, 0.42))
+    still = {"court": (0.30, 0.40), "entries": (2.0, 2.0)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
     prev = None
@@ -283,6 +371,9 @@ def main():
         frame.alpha_composite(hand_layer(quad, behind=False))
         frame = frame.convert("RGB")
         speed = 0 if prev is None else math.hypot(cx - prev[0], cy - prev[1])
+        # (out of view, the card's jumps from where it left to where it comes in next blur nothing)
+        if kind == "entries" and inframe_fraction(quad) == 0:
+            speed = 0
         prev = (cx, cy)
         frame = frame.filter(ImageFilter.GaussianBlur(0.7 + min(3.0, speed / 25)))
         arr = np.asarray(frame).astype(np.float32) + rng.normal(0, 3.0, (FH, FW, 3))
@@ -290,7 +381,10 @@ def main():
         inside = all(0 <= x < FW and 0 <= y < FH for x, y in quad)
         gts.append({"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
                     "still": still[0] <= i / n < still[1], "inframe": round(inframe_fraction(quad), 3)})
-    json.dump({"width": FW, "height": FH, "fps": FPS, "frames": gts}, open(os.path.join(out, "gt.json"), "w"))
+    meta = {"width": FW, "height": FH, "fps": FPS, "frames": gts}
+    if kind == "entries":
+        meta["segments"] = entries_schedule()[1]
+    json.dump(meta, open(os.path.join(out, "gt.json"), "w"))
     print("wrote", n, "frames to", out)
 
 

@@ -1,3 +1,2 @@
-b02 beta=0.2
-b4 beta=0.4
-b5 beta=0.5
+noentry entry=0 syn,syn3,syn4
+hs6 hs=6 syn4
