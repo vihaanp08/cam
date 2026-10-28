@@ -717,10 +717,12 @@ final class CardTracker {
         return (both, both >= 0.1)
     }
 
-    /// Is `q` where the card was last seen clearly (re-finding the card itself)?
+    /// Is `q` the card as last seen clearly: the same size, in about the same place (re-finding the
+    /// card itself)? (not half of it or a box round its picture: those are smaller)
     private func nearLastCard(_ q: [CGPoint]) -> Bool {
-        guard let lg = lastGood, frameIndex - lg.frame < 90 else { return false }
-        return alignedDistance(q, lg.quad) < 0.6 * Double(lg.size)
+        guard let lg = lastGood, frameIndex - lg.frame < 90, lg.size > 0 else { return false }
+        let r = quadSize(q) / lg.size
+        return r > 0.85 && r < 1.18 && alignedDistance(q, lg.quad) < 0.35 * Double(lg.size)
     }
 
     /// Mean corner distance between two outlines, whichever way round they are labelled.
