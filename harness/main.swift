@@ -146,7 +146,6 @@ let pipe = FramePipeline(context: ciContext)
 pipe.tracker.analysisScale = analysisScale
 var cfg = RenderConfig()
 cfg.mirror = false
-cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
 
 var drew: [Bool] = []
 var quads: [[CGPoint]?] = []
@@ -163,7 +162,7 @@ func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
     let q = out.quad.map { q in q.points.map { CGPoint(x: $0.x, y: h - $0.y) } }
     quads.append(q)
     let qs = q.map { $0.map { String(format: "%.1f,%.1f", $0.x, $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
-    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", out.status.score)),\(qs),\(out.status.debug)\n"
+    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", pipe.tracker.lastScore)),\(qs),\(pipe.tracker.lastDebug)\n"
     sources[out.status.source, default: 0] += 1
     let r = out.status.reason.hasPrefix("low paper") ? "low paper" : out.status.reason
     reasons[r, default: 0] += 1
@@ -182,13 +181,12 @@ if mode == "synth" {
     var errorByFrame: [Int: Double] = [:]
     var outputs: [Int: CIImage] = [:]
 
-    // The pipeline shows each frame a few frames late (head start): score every frame as it is
-    // shown, by its own index.
-    var shownUpTo = -1
-    func handle(_ out: FramePipeline.Output, ms: Double) {
-        guard out.frameIndex > shownUpTo, out.frameIndex < gt.frames.count else { return }   // repeats while filling
-        shownUpTo = out.frameIndex
-        let f = gt.frames[out.frameIndex]
+    for f in gt.frames {
+        let cg = loadCGImage(String(format: "%@/frame_%05d.jpg", input, f.i))
+        ciContext.render(CIImage(cgImage: cg), to: pb)
+        let t0 = Date()
+        let out = pipe.process(pb, time: Double(f.i) / gt.fps, cfg: cfg, armed: true, albedo: albedo)
+        let ms = Date().timeIntervalSince(t0) * 1000
         record(f.i, out, CGFloat(gt.height), ms: ms)
         let truth = f.corners.map { CGPoint(x: $0[0], y: $0[1]) }
         if out.drewOverlay, f.visible, let q = quads.last!, q.count == 4 {
@@ -197,17 +195,10 @@ if mode == "synth" {
             errorByFrame[f.i] = e
         }
         if f.i % sheetEvery == 0 {
+            // Keep the composited image now (the pixel buffer is reused for the next frame).
             if let img = render(out.image) { outputs[f.i] = CIImage(cgImage: img) }
         }
     }
-    for f in gt.frames {
-        let cg = loadCGImage(String(format: "%@/frame_%05d.jpg", input, f.i))
-        ciContext.render(CIImage(cgImage: cg), to: pb)
-        let t0 = Date()
-        let out = pipe.process(pb, time: Double(f.i) / gt.fps, cfg: cfg, armed: true, albedo: albedo)
-        handle(out, ms: Date().timeIntervalSince(t0) * 1000)
-    }
-    for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) { handle(out, ms: 0) }
 
     // Metrics
     let firstLock = drew.firstIndex(of: true) ?? gt.frames.count
@@ -316,7 +307,7 @@ if mode == "synth" {
 
     var pb: CVPixelBuffer?
     var lastKept = -1.0
-    var shownUpTo = -1
+    var index = 0
     var collected: [(Int, CGImage)] = []
     var writer: AVAssetWriter?
     var writerInput: AVAssetWriterInput?
@@ -325,34 +316,6 @@ if mode == "synth" {
     try? FileManager.default.removeItem(atPath: outMovie)
     var startTime: CMTime?
     var outW = 0, outH = 0
-
-    func emit(_ out: FramePipeline.Output, ms: Double, w: Int, h: Int) {
-        guard out.frameIndex > shownUpTo else { return }   // repeats while the head start fills
-        shownUpTo = out.frameIndex
-        let index = out.frameIndex
-        record(index, out, CGFloat(h), ms: ms)
-
-        // Write the result at half size, with the tracked corners drawn (magenta) when tracking.
-        if let ad = adaptor, let wi = writerInput, let pool = ad.pixelBufferPool {
-            var ob: CVPixelBuffer?
-            CVPixelBufferPoolCreatePixelBuffer(nil, pool, &ob)
-            if let ob = ob {
-                var frameOut = out.image.transformed(by: CGAffineTransform(scaleX: CGFloat(outW) / CGFloat(w), y: CGFloat(outH) / CGFloat(h)))
-                if !out.drewOverlay, let q = out.quad {
-                    // show where the tracker thinks the card is, so misses are visible
-                    for p in q.points {
-                        let s = CGPoint(x: p.x * CGFloat(outW) / CGFloat(w), y: p.y * CGFloat(outH) / CGFloat(h))
-                        frameOut = CIImage(color: CIColor(red: 1, green: 0, blue: 1)).cropped(to: CGRect(x: s.x - 4, y: s.y - 4, width: 8, height: 8)).composited(over: frameOut)
-                    }
-                }
-                ciContext.render(frameOut.cropped(to: CGRect(x: 0, y: 0, width: outW, height: outH)), to: ob)
-                let rel = CMTimeSubtract(CMTime(seconds: out.time, preferredTimescale: 600), startTime ?? .zero)
-                while !wi.isReadyForMoreMediaData { usleep(2000) }
-                ad.append(ob, withPresentationTime: rel)
-            }
-        }
-        if index % 10 == 0, let cg = render(out.image) { collected.append((index, cg)) }
-    }
 
     while let sb = output.copyNextSampleBuffer() {
         guard let src = CMSampleBufferGetImageBuffer(sb) else { continue }
@@ -386,11 +349,30 @@ if mode == "synth" {
         let t0 = Date()
         let out = pipe.process(pb!, time: ts, cfg: cfg, armed: true, albedo: albedo)
         let ms = Date().timeIntervalSince(t0) * 1000
-        if startTime == nil { startTime = pts }
-        emit(out, ms: ms, w: w, h: h)
-    }
-    for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) {
-        emit(out, ms: 0, w: Int(frameSize.width), h: Int(frameSize.height))
+        record(index, out, CGFloat(h), ms: ms)
+
+        // Write the result at half size, with the tracked corners drawn (magenta) when tracking.
+        if let ad = adaptor, let wi = writerInput, let pool = ad.pixelBufferPool {
+            var ob: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(nil, pool, &ob)
+            if let ob = ob {
+                var frameOut = out.image.transformed(by: CGAffineTransform(scaleX: CGFloat(outW) / CGFloat(w), y: CGFloat(outH) / CGFloat(h)))
+                if !out.drewOverlay, let q = out.quad {
+                    // show where the tracker thinks the card is, so misses are visible
+                    for p in q.points {
+                        let s = CGPoint(x: p.x * CGFloat(outW) / CGFloat(w), y: p.y * CGFloat(outH) / CGFloat(h))
+                        frameOut = CIImage(color: CIColor(red: 1, green: 0, blue: 1)).cropped(to: CGRect(x: s.x - 4, y: s.y - 4, width: 8, height: 8)).composited(over: frameOut)
+                    }
+                }
+                ciContext.render(frameOut.cropped(to: CGRect(x: 0, y: 0, width: outW, height: outH)), to: ob)
+                if startTime == nil { startTime = pts }
+                let rel = CMTimeSubtract(pts, startTime!)
+                while !wi.isReadyForMoreMediaData { usleep(2000) }
+                ad.append(ob, withPresentationTime: rel)
+            }
+        }
+        if index % 10 == 0, let cg = render(out.image) { collected.append((index, cg)) }
+        index += 1
     }
     if let wi = writerInput, let wr = writer {
         wi.markAsFinished()

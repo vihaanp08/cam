@@ -86,20 +86,6 @@ struct SettingsView: View {
                     Toggle("Auto re-arm when card leaves view", isOn: $s.autoRearm)
                 }
 
-                Section {
-                    Stepper(value: $s.headStart, in: 0...8) {
-                        HStack {
-                            Text("Head start")
-                            Spacer()
-                            Text(s.headStart == 0 ? "off" : "\(s.headStart) frames").foregroundStyle(.secondary).monospacedDigit()
-                        }
-                    }
-                } header: {
-                    Text("Speed")
-                } footer: {
-                    Text("The picture runs this many frames behind the camera, so the fake card is already on the card the instant it comes into view. 4 frames is about 0.13 s. Lower it if the picture feels laggy, raise it if you ever see the real card as it comes in.")
-                }
-
                 Section("Look") {
                     LabeledSlider(title: "Brightness", value: $s.brightness, range: -0.3...0.3)
                     LabeledSlider(title: "Softness", value: $s.blurScale, range: 0...2)
