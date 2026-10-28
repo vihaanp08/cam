@@ -480,9 +480,10 @@ final class CardTracker {
             // (only from points spread over the card: from a cluster in the middle, the perspective
             // part is a guess that swings the far corners about)
             let used = zip(b, hf.1).filter { $0.1 }.map { $0.0 }
-            let ux = used.map(\.x), uy = used.map(\.y), qx = quad.map(\.x), qy = quad.map(\.y)
-            let spread = min(((ux.max() ?? 0) - (ux.min() ?? 0)) / max(1, (qx.max() ?? 0) - (qx.min() ?? 0)),
-                             ((uy.max() ?? 0) - (uy.min() ?? 0)) / max(1, (qy.max() ?? 0) - (qy.min() ?? 0)))
+            func extent(_ v: [CGFloat]) -> CGFloat { (v.max() ?? 0) - (v.min() ?? 0) }
+            let spreadX: CGFloat = extent(used.map { $0.x }) / max(1, extent(quad.map { $0.x }))
+            let spreadY: CGFloat = extent(used.map { $0.y }) / max(1, extent(quad.map { $0.y }))
+            let spread = min(spreadX, spreadY)
             if hq.allSatisfy({ $0.x.isFinite && $0.y.isFinite }), hCount >= simCount, hCount >= 12,
                dev < 0.06 * size, spread > 0.45 {
                 nq = hq

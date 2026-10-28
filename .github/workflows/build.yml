@@ -42,7 +42,8 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee xcodebuild.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
-          test -d build/Build/Products/Release-iphoneos/Cam.app
+          # (the app's own executable, not just the bundle folder: a failed compile can leave that)
+          test -x build/Build/Products/Release-iphoneos/Cam.app/Cam
 
       - name: Package IPA
         run: |
