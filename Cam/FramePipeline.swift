@@ -89,6 +89,8 @@ final class FramePipeline {
     /// The previous frame's decision, and how many frames in a row the card has been followed
     /// on its own printing after the tracker let go of it.
     private var lastDecided: Slot?
+    /// The decision before that (for the card's motion when it can't be followed).
+    private var beforeLastDecided: Slot?
     private var followStreak = 0
     /// Frames in a row with the fake on the card, and a frame counter for pacing the head start.
     private var drawnStreak = 0
@@ -113,6 +115,7 @@ final class FramePipeline {
         queue = []
         inputCount = 0
         lastDecided = nil
+        beforeLastDecided = nil
         followStreak = 0
         drawnStreak = 0
         missStreak = 0
@@ -357,19 +360,44 @@ final class FramePipeline {
         // (a few frames at most, and only onto the card's own printing: followed longer, or onto
         // anything printed, the fake was left on the wall where the card had been)
         if !slot.draw, followStreak < (tracker.hasPicture ? 4 : 2), let prev = lastDecided, prev.draw, let pq = prev.quad,
-           let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
-           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q),
-           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.8 }) ?? true) {
-            let an = compositor.analyze(frame: frame, quad: q)
-            if an.map({ $0.cardness > 0.45 }) ?? true {
-                slot.quad = q
-                slot.draw = true
-                slot.analysis = an ?? prev.analysis
-                slot.status.reason = "followed"
-                followStreak += 1
+           let b = slot.view {
+            var found: Quad?
+            var how = "followed"
+            if let a = prev.view, let q = CardTracker.follow(pq, from: a, to: b),
+               q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q),
+               (tracker.pictureMatch(q, in: b).map({ $0 >= 0.8 }) ?? true) {
+                found = q
+            }
+            // Going out of the picture too fast and blurred to follow: it carries on the way it was
+            // going, as long as that lands on its own printing (the strip of it still in view).
+            // (only on its way out: a card that stops at the edge isn't there, and the guess is
+            // dropped as soon as it is off the card's printing)
+            if found == nil, Tuning.exitCarryOn, let pp = beforeLastDecided, pp.draw, let ppq = pp.quad {
+                let guess = Quad(zip(pq.points, ppq.points).map { CGPoint(x: 2 * $0.x - $1.x, y: 2 * $0.y - $1.y) })
+                let step = zip(pq.points, ppq.points).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? 0
+                let ext = frame.extent
+                let fast = step > 0.025 * min(ext.width, ext.height)
+                let leaving = FramePipeline.fractionInside(guess, ext) < FramePipeline.fractionInside(pq, ext) - 0.02
+                if fast, leaving, guess.boundingBox.intersects(ext.insetBy(dx: 2, dy: 2)),
+                   CardTracker.hasPrinting(b, guess, minSamples: 8),
+                   (tracker.pictureMatch(guess, in: b).map({ $0 >= 0.7 }) ?? true) {
+                    found = guess
+                    how = "carried on"
+                }
+            }
+            if let q = found {
+                let an = compositor.analyze(frame: frame, quad: q)
+                if an.map({ $0.cardness > 0.45 }) ?? true {
+                    slot.quad = q
+                    slot.draw = true
+                    slot.analysis = an ?? prev.analysis
+                    slot.status.reason = how
+                    followStreak += 1
+                }
             }
         }
-        if slot.status.reason != "followed" { followStreak = 0 }
+        if slot.status.reason != "followed" && slot.status.reason != "carried on" { followStreak = 0 }
+        beforeLastDecided = lastDecided
         lastDecided = slot
         return slot
     }

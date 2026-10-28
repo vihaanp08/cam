@@ -49,6 +49,8 @@ final class CardTracker {
     /// The card's own printing as seen face-on (see "The card's picture" below), and when it was taken.
     private var cardPicture: [Float]?
     private var cardPictureFrame = 0
+    /// The last frame the followed outline matched the card's picture.
+    private var pictureSeenFrame = 0
     /// How well this frame's outline lines up with the card's picture (-1 when not checked).
     private(set) var lastPictureMatch: Float = -1
     /// Frames in a row the followed outline had all four (at least three) sides on the card's
@@ -361,14 +363,29 @@ final class CardTracker {
                     let all = PlanarTracker.completeTruncated(q, w: g.w, h: g.h)
                     var out: [(quad: [CGPoint], early: Bool)] = []
                     var waiting: [Int] = []
+                    // (the card's recent size; or big enough and enough of it in view)
+                    var sized = [Bool](repeating: false, count: all.count)
+                    var inViews = [CGFloat](repeating: 0, count: all.count)
+                    var usable = [Bool](repeating: false, count: all.count)
                     for (k, full) in all.enumerated() {
                         let s = quadSize(full)
-                        if sizeRefs.contains(where: { s > 0.75 * $0 && s < 1.35 * $0 }) { out.append((full, false)); continue }
+                        sized[k] = sizeRefs.contains(where: { s > 0.75 * $0 && s < 1.35 * $0 })
                         let across = hypot(full[1].x - full[0].x, full[1].y - full[0].y) + hypot(full[2].x - full[3].x, full[2].y - full[3].y)
                         let along = hypot(full[3].x - full[0].x, full[3].y - full[0].y) + hypot(full[2].x - full[1].x, full[2].y - full[1].y)
-                        guard min(across, along) / 2 >= minNewShort else { continue }
-                        let inView = FramePipeline.fractionInside(Quad(full), frameRect)
-                        if inView >= 0.8 { out.append((full, false)) } else if inView >= 0.25 { waiting.append(k) }
+                        inViews[k] = FramePipeline.fractionInside(Quad(full), frameRect)
+                        usable[k] = sized[k] || (min(across, along) / 2 >= minNewShort && inViews[k] >= 0.25)
+                    }
+                    // Which way round the card's corner index says it is (see `entryEvidence`): once one
+                    // way round is proven (an index with the blank paper past it, in view), a way round
+                    // with its index boxes in view and blank, or printing past them, is wrong, whatever
+                    // its size. (A card brought closer and cut off by the edge of the picture: its short
+                    // side taken for the long one made a sideways card about the size it was seen at
+                    // before, and that was taken by its size.)
+                    let ev: [Int?] = Tuning.entryByIndex ? all.map { entryEvidence(paper, $0) } : [Int?](repeating: nil, count: all.count)
+                    let proven = all.indices.contains { usable[$0] && ev[$0] == 2 }
+                    for (k, full) in all.enumerated() where usable[k] {
+                        if proven, let e = ev[k], e <= 0 { continue }
+                        if sized[k] || inViews[k] >= 0.8 { out.append((full, false)) } else { waiting.append(k) }
                     }
                     // Coming into view: the fake must cover the card from the moment it shows, long
                     // before most of it is in the picture. A card's corner index is long and thin along
@@ -379,7 +396,6 @@ final class CardTracker {
                     // be wrong: blank index boxes, or printing carrying on past them. One the other way
                     // round with the paper past its index box not in view yet may be the right one.)
                     if Tuning.entryByIndex && !waiting.isEmpty {
-                        let ev = all.map { entryEvidence(paper, $0) }
                         for k in waiting where ev[k] == 2 {
                             if all.indices.allSatisfy({ $0 == k || ev[$0] == 0 || ev[$0] == -1 }) { out.append((all[k], true)) }
                         }
@@ -649,8 +665,16 @@ final class CardTracker {
                 // A lock taken on a card coming into view, by where its corner index is: as more of
                 // the card comes in, its index boxes show whether it was the right way round. When
                 // they come up blank, anything card-like takes over straight away.
-                let entryWrong = entryLock && measured != nil && (grayQuad.map { (entryEvidence(paper, $0) ?? 1) <= 0 } ?? false)
-                let takesOver = (winScore > trackedScore + 0.12 || entryWrong) && winScore >= 0.3 && mayTakeOver && mayStart && !lockVerified
+                let lockEvidence = grayQuad.flatMap { entryEvidence(paper, $0) }
+                let entryWrong = entryLock && measured != nil && (lockEvidence ?? 1) <= 0
+                // (the same for any lock partly out of view, once a find's corner index proves the
+                // card the other way round: the lock's index boxes in view blank, or with printing
+                // past them, the find's inked with the blank paper past it)
+                let lockCut = grayQuad.map { FramePipeline.fractionInside(quadCI($0), CGRect(x: 0, y: 0, width: W, height: H)) < 0.95 } ?? false
+                let turnedWrong = Tuning.entryByIndex && measured != nil && lockCut && (lockEvidence ?? 1) <= 0
+                    && (winQuad.flatMap { entryEvidence(paper, $0) } ?? 0) == 2
+                let takesOver = (winScore > trackedScore + 0.12 || entryWrong || turnedWrong) && winScore >= 0.3 && mayTakeOver && mayStart && !lockVerified
+                if turnedWrong { lastDebug += " turned" }
                 let needed = measured == nil ? startScore : minScore
                 if let wq = winQuad, winScore >= needed, starts || takesOver || corrects {
                     entryLock = entering
@@ -718,8 +742,11 @@ final class CardTracker {
         }
         // (kept for eight seconds after the card was last seen clearly: it is usually the same card
         // brought back, held closer or further, and its picture is what finds it then)
+        // (or last followed matching its picture: held close the whole time, it is never all in view)
+        if cardPicture != nil, grayQuad != nil, lastPictureMatch >= 0.85 { pictureSeenFrame = frameIndex }
         if cardPicture != nil, pictureMismatch >= 10
-            || ((lastGood.map { frameIndex - $0.frame > 240 } ?? true) && frameIndex - cardPictureFrame > 240) {
+            || ((lastGood.map { frameIndex - $0.frame > 240 } ?? true) && frameIndex - cardPictureFrame > 240
+                && frameIndex - pictureSeenFrame > 240) {
             cardPicture = nil
             pictureMismatch = 0
         }

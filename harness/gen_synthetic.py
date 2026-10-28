@@ -318,12 +318,18 @@ def pose_entries(i, n):
 
 # Fifth script: a court card shown at an ordinary distance, then brought back close to the camera,
 # running off two edges of the picture (left and top), twice; the second time long enough after that
-# the card's size is no longer known. (start, held at, size, turn, leaves to, speed in, speed out,
+# the card's size is no longer known. Then shown at an ordinary distance again and brought straight
+# back much closer, off the bottom edge. (start, held at, size, turn, leaves to, speed in, speed out,
 # frames held, frames away after)
 CLOSE_EVENTS = [
     ((1000.0, 860.0), (380.0, 860.0), 260.0, 4.0, (380.0, 2000.0), 60.0, 60.0, 30, 30),
     ((760.0, -560.0), (230.0, 300.0), 600.0, -3.0, (-300.0, 1700.0), 70.0, 70.0, 30, 100),
     ((-500.0, 1700.0), (180.0, 1000.0), 560.0, 6.0, (-420.0, 1900.0), 70.0, 70.0, 30, 20),
+    # shown at an ordinary distance, then straight back up from below much closer, its bottom out of
+    # view: its whole top side is in view, and that side taken for the long one makes a sideways card
+    # about the size it was just seen at
+    ((900.0, 500.0), (360.0, 520.0), 260.0, 2.0, (360.0, 1700.0), 60.0, 70.0, 30, 8),
+    ((360.0, 1900.0), (360.0, 1130.0), 420.0, -2.0, (360.0, 2000.0), 50.0, 60.0, 40, 20),
 ]
 CLOSE_LEAD = 6
 

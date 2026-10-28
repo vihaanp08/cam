@@ -27,4 +27,7 @@ enum Tuning {
     /// With the card's picture known, a card held so close that it runs off two edges of the picture
     /// is found from its one corner in view (CardTracker `cornerFits`).
     static var cornerSearch = true
+    /// A card going out of the picture too fast to follow carries on the way it was going, for the
+    /// few frames it takes to leave, while that lands on its own printing (FramePipeline).
+    static var exitCarryOn = true
 }
