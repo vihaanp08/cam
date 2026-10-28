@@ -62,6 +62,10 @@ final class E2ETest {
                 if i % 20 == 0, let img = self.engine.latestImage {
                     self.save(img, to: out.appendingPathComponent(String(format: "shot_%05d.jpg", i)))
                 }
+                // (the log so far, every few frames: a slow simulator may be stopped before the end)
+                if i % 10 == 9 {
+                    try? self.log.write(to: out.appendingPathComponent("log.csv"), atomically: true, encoding: .utf8)
+                }
                 i += 1
                 // about real time, so the screen and the timers behave as with the camera
                 let left = 1.0 / 30 - (CACurrentMediaTime() - t0)

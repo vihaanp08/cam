@@ -375,40 +375,62 @@ final class CardTracker {
                     }
                 }
                 let cardGone = grayQuad == nil && frameIndex - (lastGood?.frame ?? -1000) > 15
-                for f in found {
-                    var sc = f.score
-                    if f.match > -2 {
-                        let newCard = cardGone && (indexPattern(paper, f.quad)?.both ?? 0) >= 0.15
-                        if !newCard { sc *= Double(max(0.15, min(1, (f.match - 0.45) / 0.4))) }
+                var bestIdx = -1
+                for k in found.indices {
+                    var sc = found[k].score
+                    let m = found[k].match
+                    if m > -2 {
+                        let newCard = cardGone && (indexPattern(paper, found[k].quad)?.both ?? 0) >= 0.15
+                        if !newCard { sc *= Double(max(0.15, min(1, (m - 0.45) / 0.4))) }
                     }
-                    all.append((f.quad, f.how, sc))
-                    if best == nil || sc > best!.score { best = (f.quad, f.how, sc); bestNote = f.note; bestMatch = f.match }
+                    all.append((found[k].quad, found[k].how, sc))
+                    if bestIdx < 0 || sc > all[bestIdx].score { bestIdx = k }
+                }
+                if bestIdx >= 0 {
+                    best = all[bestIdx]
+                    bestNote = found[bestIdx].note
+                    bestMatch = found[bestIdx].match
                 }
                 // Card inside a card: the winner is a box inside another good candidate (round some
                 // of the pips, or half the card). The whole card is what must be covered, so the
                 // bigger one wins as long as it is clearly card-like too.
-                if let b = best, let outer = enclosing(b.quad, in: all, minScore: max(0.3, 0.7 * b.score)) {
+                let first = best
+                if let b = first, let outer = enclosing(b.quad, in: all, minScore: max(0.3, 0.7 * b.score)) {
                     best = outer
                     bestNote += " (outer)"
                 }
                 // The same when only the bigger one shows a card's two corner indices: that one is
                 // the whole card, even if its outline is harder to see (fingers, glare).
-                if let b = best, (indexPattern(paper, b.quad)?.both ?? 1) < 0.06,
+                let second = best
+                if let b = second, (indexPattern(paper, b.quad)?.both ?? 1) < 0.06,
                    let outer = enclosingWithIndex(b.quad, in: all, minScore: max(0.15, 0.4 * b.score), paper: paper) {
                     best = outer
                     bestNote += " (outer, index)"
                 }
-                if let b = best { bestMatch = found.first(where: { $0.quad == b.quad })?.match ?? -2 }
+                // The winner, as plain values from here on.
+                let winQuad: [CGPoint]? = best?.quad
+                let winHow: String = best?.how ?? ""
+                let winScore: Double = best?.score ?? -1
+                // (the match of the one that won in the end)
+                if let wq = winQuad, bestIdx >= 0, wq != all[bestIdx].quad {
+                    bestMatch = -2
+                    for k in all.indices where all[k].quad == wq {
+                        bestMatch = found[k].match
+                        break
+                    }
+                }
                 // (+0.25 a card face showing both corner indices, about 0 when one is covered or out
                 // of view, below 0 when there is printing where a card has none: a printed sheet, a
                 // poster, a box round part of the card)
-                let bestPattern = best.flatMap { indexPattern(paper, $0.quad) }
+                let bestPattern = winQuad.flatMap { indexPattern(paper, $0) }
                 let bestIndex = bestPattern?.both ?? 0
-                let bestDesc = best.map { "\($0.how) \(String(format: "%.2f", $0.score)) [\(bestNote)]" } ?? "-"
+                var bestDesc = "-"
+                if winQuad != nil { bestDesc = winHow + String(format: " %.2f [", winScore) + bestNote + "]" }
                 let notCardNote = (bestPattern.map { $0.cardLike } ?? true) ? "" : " notcard"
-                lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " + bestDesc
-                    + String(format: " idx %.2f", bestIndex) + notCardNote
-                    + (bestMatch > -2 ? String(format: " m %.2f", bestMatch) : "")
+                let matchNote = bestMatch > -2 ? String(format: " m %.2f", bestMatch) : ""
+                var debug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " + bestDesc
+                debug += String(format: " idx %.2f", bestIndex) + notCardNote + matchNote
+                lastDebug = debug
                 // The followed outline lines up with the card's picture: it is the card. Nothing takes
                 // it over or "refines" it (that is how a lock jumped onto a sheet of paper, or onto a
                 // worse fit of the card), except a clearly card-like whole card round it (the picture
@@ -421,9 +443,9 @@ final class CardTracker {
                 let lockInside = grayQuad.flatMap { enclosing($0, in: all, minScore: max(0.3, 0.7 * trackedScore)) } != nil
                 // (the lock shows no corner indices but a bigger candidate round it does)
                 var lockPart = false
-                if let tq = grayQuad, let b = best, bestIndex >= 0.12, (indexPattern(paper, tq)?.both ?? 1) < 0.06,
-                   quadArea(b.quad) > 1.3 * quadArea(tq) {
-                    let grown = PlanarTracker.shrunk(b.quad, -0.03)
+                if let tq = grayQuad, let wq = winQuad, bestIndex >= 0.12, (indexPattern(paper, tq)?.both ?? 1) < 0.06,
+                   quadArea(wq) > 1.3 * quadArea(tq) {
+                    let grown = PlanarTracker.shrunk(wq, -0.03)
                     lockPart = tq.allSatisfy { PlanarTracker.inside(grown, $0) }
                 }
                 // A card showing its two corner indices may start a lock at a lower score (blurred,
@@ -436,38 +458,38 @@ final class CardTracker {
                 // corners beside it blank: a printed sheet on the wall, a poster, a sign) never
                 // starts a lock or takes one over, unless it is right where the card was just seen.
                 let notCardFace = bestPattern.map { !$0.cardLike } ?? false
-                let mayStart = !notCardFace || (best.map { nearLastCard($0.quad) } ?? false)
+                let mayStart = !notCardFace || (winQuad.map { nearLastCard($0) } ?? false)
                 // The lock drifting off the card (a side slid onto the printing or the palm, or lost
                 // track while out of view): a fresh find of the same card that fits it better (a
                 // higher score, or the corner indices where they belong) replaces it.
                 var refine = false
-                if let tq = grayQuad, let b = best, trackedScore >= 0,
-                   alignedDistance(b.quad, tq) < 0.15 * Double(quadSize(tq)) {
-                    refine = b.score >= trackedScore + 0.05
-                        || (bestIndex >= 0.12 && (lockIndex ?? 0) < 0.06 && b.score >= 0.7 * trackedScore)
+                if let tq = grayQuad, let wq = winQuad, trackedScore >= 0,
+                   alignedDistance(wq, tq) < 0.15 * Double(quadSize(tq)) {
+                    refine = winScore >= trackedScore + 0.05
+                        || (bestIndex >= 0.12 && (lockIndex ?? 0) < 0.06 && winScore >= 0.7 * trackedScore)
                 }
                 // (the whole card round the lock: clearly bigger, card-like, not a printed sheet)
-                let bScore = best?.score ?? -1
                 var bigger = false
-                if let tq = grayQuad, let b = best { bigger = quadArea(b.quad) > 1.3 * quadArea(tq) }
-                let wholeRound = lockInside && bigger && bScore >= 0.3 && mayStart
-                    && (!lockVerified || (bestIndex >= 0.12 && bScore >= 0.4))
-                let corrects = wholeRound || (lockPart && bScore >= 0.15)
-                    || (refine && bScore >= 0.2 && mayStart && !lockVerified)
-                if let b = best, b.score >= (measured == nil ? startScore : minScore),
-                   (measured == nil && mayStart) || (b.score > trackedScore + 0.12 && b.score >= 0.3 && mayTakeOver && mayStart && !lockVerified)
-                    || corrects {
+                if let tq = grayQuad, let wq = winQuad { bigger = quadArea(wq) > 1.3 * quadArea(tq) }
+                let wholeRound = lockInside && bigger && winScore >= 0.3 && mayStart
+                    && (!lockVerified || (bestIndex >= 0.12 && winScore >= 0.4))
+                let corrects = wholeRound || (lockPart && winScore >= 0.15)
+                    || (refine && winScore >= 0.2 && mayStart && !lockVerified)
+                let starts = measured == nil && mayStart
+                let takesOver = winScore > trackedScore + 0.12 && winScore >= 0.3 && mayTakeOver && mayStart && !lockVerified
+                let needed = measured == nil ? startScore : minScore
+                if let wq = winQuad, winScore >= needed, starts || takesOver || corrects {
                     if corrects, let tq = grayQuad {
-                        lastWasCorrection = alignedDistance(b.quad, tq) > 0.04 * Double(quadSize(tq))
+                        lastWasCorrection = alignedDistance(wq, tq) > 0.04 * Double(quadSize(tq))
                         // (a lock on part of the card had its picture taken: that picture is wrong)
                         if lockVerified && (wholeRound || lockPart) { cardPicture = nil }
                     }
-                    grayQuad = b.quad
-                    points = PlanarTracker.goodFeatures(g, quad: b.quad)
-                    measured = quadCI(b.quad)
-                    source = b.how
+                    grayQuad = wq
+                    points = PlanarTracker.goodFeatures(g, quad: wq)
+                    measured = quadCI(wq)
+                    source = winHow
                     weakFrames = 0
-                    trackedScore = b.score
+                    trackedScore = winScore
                     snapStreak4 = 0
                     snapStreak3 = 0
                     lastPictureMatch = cardPicture == nil ? -1 : bestMatch
