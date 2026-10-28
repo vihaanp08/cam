@@ -191,11 +191,12 @@ final class Compositor {
             // printed ink: near-black and neutral, or pure saturated red
             if lc < 0.22 * lp && sat < 0.45 { return false }
             if sat > 0.88 { return false }
-            if lc < 0.74 * lp { return true }
-            // colour shift relative to the paper (skin reads warmer than paper)
+            // Skin is warmer than the paper under the same light: redder and less blue. Being darker
+            // alone isn't enough (a shadow, a smudge of ink, or the light estimate being a bit off
+            // reads darker too, and cutting there lets bits of the real card bleed through).
             let dr = c.0 / max(lc, 1e-4) - p.0 / lp
             let db = c.2 / max(lc, 1e-4) - p.2 / lp
-            return abs(dr) + abs(db) > 0.22
+            return dr > 0.1 && db < -0.08 && dr - db > 0.3 && sat > 0.12
         }
         let reachLimit = 11
         let sideY0 = 27, sideY1 = gh - 28          // keep clear of the index corners
@@ -222,14 +223,32 @@ final class Compositor {
             walk(x, 1, 0, 1)                       // top edge
             walk(x, gh - 2, 0, -1)                 // bottom edge
         }
-        // Temporal smoothing, then a 1-cell dilation so the cut covers the whole fingertip.
+        // Temporal smoothing; then remove thin specks and lines (a fingertip is many cells wide, a
+        // stray misread is one or two), then grow the rest so the cut covers the whole fingertip.
         for i in finger.indices { finger[i] = 0.5 * finger[i] + 0.5 * fingerPrev[i] }
         fingerPrev = finger
-        var dilated = finger
+        var eroded = [Float](repeating: 0, count: gw * gh)
         for y in 1..<(gh - 1) {
             for x in 1..<(gw - 1) {
+                var m: Float = 1
+                for dy in -1...1 { for dx in -1...1 { m = min(m, finger[(y + dy) * gw + x + dx]) } }
+                eroded[y * gw + x] = m
+            }
+        }
+        // (cells on the outermost ring can't be eroded properly: keep them only next to a kept cell)
+        var dilated = [Float](repeating: 0, count: gw * gh)
+        for y in 0..<gh {
+            for x in 0..<gw {
                 var m: Float = 0
-                for dy in -1...1 { for dx in -1...1 { m = max(m, finger[(y + dy) * gw + x + dx]) } }
+                for dy in -2...2 {
+                    let yy = y + dy
+                    guard yy >= 0 && yy < gh else { continue }
+                    for dx in -2...2 {
+                        let xx = x + dx
+                        guard xx >= 0 && xx < gw else { continue }
+                        m = max(m, eroded[yy * gw + xx])
+                    }
+                }
                 dilated[y * gw + x] = m
             }
         }
@@ -333,7 +352,7 @@ final class Compositor {
     }
 
     func overlay(frame: CIImage, quad: Quad, albedo: CIImage, analysis a: Analysis,
-                 cfg: RenderConfig, opacity: Double = 1) -> CIImage {
+                 cfg: RenderConfig, opacity: Double = 1, advance: Bool = true) -> CIImage {
         // Relight the fake face with the real card's measured light.
         let gain = 1 + cfg.brightness
         var lighting = a.lighting
@@ -450,7 +469,7 @@ final class Compositor {
                 }
             }
         }
-        prevCenter = c
+        if advance { prevCenter = c }
 
         var out = warped.composited(over: frame)
         if cfg.debug { out = debugCorners(out, quad: quad) }

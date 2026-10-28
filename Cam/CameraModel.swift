@@ -140,9 +140,10 @@ final class CameraModel: ObservableObject {
         }
     }
 
+    /// Volume or Camera Control: reveals while armed; pressed again, re-arms for the next go.
     func hardwareButtonPressed() {
         guard settings.buttonsEnabled else { return }
-        trigger(source: "button")
+        if engine.isArmed { trigger(source: "button") } else { rearm() }
     }
 
     /// `p` in view points, `size` the full preview size.

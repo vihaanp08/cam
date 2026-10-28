@@ -123,27 +123,33 @@ struct OneEuroFilter {
     }
 }
 
-/// Smooths all 8 corner coordinates of a quad.
+/// Smooths a quad as its centre (follows movement quickly) plus each corner's offset from the
+/// centre (shape, turn and tilt: held steadier, since that is where edge noise shows as a wobble).
 struct QuadSmoother {
-    /// minCutoff: lower = steadier when still. beta: higher = less lag when moving.
-    private var filters = (0..<8).map { _ in OneEuroFilter(minCutoff: 1.5, beta: 0.12) }
+    private var centre = (0..<2).map { _ in OneEuroFilter(minCutoff: 1.0, beta: 0.05) }
+    private var offsets = (0..<8).map { _ in OneEuroFilter(minCutoff: 0.5, beta: 0.04) }
 
     mutating func smooth(_ q: Quad, dt: Double) -> Quad {
+        let c = q.center
+        let cx = centre[0].filter(Double(c.x), dt: dt)
+        let cy = centre[1].filter(Double(c.y), dt: dt)
         var out: [CGPoint] = []
         for (i, p) in q.points.enumerated() {
-            let x = filters[i * 2].filter(Double(p.x), dt: dt)
-            let y = filters[i * 2 + 1].filter(Double(p.y), dt: dt)
-            out.append(CGPoint(x: x, y: y))
+            let ox = offsets[i * 2].filter(Double(p.x - c.x), dt: dt)
+            let oy = offsets[i * 2 + 1].filter(Double(p.y - c.y), dt: dt)
+            out.append(CGPoint(x: cx + ox, y: cy + oy))
         }
         return Quad(out)
     }
 
     /// Per-corner velocity in pixels per second, for short extrapolation while coasting.
     var velocities: [CGVector] {
-        (0..<4).map { CGVector(dx: filters[$0 * 2].velocity, dy: filters[$0 * 2 + 1].velocity) }
+        (0..<4).map { CGVector(dx: centre[0].velocity + offsets[$0 * 2].velocity,
+                               dy: centre[1].velocity + offsets[$0 * 2 + 1].velocity) }
     }
 
     mutating func reset() {
-        for i in filters.indices { filters[i].reset() }
+        for i in centre.indices { centre[i].reset() }
+        for i in offsets.indices { offsets[i].reset() }
     }
 }

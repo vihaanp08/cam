@@ -70,6 +70,50 @@ final class CardTracker {
         ciContext = context
     }
 
+    /// One processed frame's gray pyramid, kept by the pipeline so it can look back in time.
+    struct FrameView {
+        let pyramid: [GrayImage]
+        let W: CGFloat
+        let H: CGFloat
+        let topDown: Bool
+        func toGray(_ p: CGPoint) -> CGPoint {
+            let gw = CGFloat(pyramid[0].w), gh = CGFloat(pyramid[0].h)
+            return CGPoint(x: p.x * gw / W, y: topDown ? (H - p.y) * gh / H : p.y * gh / H)
+        }
+        func toCI(_ p: CGPoint) -> CGPoint {
+            let gw = CGFloat(pyramid[0].w), gh = CGFloat(pyramid[0].h)
+            return CGPoint(x: p.x * W / gw, y: topDown ? H - p.y * H / gh : p.y * H / gh)
+        }
+    }
+    /// The last processed frame (nil when the flow tracker is off).
+    private(set) var lastView: FrameView?
+
+    /// Where was the card (`quad` in frame `a`) in the earlier frame `b`? Follows the card's own
+    /// printing backwards with optical flow, then snaps to the real edges. nil when too little of
+    /// the card can be followed.
+    static func follow(_ quad: Quad, from a: FrameView, to b: FrameView) -> Quad? {
+        guard !a.pyramid.isEmpty, !b.pyramid.isEmpty else { return nil }
+        let gq = quad.points.map(a.toGray)
+        let pts = PlanarTracker.goodFeatures(a.pyramid[0], quad: gq)
+        guard pts.count >= 8 else { return nil }
+        let fwd = PlanarTracker.lucasKanade(prev: a.pyramid, cur: b.pyramid, pts: pts)
+        var o: [CGPoint] = [], m: [CGPoint] = []
+        for (p, q) in zip(pts, fwd) { if let q = q { o.append(p); m.append(q) } }
+        guard m.count >= 8 else { return nil }
+        let back = PlanarTracker.lucasKanade(prev: b.pyramid, cur: a.pyramid, pts: m)
+        var aa: [CGPoint] = [], bb: [CGPoint] = []
+        for i in 0..<m.count {
+            if let r = back[i], hypot(r.x - o[i].x, r.y - o[i].y) < 1.0 { aa.append(o[i]); bb.append(m[i]) }
+        }
+        guard aa.count >= 8, let fit = PlanarTracker.ransacSimilarity(aa, bb),
+              fit.1.filter({ $0 }).count >= 6 else { return nil }
+        var nq = gq.map { fit.0.apply($0) }
+        let (sq, n) = PlanarTracker.snapEdges(b.pyramid[0], quad: nq)
+        if n > 0 { nq = sq }
+        guard nq.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else { return nil }
+        return Quad(nq.map(b.toCI))
+    }
+
     func reset() {
         smoother.reset()
         lastQuad = nil
@@ -108,6 +152,7 @@ final class CardTracker {
         let pyramid = gray?.pyramid(levels: 4)
         let gw = CGFloat(gray?.w ?? 1), gh = CGFloat(gray?.h ?? 1)
         let topDown = rowsTopDown ?? true
+        lastView = pyramid.map { FrameView(pyramid: $0, W: W, H: H, topDown: topDown) }
 
         func toGray(_ p: CGPoint) -> CGPoint {
             CGPoint(x: p.x * gw / W, y: topDown ? (H - p.y) * gh / H : p.y * gh / H)
