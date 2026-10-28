@@ -778,7 +778,7 @@ enum PlanarTracker {
         let size = sides.max() ?? 0
         guard size > 24, size < 1e4 else { return 0 }
         let cx = Double(quad.map(\.x).reduce(0, +)) / 4, cy = Double(quad.map(\.y).reduce(0, +)) / 4
-        let near = max(2.0, 0.02 * size), far = max(4.0, 0.045 * size)
+        let near = max(2.0, 0.03 * size), far = max(4.0, 0.045 * size)
         // the paper's brightness: the bright end of what is just outside the sides
         var outs: [Float] = []
         var normals: [(Double, Double)] = []
@@ -817,7 +817,8 @@ enum PlanarTracker {
                     o += 1
                 }
                 let outside = g.sample(Float(px + far * n.0), Float(py + far * n.1))
-                if lo < 0.45 * paper && outside > 0.85 * paper { lines += 1 }
+                // (a printed line is nearly black; blurred by a fast move it is still well under this)
+                if lo < 0.6 * paper && outside > 0.85 * paper { lines += 1 }
             }
             if seen >= 6 && 2 * lines >= seen { count += 1 }
         }

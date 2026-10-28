@@ -538,8 +538,10 @@ final class CardTracker {
         if !runDetect { lastDebug = "" }
         // (only from a lock that has held for a few frames, and that matches the card's picture once
         // that is known: a wrong lock must not become the size and picture the card is searched for by)
+        // (and with nearly all of it in view: its picture is what a fast-moving card is searched for by)
         if trackedScore >= 0.25 || verified, stableFrames >= 4, let gq = grayQuad,
-           cardPicture == nil || lastPictureMatch >= 0.8 {
+           cardPicture == nil || lastPictureMatch >= 0.8,
+           FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.9 {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
         }
@@ -773,7 +775,8 @@ final class CardTracker {
             }
             return best
         }
-        let r3 = min(20, max(3, Int((size / 8).rounded())))
+        // (out to about a card's width and a half: a card swiped out and back comes back fast)
+        let r3 = min(28, max(3, Int((size / 5).rounded())))
         let coarse = search(level: 3, around: (0, 0), radius: r3)
         guard coarse.2 > 0.5 else { return nil }
         let fine = search(level: 2, around: (coarse.0 * 2, coarse.1 * 2), radius: 2)
