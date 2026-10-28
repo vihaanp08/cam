@@ -20,7 +20,7 @@ final class E2ETest {
     private let engine: CameraEngine
     private let pressButton: () -> Void
     private let queue = DispatchQueue(label: "cam.e2e", qos: .userInitiated)
-    private var log = "i,drew,armed,tracking,source,reason,cardness,h,x0,y0,x1,y1,x2,y2,x3,y3\n"
+    private var log = "i,drew,armed,tracking,source,reason,cardness,h,x0,y0,x1,y1,x2,y2,x3,y3,debug\n"
     private var pool: CVPixelBufferPool?
     private var poolSize = CGSize.zero
 
@@ -45,8 +45,10 @@ final class E2ETest {
             let q = r.quad.map { $0.points.map { String(format: "%.1f,%.1f", $0.x, $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
             let reason = r.status.reason.replacingOccurrences(of: ",", with: ";")
             _ = index
+            // (what the tracker saw: detection's best find and the picture match, for diagnosing)
+            let debug = r.status.debug.replacingOccurrences(of: ",", with: ";")
             self.log += "\(r.frameIndex),\(r.drewOverlay ? 1 : 0),\(armed ? 1 : 0),\(r.status.tracking),\(r.status.source),\(reason),"
-                + String(format: "%.2f", r.status.cardness) + ",\(Int(h)),\(q)\n"
+                + String(format: "%.2f", r.status.cardness) + ",\(Int(h)),\(q),\(debug)\n"
         }
 
         queue.async {

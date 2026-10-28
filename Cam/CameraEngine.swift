@@ -104,7 +104,11 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         ])
         metalDevice = device
         ciContext = ctx
-        pipeline = FramePipeline(context: ctx)
+        let pipe = FramePipeline(context: ctx)
+        // (the camera's 1920 x 1080 frames are looked at half size; test frames of other sizes get
+        // the same detail)
+        pipe.tracker.analysisLongSide = 960
+        pipeline = pipe
         super.init()
     }
 

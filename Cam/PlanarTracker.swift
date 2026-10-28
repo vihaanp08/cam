@@ -736,10 +736,15 @@ enum PlanarTracker {
             let da = CGVector(dx: (p0.x - A.x) / la, dy: (p0.y - A.y) / la)
             let db = CGVector(dx: (p1.x - B.x) / lb, dy: (p1.y - B.y) / lb)
             let visible = max(la, lb)
-            for full in [L / 0.716, L * 0.716] where full > visible * 1.02 {
+            // (a little shorter than what is seen is allowed too: the card's far edge can be just out
+            // of view, and perspective makes the proportions approximate; ruling that one out left only
+            // the other way round, twice as long)
+            for full in [L / 0.716, L * 0.716] where full > visible * 0.92 {
+                // (never short of what is seen: the card carries on out of the picture)
+                let len = max(full, visible * 1.01)
                 var q = quad
-                q[k] = CGPoint(x: A.x + da.dx * full, y: A.y + da.dy * full)
-                q[(k + 1) % 4] = CGPoint(x: B.x + db.dx * full, y: B.y + db.dy * full)
+                q[k] = CGPoint(x: A.x + da.dx * len, y: A.y + da.dy * len)
+                q[(k + 1) % 4] = CGPoint(x: B.x + db.dx * len, y: B.y + db.dy * len)
                 out.append(q)
             }
         }

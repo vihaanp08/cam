@@ -176,6 +176,18 @@ var frameSize = CGSize.zero
 
 var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3,debug,rx0,ry0,rx1,ry1,rx2,ry2,rx3,ry3\n"
 
+// Every candidate detection scored on the first frames of a clip (where a card comes into view),
+// by input frame, corners top-left origin.
+pipe.tracker.keepCandidates = true
+var cands = "i,how,score,x0,y0,x1,y1,x2,y2,x3,y3\n"
+func dumpCandidates(_ i: Int, _ h: CGFloat) {
+    guard i < 60 else { return }
+    for c in pipe.tracker.lastCandidates {
+        let q = c.quad.points.map { String(format: "%.1f,%.1f", $0.x, h - $0.y) }.joined(separator: ",")
+        cands += "\(i),\(c.how),\(String(format: "%.3f", c.score)),\(q)\n"
+    }
+}
+
 func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
     drew.append(out.drewOverlay)
     let q = out.quad.map { q in q.points.map { CGPoint(x: $0.x, y: h - $0.y) } }
@@ -224,6 +236,7 @@ if mode == "synth" {
         ciContext.render(CIImage(cgImage: cg), to: pb)
         let t0 = Date()
         let out = pipe.process(pb, time: Double(f.i) / gt.fps, cfg: cfg, armed: true, albedo: albedo)
+        dumpCandidates(f.i, CGFloat(gt.height))
         handle(out, ms: Date().timeIntervalSince(t0) * 1000)
     }
     for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) { handle(out, ms: 0) }
@@ -305,6 +318,7 @@ if mode == "synth" {
     ]
     writeJSON(metrics, outPrefix + ".json")
     try? trace.write(toFile: outPrefix + "_trace.csv", atomically: true, encoding: .utf8)
+    try? cands.write(toFile: outPrefix + "_cands.csv", atomically: true, encoding: .utf8)
 
     // Contact sheet: evenly spaced frames, then the worst-error frames.
     for (i, img) in outputs.sorted(by: { $0.key < $1.key }) {
@@ -339,6 +353,7 @@ if mode == "synth" {
     var pb: CVPixelBuffer?
     var lastKept = -1.0
     var shownUpTo = -1
+    var inputIndex = 0
     var collected: [(Int, CGImage)] = []
     var writer: AVAssetWriter?
     var writerInput: AVAssetWriterInput?
@@ -408,6 +423,8 @@ if mode == "synth" {
         let t0 = Date()
         let out = pipe.process(pb!, time: ts, cfg: cfg, armed: true, albedo: albedo)
         let ms = Date().timeIntervalSince(t0) * 1000
+        dumpCandidates(inputIndex, CGFloat(h))
+        inputIndex += 1
         if startTime == nil { startTime = pts }
         emit(out, ms: ms, w: w, h: h)
     }
@@ -455,6 +472,7 @@ if mode == "synth" {
     ]
     writeJSON(metrics, outPrefix + ".json")
     try? trace.write(toFile: outPrefix + "_trace.csv", atomically: true, encoding: .utf8)
+    try? cands.write(toFile: outPrefix + "_cands.csv", atomically: true, encoding: .utf8)
     let pick = stride(from: 0, to: collected.count, by: max(1, collected.count / 12)).map { collected[$0] }
     for (i, cg) in pick.prefix(12) {
         thumbs.append(Thumb(index: i, image: cg, label: "#\(i) \(drew[i] ? "FAKE" : "real")",
