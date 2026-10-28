@@ -49,8 +49,19 @@ final class CardTracker {
     /// The card's own printing as seen face-on (see "The card's picture" below), and when it was taken.
     private var cardPicture: [Float]?
     private var cardPictureFrame = 0
-    /// How well the last outline lined up with the card's picture (-1 when not checked).
+    /// How well this frame's outline lines up with the card's picture (-1 when not checked).
     private(set) var lastPictureMatch: Float = -1
+    /// Frames in a row the followed outline had all four (at least three) sides on the card's
+    /// edges, and how far it moved since the frame before (gray pixels): the picture is only taken
+    /// from an outline that is exact, and every later outline is lined up with it.
+    private var snapStreak4 = 0
+    private var snapStreak3 = 0
+    private var lastMotion: CGFloat = .infinity
+    /// Frames in a row a steady lock didn't match the picture at all (a different card is being held up).
+    private var pictureMismatch = 0
+    /// The last lock change replaced part of the card (or a poor fit) with the whole card: frames
+    /// already painted with the old outline and still waiting to be shown should be redone.
+    private(set) var lastWasCorrection = false
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// What detection saw on the last frame it ran (for the test harness and the debug view).
@@ -121,6 +132,17 @@ final class CardTracker {
         return Quad(nq.map(b.toCI))
     }
 
+    /// How well `quad` (Core Image coordinates) in that frame shows the card's own printing (its
+    /// picture, see "The card's picture"): about 0.9-1 on the card, low anywhere else (where the card
+    /// was a moment ago before a fast move, the wall beside it). nil while the picture isn't known.
+    func pictureMatch(_ quad: Quad, in view: FrameView) -> Float? {
+        guard let pic = cardPicture, !view.pyramid.isEmpty else { return nil }
+        let gq = quad.points.map(view.toGray)
+        guard gq.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let m = CardTracker.bestPictureMatch(pic, view.pyramid, gq).0
+        return m > -1 ? m : nil
+    }
+
     /// Is there printing (a card's pips and indices) inside `quad` in this frame? A plain wall, the
     /// ceiling or the empty space a card has just left has none, so the fake must not be held or
     /// guessed onto it. Core Image coordinates.
@@ -162,6 +184,11 @@ final class CardTracker {
         lastGoodPyramid = nil
         cardPicture = nil
         lastPictureMatch = -1
+        snapStreak4 = 0
+        snapStreak3 = 0
+        lastMotion = .infinity
+        pictureMismatch = 0
+        lastWasCorrection = false
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -198,29 +225,35 @@ final class CardTracker {
 
         var measured: Quad?
         var source = "none"
+        lastPictureMatch = -1
+        lastWasCorrection = false
 
         // 1. Follow the card's texture with optical flow.
         var trackedScore = -1.0
+        // The followed outline lines up with the card's picture: it is the card, whatever the
+        // card-likeness score says (held very close, steeply tilted, a court card's busy face).
+        var verified = false
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
                 trackedScore = cardLikeness(g, paper, next.quad)
+                verified = cardPicture != nil && lastPictureMatch >= 0.85
                 let inView = FramePipeline.fractionInside(quadCI(next.quad), CGRect(x: 0, y: 0, width: W, height: H))
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
                 // long run of clearly-not-a-card frames drops it. (Held so close that much of it is
                 // out of the picture, too little of it is in view to judge: a low score then means
                 // nothing, and it is followed as long as the flow holds.)
-                if trackedScore >= minScore { weakFrames = 0 } else if inView > 0.85 { weakFrames += 1 }
+                if trackedScore >= minScore || verified { weakFrames = 0 } else if inView > 0.85 { weakFrames += 1 }
                 // Shrunk onto part of the card (paper carries on past two sides): drop it at once so
                 // detection replaces it this very frame, never keep painting a card inside the card.
                 // (three sides: against a plain white ceiling one or two real edges can look like that)
-                let insideCard = PlanarTracker.paperContinuesSides(g, quad: next.quad) >= 3
+                let insideCard = !verified && PlanarTracker.paperContinuesSides(g, quad: next.quad) >= 3
                 // A good lock that suddenly stops looking like a card at all (a fast exit, a hard
                 // blur) has lost the card: don't paint the fake wherever the flow ended up. Drop it
                 // and let the short prediction and detection take over.
                 // (not when most of the card is out of the picture: held very close, too little of
                 // it is in view to score, but the flow is still following it)
-                let collapsed = trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8
+                let collapsed = !verified && trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8
                 if !insideCard && !collapsed && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
                     points = next.points
@@ -229,11 +262,13 @@ final class CardTracker {
                 } else {
                     grayQuad = nil
                     trackedScore = -1
+                    verified = false
                 }
             } else {
                 grayQuad = nil
             }
         }
+        if grayQuad == nil { snapStreak4 = 0; snapStreak3 = 0 }
 
         // 2. Detect when lost, every few frames as a check, and sooner while the track looks weak.
         // Also on the first frames of a new lock: if it is only part of the card (half of it, a
@@ -249,7 +284,9 @@ final class CardTracker {
             if let g = gray {
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
+                var bestMatch: Float = -2
                 var all: [(quad: [CGPoint], how: String, score: Double)] = []
+                var found: [(quad: [CGPoint], how: String, score: Double, match: Float, note: String)] = []
                 var tried = 0, shapeOK = 0
                 var bestNote = ""
                 func consider(_ q: [CGPoint], _ how: String) {
@@ -265,19 +302,19 @@ final class CardTracker {
                     let useSize = grayQuad == nil || trackedScore >= minScore
                     let sz = useSize ? sizeConsistency(gq) : 1
                     var sc = cardLikeness(g, paper, gq) * sz
+                    let note = partsNote + String(format: " size %.2f", sz)
                     // Fully in view but not a card face (a printed sheet on the wall, a poster) and not
                     // where the card was just seen: it can't be the card.
                     if sc > 0, let ip = indexPattern(paper, gq), !ip.cardLike, !nearLastCard(gq) { sc *= 0.3 }
-                    // Once the card's picture is known, an outline whose printing doesn't line up
-                    // with it (half the card, the box round its picture, another object) can't win.
-                    // (it is also turned the way the picture was taken)
+                    // How well its printing matches the card's picture, once that is known (turned
+                    // the way the picture was taken)
+                    var m: Float = -2
                     if sc > 0, let pic = cardPicture, let pyr = pyramid {
-                        let (m, turned) = CardTracker.bestPictureMatch(pic, pyr, gq)
+                        let (mm, turned) = CardTracker.bestPictureMatch(pic, pyr, gq)
                         gq = turned
-                        sc *= Double(max(0.25, min(1, (m - 0.1) / 0.45)))
+                        m = mm
                     }
-                    all.append((gq, how, sc))
-                    if best == nil || sc > best!.score { best = (gq, how, sc); bestNote = partsNote + String(format: " size %.2f", sz) }
+                    found.append((gq, how, sc, m, note))
                 }
                 if grayQuad == nil, let lg = lastGood, frameIndex - lg.frame < 90 {
                     // where the card was last seen clearly (it often comes back after a fast move)
@@ -316,6 +353,37 @@ final class CardTracker {
                     if let pr = paper, let r = InkFinder.refine(g, pr, gq) { consider(r, how + " ref") }
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: gq) { consider(bigger, how + "x2") }
                 }
+                // Once the card's picture is known: line the most promising finds up with it (a find
+                // a few pixels off, or with a corner on a finger, then fits exactly and matches well),
+                // and let the match weigh in, so an outline whose printing doesn't line up with the
+                // card's (half the card, the box round its picture, a printed sheet, another object)
+                // can't win. A different card held up once this one has gone needs no match: a clear
+                // card face, both corner indices showing, is enough.
+                if let pic = cardPicture, let pyr = pyramid {
+                    var promising: [Int] = found.indices.filter { k in
+                        found[k].score > 0.1 && found[k].match >= 0.3 && found[k].match < 0.95
+                    }
+                    promising.sort { found[$0].score > found[$1].score }
+                    for k in promising.prefix(3) {
+                        let q = found[k].quad
+                        guard let al = CardTracker.alignPicture(pic, pyr, q), al.match > found[k].match else { continue }
+                        let moved: CGFloat = zip(al.quad, q).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+                        if moved < 0.15 * quadSize(q), plausible(quadCI(al.quad), w: W, h: H) {
+                            found[k].quad = al.quad
+                            found[k].match = al.match
+                        }
+                    }
+                }
+                let cardGone = grayQuad == nil && frameIndex - (lastGood?.frame ?? -1000) > 15
+                for f in found {
+                    var sc = f.score
+                    if f.match > -2 {
+                        let newCard = cardGone && (indexPattern(paper, f.quad)?.both ?? 0) >= 0.15
+                        if !newCard { sc *= Double(max(0.15, min(1, (f.match - 0.45) / 0.4))) }
+                    }
+                    all.append((f.quad, f.how, sc))
+                    if best == nil || sc > best!.score { best = (f.quad, f.how, sc); bestNote = f.note; bestMatch = f.match }
+                }
                 // Card inside a card: the winner is a box inside another good candidate (round some
                 // of the pips, or half the card). The whole card is what must be covered, so the
                 // bigger one wins as long as it is clearly card-like too.
@@ -330,6 +398,7 @@ final class CardTracker {
                     best = outer
                     bestNote += " (outer, index)"
                 }
+                if let b = best { bestMatch = found.first(where: { $0.quad == b.quad })?.match ?? -2 }
                 // (+0.25 a card face showing both corner indices, about 0 when one is covered or out
                 // of view, below 0 when there is printing where a card has none: a printed sheet, a
                 // poster, a box round part of the card)
@@ -339,6 +408,12 @@ final class CardTracker {
                 let notCardNote = (bestPattern.map { $0.cardLike } ?? true) ? "" : " notcard"
                 lastDebug = "vision \(cands.count) tried \(tried) shapeOK \(shapeOK) best " + bestDesc
                     + String(format: " idx %.2f", bestIndex) + notCardNote
+                    + (bestMatch > -2 ? String(format: " m %.2f", bestMatch) : "")
+                // The followed outline lines up with the card's picture: it is the card. Nothing takes
+                // it over or "refines" it (that is how a lock jumped onto a sheet of paper, or onto a
+                // worse fit of the card), except a clearly card-like whole card round it (the picture
+                // was then of part of the card).
+                let lockVerified = verified && measured != nil
                 // Taking over from a working track needs a clearly better, clearly card-like shape.
                 // Starting a lock from nothing needs a clearly card-like shape (a weak first lock is how
                 // a fake card ends up painted on a wall).
@@ -371,16 +446,31 @@ final class CardTracker {
                     refine = b.score >= trackedScore + 0.05
                         || (bestIndex >= 0.12 && (lockIndex ?? 0) < 0.06 && b.score >= 0.7 * trackedScore)
                 }
+                // (the whole card round the lock: clearly bigger, card-like, not a printed sheet)
+                let bScore = best?.score ?? -1
+                var bigger = false
+                if let tq = grayQuad, let b = best { bigger = quadArea(b.quad) > 1.3 * quadArea(tq) }
+                let wholeRound = lockInside && bigger && bScore >= 0.3 && mayStart
+                    && (!lockVerified || (bestIndex >= 0.12 && bScore >= 0.4))
+                let corrects = wholeRound || (lockPart && bScore >= 0.15)
+                    || (refine && bScore >= 0.2 && mayStart && !lockVerified)
                 if let b = best, b.score >= (measured == nil ? startScore : minScore),
-                   (measured == nil && mayStart) || (b.score > trackedScore + 0.12 && b.score >= 0.3 && mayTakeOver && mayStart)
-                    || (lockInside && b.score >= 0.3 && quadArea(b.quad) > 1.3 * quadArea(grayQuad!))
-                    || (lockPart && b.score >= 0.15) || (refine && b.score >= 0.2) {
+                   (measured == nil && mayStart) || (b.score > trackedScore + 0.12 && b.score >= 0.3 && mayTakeOver && mayStart && !lockVerified)
+                    || corrects {
+                    if corrects, let tq = grayQuad {
+                        lastWasCorrection = alignedDistance(b.quad, tq) > 0.04 * Double(quadSize(tq))
+                        // (a lock on part of the card had its picture taken: that picture is wrong)
+                        if lockVerified && (wholeRound || lockPart) { cardPicture = nil }
+                    }
                     grayQuad = b.quad
                     points = PlanarTracker.goodFeatures(g, quad: b.quad)
                     measured = quadCI(b.quad)
                     source = b.how
                     weakFrames = 0
                     trackedScore = b.score
+                    snapStreak4 = 0
+                    snapStreak3 = 0
+                    lastPictureMatch = cardPicture == nil ? -1 : bestMatch
                 }
             } else if measured == nil, let first = cands.first {
                 measured = first.0
@@ -389,24 +479,38 @@ final class CardTracker {
         }
         lastScore = trackedScore
         if !runDetect { lastDebug = "" }
-        // (only from a lock that has held for a few frames: a one-frame wrong lock must not
-        // become the size and picture the card is searched for by)
-        if trackedScore >= 0.25, stableFrames >= 4, let gq = grayQuad {
+        // (only from a lock that has held for a few frames, and that matches the card's picture once
+        // that is known: a wrong lock must not become the size and picture the card is searched for by)
+        if trackedScore >= 0.25 || verified, stableFrames >= 4, let gq = grayQuad,
+           cardPicture == nil || lastPictureMatch >= 0.8 {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
         }
         // Take the card's picture once it is clearly the whole card (both corner indices where they
-        // belong), all of it in view; forget it once no card has been seen for two seconds (the
-        // next card may be a different one).
-        if cardPicture == nil, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 4,
-           gq.allSatisfy({ $0.x > 3 && $0.y > 3 && $0.x < gw - 4 && $0.y < gh - 4 }),
+        // belong), all of it in view, hardly moving, and its outline exact: all four sides on the
+        // card's edges for a few frames (or three, for longer, when a finger is over the fourth).
+        // Every later outline is lined up with this picture, so any error in it would stay.
+        let fullyInView = grayQuad.map { q in q.allSatisfy { $0.x > 3 && $0.y > 3 && $0.x < gw - 4 && $0.y < gh - 4 } } ?? false
+        if cardPicture == nil, fullyInView, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 6,
+           snapStreak4 >= 3 || (snapStreak3 >= 10 && trackedScore >= 0.5), lastMotion < 0.02 * quadSize(gq),
            let ip = indexPattern(paper, gq), ip.both >= 0.12,
            let pic = CardTracker.samplePicture(pyr, gq) {
             cardPicture = pic
             cardPictureFrame = frameIndex
+            pictureMismatch = 0
         }
-        if cardPicture != nil, (lastGood.map { frameIndex - $0.frame > 60 } ?? true), frameIndex - cardPictureFrame > 60 {
+        // Forget it once no card has been seen for two seconds, or once a steady, clearly card-like
+        // lock hasn't matched it for a while: the card held up now is a different one.
+        if cardPicture != nil, fullyInView, stableFrames >= 10, trackedScore >= 0.35, lastPictureMatch < 0.5,
+           (indexPattern(paper, grayQuad!)?.both ?? 0) >= 0.12 {
+            pictureMismatch += 1
+        } else {
+            pictureMismatch = 0
+        }
+        if cardPicture != nil, pictureMismatch >= 10
+            || ((lastGood.map { frameIndex - $0.frame > 60 } ?? true) && frameIndex - cardPictureFrame > 60) {
             cardPicture = nil
+            pictureMismatch = 0
         }
         prevPyramid = pyramid
 
@@ -524,12 +628,31 @@ final class CardTracker {
         let side = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
         let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(2, 0.04 * Double(side)))
         if n > 0 { nq = sq; snapped = n }
-        // Then pin all four corners to the card's own printing (see "The card's picture").
+        snapStreak4 = snapped == 4 ? snapStreak4 + 1 : 0
+        snapStreak3 = snapped >= 3 ? snapStreak3 + 1 : 0
+        lastMotion = zip(nq, quad).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+        // Then line the card's printing up with its picture (see "The card's picture").
         lastPictureMatch = -1
         if let pic = cardPicture, let al = CardTracker.alignPicture(pic, cur, nq) {
-            let moved = zip(al.quad, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
-            lastPictureMatch = al.match
-            if al.match >= 0.55, moved < 0.12 * side { nq = al.quad }
+            let shift = zip(al.quad, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+            // (lined up only by moving far from where the card was followed to: not this outline's match)
+            lastPictureMatch = shift < 0.12 * side ? al.match : -1
+            if snapped == 4 && shift <= 1.5 {
+                // All four sides on the card's edges and the printing agrees: the edges are the
+                // sharper measurement, keep them. And now and then retake the picture from them (the
+                // light changes as the card moves; any small error in the first picture goes).
+                let w = CGFloat(cur[0].w), h = CGFloat(cur[0].h)
+                if al.match >= 0.85, snapStreak4 >= 3, lastMotion < 0.02 * side, frameIndex - cardPictureFrame >= 10,
+                   nq.allSatisfy({ $0.x > 3 && $0.y > 3 && $0.x < w - 4 && $0.y < h - 4 }),
+                   let fresh = CardTracker.samplePicture(cur, nq) {
+                    cardPicture = fresh
+                    cardPictureFrame = frameIndex
+                }
+            } else if al.match >= 0.6, shift < 0.12 * side {
+                // A side slid onto the printing, a finger or the palm, or an edge is covered or out of
+                // the picture: the printing decides where all four corners are.
+                nq = al.quad
+            }
         }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
         return FlowResult(quad: nq, points: kept, snapped: snapped)

@@ -146,7 +146,7 @@ final class FramePipeline {
         queue.append(slot)
         inputCount += 1
         tick += 1
-        if slot.draw { backfill() }
+        if slot.draw { backfill(redo: tracker.lastWasCorrection) }
         drawnStreak = slot.draw ? drawnStreak + 1 : 0
         missStreak = slot.draw ? 0 : missStreak + 1
         if drawnStreak >= 6 { live = true }
@@ -235,9 +235,10 @@ final class FramePipeline {
             let good = a != nil && slot.status.cardness > threshold && isFace
             // A card just found has to hold for a frame or two before the fake goes on, so a wrong
             // find that lasts a single frame never shows. Only while the picture runs behind (the
-            // head start hides the wait, and the frames before get the fake painted on too).
+            // head start hides the wait, and the frames before get the fake painted on too), and
+            // always on the very first frame (a find there has nothing to confirm it yet).
             let confirmed = overlayOn || tracker.stableFrames >= Tuning.confirmFrames
-                || queue.count < Tuning.confirmFrames - 1
+                || (inputCount > 0 && queue.count < Tuning.confirmFrames - 1)
             if good && !confirmed {
                 badStreak = 0
                 lastAnalysis = a
@@ -271,9 +272,12 @@ final class FramePipeline {
             // real card doesn't flash up as it leaves; once it is mostly gone, nothing is painted)
             // (the printing must still be there too: on a white wall or ceiling the paper test
             // alone passes where the card has just been, and the fake was left hanging in the air)
+            // (and once the card's picture is known, it must be the card's own printing there: after
+            // a sudden fast move the place the card has just left can still have some of it)
             let stillThere = n <= holdFrames && FramePipeline.fractionInside(q, frame.extent) > 0.6
                 && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
                 && (slot.view.map { CardTracker.hasPrinting($0, q) } ?? false)
+                && (slot.view.flatMap { tracker.pictureMatch(q, in: $0) }.map { $0 >= 0.5 } ?? true)
             if overlayOn, stillThere, let a = lastAnalysis {
                 slot.draw = true
                 slot.analysis = a
@@ -294,7 +298,8 @@ final class FramePipeline {
         // any of the card can still be followed it is still there and must stay covered.
         if !slot.draw, followStreak < 8, let prev = lastDecided, prev.draw, let pq = prev.quad,
            let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
-           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q) {
+           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q),
+           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.5 }) ?? true) {
             let an = compositor.analyze(frame: frame, quad: q)
             if an.map({ $0.cardness > 0.3 }) ?? true {
                 slot.quad = q
@@ -311,9 +316,19 @@ final class FramePipeline {
 
     /// The newest frame has the fake on it; the frames before it that are still waiting to be shown
     /// may already have had part of the card in them. Follow the card back through them.
-    private func backfill() {
+    /// `redo`: the outline was just corrected (it had been on part of the card, or was a poor fit),
+    /// so the waiting frames already given the old outline are followed back and redone too, and
+    /// the fake covers the whole card on them as well.
+    private func backfill(redo: Bool = false) {
         guard queue.count >= 2 else { return }
         var j = queue.count - 2
+        while j >= 0, redo, queue[j].draw {
+            guard let nq = queue[j + 1].quad, let a = queue[j + 1].view, let b = queue[j].view,
+                  let q = CardTracker.follow(nq, from: a, to: b), CardTracker.hasPrinting(b, q) else { return }
+            queue[j].quad = q
+            queue[j].status.reason = "redone"
+            j -= 1
+        }
         while j >= 0, !queue[j].draw {
             let next = queue[j + 1]
             guard let nq = next.quad else { break }
@@ -341,7 +356,8 @@ final class FramePipeline {
                 } else {
                     q = nq
                 }
-                if let guess = q, let v = queue[j].view, !CardTracker.hasPrinting(v, guess) { q = nil }
+                if let guess = q, let v = queue[j].view,
+                   !CardTracker.hasPrinting(v, guess) || (tracker.pictureMatch(guess, in: v).map { $0 < 0.5 } ?? false) { q = nil }
             }
             guard let found = q else { break }
             // Stop once the card is out of the picture (nothing to cover).
