@@ -6,9 +6,9 @@ enum Tuning {
     // Smoothing of the card's outline: a One Euro filter on each corner coordinate.
     /// Hz. Lower = steadier while the card is held still.
     static var smoothMinCutoff = 1.5
-    /// Higher = less lag while the card moves. (0.2 measured best against 0.12: less lag in swipes
-    /// and tilts, and no more jitter when still)
-    static var smoothBeta = 0.2
+    /// Higher = less lag while the card moves. (0.3 measured best of 0.12, 0.2 and 0.3: less lag in
+    /// swipes and tilts, and less jitter when still too)
+    static var smoothBeta = 0.3
     /// Hz. How quickly the filter notices the card has started (or stopped) moving. (at 1 Hz it took
     /// several frames to notice a fast move, and the fake trailed the card by up to 15 px meanwhile)
     static var smoothDCutoff = 4.0
