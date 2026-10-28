@@ -30,4 +30,7 @@ enum Tuning {
     /// A card going out of the picture too fast to follow carries on the way it was going, for the
     /// few frames it takes to leave, while that lands on its own printing (FramePipeline).
     static var exitCarryOn = true
+    /// With the card's picture known and nothing found matching it, the picture itself is looked for
+    /// anywhere in the frame, at any size (CardTracker `pictureSearch`).
+    static var pictureSearch = true
 }

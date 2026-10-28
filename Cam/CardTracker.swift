@@ -467,8 +467,10 @@ final class CardTracker {
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
                 }
                 // Cards found by their printing (works when the outline is hard to see).
+                var sawPrinting = false
                 if let pr = paper {
                     for q in InkFinder.candidates(pr) {
+                        sawPrinting = true
                         // (printing on paper right at the edge of the picture, with no card being
                         // followed: a card may be coming into view, see `lastEntering`)
                         let edge = 0.06 * CGFloat(min(g.w, g.h))
@@ -503,6 +505,15 @@ final class CardTracker {
                             fits += 1
                         }
                     }
+                }
+                // Nothing found lines up with the card's picture, and there is printing on paper in
+                // view: look for the picture itself, anywhere, at any size (held close with no outline
+                // of it found: its edges against a pale wall, fingers along them). Every other frame.
+                if Tuning.pictureSearch, grayQuad == nil || lockPrinting, sawPrinting, frameIndex % 2 == 0,
+                   let pic = cardPicture, let pyr = pyramid, let ref = lastGood?.quad,
+                   !found.contains(where: { $0.match >= 0.85 }),
+                   let f = pictureSearch(pic, pyr, ref: ref, w: CGFloat(g.w), h: CGFloat(g.h)) {
+                    consider(f, "search", completed: true)
                 }
                 // Once the card's picture is known: line the most promising finds up with it (a find
                 // a few pixels off, or with a corner on a finger, then fits exactly and matches well),
@@ -852,6 +863,177 @@ final class CardTracker {
         guard let b = best, b.m >= 0.45,
               let al = CardTracker.alignPicture(pic, pyr, b.quad, iterations: 12), al.match >= 0.75 else { return nil }
         return al.quad
+    }
+
+    /// The card found by its picture alone, anywhere in the frame and at any size from a little smaller
+    /// than it was last seen to three times that, turned up to 20 degrees either way from how it was
+    /// last seen, or upside down: for a card held so close that no outline of it is found (its edges
+    /// against a pale wall, fingers along them). The picture is tried coarsely (5 x 7 cells) on the
+    /// smallest image, the best few finely (10 x 14) round where they landed, and the best of those are
+    /// lined up exactly. nil unless one then matches well. `ref`: the card's outline when last seen
+    /// clearly (labelled the way its picture was taken). Gray coordinates.
+    private func pictureSearch(_ pic: [Float], _ pyr: [GrayImage], ref: [CGPoint], w fw: CGFloat, h fh: CGFloat) -> [CGPoint]? {
+        guard pyr.count >= 2, ref.count == 4, ref.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else { return nil }
+        let level = pyr.count - 1
+        let img = pyr[level], s = CGFloat(1 << level)
+        let sums = CardTracker.Integral(img)
+        let refW = (hypot(ref[1].x - ref[0].x, ref[1].y - ref[0].y) + hypot(ref[2].x - ref[3].x, ref[2].y - ref[3].y)) / 2
+        guard refW > 8 else { return nil }
+        let theta0 = atan2(ref[1].y - ref[0].y, ref[1].x - ref[0].x)
+        let coarse = CardTracker.coarsePicture(pic, 5, 7), fine = CardTracker.coarsePicture(pic, 10, 14)
+        typealias Place = (m: Float, c: CGPoint, S: CGFloat, th: CGFloat, flip: Bool)
+        let keepN = 32
+        var top: [Place] = []
+        func keep(_ p: Place) {
+            if top.count < keepN { top.append(p); top.sort { $0.m > $1.m }; return }
+            if p.m > top[keepN - 1].m { top[keepN - 1] = p; top.sort { $0.m > $1.m } }
+        }
+        var S = max(0.8 * refW, 0.2 * min(fw, fh))
+        let maxS = min(3.2 * refW, 2.2 * max(fw, fh))
+        while S <= maxS {
+            let hh = S / 0.716, step = 0.15 * S
+            for flip in [false, true] {
+                for dk in -2...2 {
+                    let th = theta0 + CGFloat(dk) * 10 * .pi / 180
+                    let ux = CGVector(dx: cos(th), dy: sin(th)), uy = CGVector(dx: -sin(th), dy: cos(th))
+                    var cy = -hh / 6
+                    while cy <= fh + hh / 6 {
+                        var cx = -S / 6
+                        while cx <= fw + S / 6 {
+                            let m = CardTracker.placementMatch(coarse, 5, 7, sums, s, CGPoint(x: cx, y: cy), S, ux, uy, flip)
+                            if m >= 0.4 { keep((m, CGPoint(x: cx, y: cy), S, th, flip)) }
+                            cx += step
+                        }
+                        cy += step
+                    }
+                }
+            }
+            S *= 1.2
+        }
+        guard !top.isEmpty else { return nil }
+        // round each of the best: a little further, bigger or smaller, turned a little, on the finer grid
+        var refined: [Place] = []
+        for p in top {
+            var best: Place = (-2, p.c, p.S, p.th, p.flip)
+            for dth in [-5.0, 0.0, 5.0] {
+                let th = p.th + CGFloat(dth) * .pi / 180
+                let ux = CGVector(dx: cos(th), dy: sin(th)), uy = CGVector(dx: -sin(th), dy: cos(th))
+                for ds in [0.92, 1.0, 1.08] {
+                    let S2 = p.S * CGFloat(ds)
+                    for oy in -1...1 {
+                        for ox in -1...1 {
+                            let c = CGPoint(x: p.c.x + CGFloat(ox) * 0.075 * p.S, y: p.c.y + CGFloat(oy) * 0.075 * p.S)
+                            let m = CardTracker.placementMatch(fine, 10, 14, sums, s, c, S2, ux, uy, p.flip)
+                            if m > best.m { best = (m, c, S2, th, p.flip) }
+                        }
+                    }
+                }
+            }
+            if best.m >= 0.5 { refined.append(best) }
+        }
+        refined.sort { $0.m > $1.m }
+        // line up the best few (not the same place twice) exactly
+        var tried: [CGPoint] = []
+        var result: (m: Float, quad: [CGPoint])?
+        for p in refined where tried.count < 3 {
+            if tried.contains(where: { hypot($0.x - p.c.x, $0.y - p.c.y) < 0.1 * p.S }) { continue }
+            tried.append(p.c)
+            let hh = p.S / 0.716
+            let ux = CGVector(dx: cos(p.th), dy: sin(p.th)), uy = CGVector(dx: -sin(p.th), dy: cos(p.th))
+            let o = CGPoint(x: p.c.x - 0.5 * p.S * ux.dx - 0.5 * hh * uy.dx, y: p.c.y - 0.5 * p.S * ux.dy - 0.5 * hh * uy.dy)
+            let tl = o, tr = CGPoint(x: o.x + p.S * ux.dx, y: o.y + p.S * ux.dy)
+            let br = CGPoint(x: tr.x + hh * uy.dx, y: tr.y + hh * uy.dy), bl = CGPoint(x: o.x + hh * uy.dx, y: o.y + hh * uy.dy)
+            let quad = p.flip ? [br, bl, tl, tr] : [tl, tr, br, bl]
+            if let al = CardTracker.alignPicture(pic, pyr, quad, iterations: 12), al.match >= 0.8, al.match > (result?.m ?? -1) {
+                result = (al.match, al.quad)
+            }
+        }
+        return result?.quad
+    }
+
+    /// Running sums of an image, for the mean over any upright box in constant time.
+    private struct Integral {
+        let w: Int, h: Int
+        var sum: [Double]
+        init(_ g: GrayImage) {
+            w = g.w; h = g.h
+            sum = [Double](repeating: 0, count: (g.w + 1) * (g.h + 1))
+            for y in 0..<g.h {
+                var row = 0.0
+                for x in 0..<g.w {
+                    row += Double(g.px[y * g.w + x])
+                    sum[(y + 1) * (w + 1) + x + 1] = sum[y * (w + 1) + x + 1] + row
+                }
+            }
+        }
+        /// Mean over the square of half-width `r` round (x, y) (clipped to the image).
+        func mean(_ x: CGFloat, _ y: CGFloat, _ r: CGFloat) -> Float {
+            let x0 = min(max(Int((x - r).rounded()), 0), w - 1), x1 = max(x0, min(max(Int((x + r).rounded()), 0), w - 1))
+            let y0 = min(max(Int((y - r).rounded()), 0), h - 1), y1 = max(y0, min(max(Int((y + r).rounded()), 0), h - 1))
+            let W = w + 1
+            let t = sum[(y1 + 1) * W + x1 + 1] - sum[y0 * W + x1 + 1] - sum[(y1 + 1) * W + x0] + sum[y0 * W + x0]
+            return Float(t / Double((x1 - x0 + 1) * (y1 - y0 + 1)))
+        }
+    }
+
+    /// The card's picture averaged down to `gw` x `gh` cells over the same part of the card, normalised;
+    /// NaN where too little of it is known.
+    private static func coarsePicture(_ pic: [Float], _ gw: Int, _ gh: Int) -> [Float] {
+        let bx = picW / gw, by = picH / gh
+        var out = [Float](repeating: .nan, count: gw * gh)
+        var sum: Float = 0, sum2: Float = 0, n = 0
+        for j in 0..<gh {
+            for i in 0..<gw {
+                var t: Float = 0, c = 0
+                for y in (j * by)..<((j + 1) * by) {
+                    for x in (i * bx)..<((i + 1) * bx) {
+                        let v = pic[y * picW + x]
+                        if !v.isNaN { t += v; c += 1 }
+                    }
+                }
+                guard c * 2 >= bx * by else { continue }
+                let m = t / Float(c)
+                out[j * gw + i] = m
+                sum += m; sum2 += m * m; n += 1
+            }
+        }
+        guard n >= 4 else { return out }
+        let mean = sum / Float(n)
+        let sd = max(1e-6, sum2 / Float(n) - mean * mean).squareRoot()
+        for k in out.indices where !out[k].isNaN { out[k] = (out[k] - mean) / sd }
+        return out
+    }
+
+    /// How well the coarse picture `cp` (`gw` x `gh`) matches the image (a pyramid level `s` times
+    /// smaller than the gray image, as running sums) for a card centred at `c`, `size` wide along `ux`
+    /// and its height along `uy` (gray coordinates), turned half round if `flip`: their correlation
+    /// over the cells in view, each cell the image's mean over a box its size. -1 when under a third
+    /// of the cells are in view.
+    private static func placementMatch(_ cp: [Float], _ gw: Int, _ gh: Int, _ img: Integral, _ s: CGFloat,
+                                       _ c: CGPoint, _ size: CGFloat, _ ux: CGVector, _ uy: CGVector, _ flip: Bool) -> Float {
+        let hh = size / 0.716
+        let ox = c.x - 0.5 * size * ux.dx - 0.5 * hh * uy.dx, oy = c.y - 0.5 * size * ux.dy - 0.5 * hh * uy.dy
+        let r = 0.45 * size / CGFloat(gw) / s
+        let xmax = CGFloat(img.w - 2), ymax = CGFloat(img.h - 2)
+        var sa: Float = 0, sb: Float = 0, saa: Float = 0, sbb: Float = 0, sab: Float = 0, n: Float = 0
+        var total = 0
+        for j in 0..<gh {
+            for i in 0..<gw {
+                let a = cp[j * gw + i]
+                if a.isNaN { continue }
+                total += 1
+                var u = 0.05 + 0.9 * (CGFloat(i) + 0.5) / CGFloat(gw), v = 0.05 + 0.9 * (CGFloat(j) + 0.5) / CGFloat(gh)
+                if flip { u = 1 - u; v = 1 - v }
+                let x = (ox + u * size * ux.dx + v * hh * uy.dx) / s, y = (oy + u * size * ux.dy + v * hh * uy.dy) / s
+                guard x >= 1, y >= 1, x <= xmax, y <= ymax else { continue }
+                let b = img.mean(x, y, r)
+                sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b; n += 1
+            }
+        }
+        guard total > 0, n * 3 >= Float(total), n >= 4 else { return -1 }
+        let va = saa - sa * sa / n, vb = sbb - sb * sb / n
+        guard va > 1e-6, vb > 1e-6 else { return -1 }
+        return (sab - sa * sb / n) / (va * vb).squareRoot()
     }
 
     /// Every side of the outline with the card carrying on past it (see `printingPast`) moved out to
