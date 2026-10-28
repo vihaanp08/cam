@@ -5,7 +5,6 @@ import CoreImage.CIFilterBuiltins
 import Metal
 import QuartzCore
 import UIKit
-import Vision
 
 /// Owns the camera and feeds each frame through the FramePipeline (find card, paint fake face),
 /// then hands the result to the screen.
@@ -65,8 +64,6 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var lastFrameTime: Double = -1
     private var fps: Double = 30
     private var rearmFiredFor: Double = -2
-    private var faceCheckCounter = 0
-    private var faceTurns: [Int] = []
 
     /// Main-thread callback with tracking info for the debug view.
     var onStatus: ((EngineStatus) -> Void)?
@@ -339,35 +336,6 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         DispatchQueue.main.async { cb?(position, stops) }
     }
 
-    /// If the face in the picture is turned a quarter, a half or three quarters round, the picture is
-    /// on its side: turn the camera's rotation by that much. (Whichever way round the turn has to be
-    /// applied, at most two steps put the face upright.) The result is remembered.
-    private func checkFaceTurn(_ pb: CVPixelBuffer) {
-        let req = VNDetectFaceRectanglesRequest()
-        req.revision = VNDetectFaceRectanglesRequestRevision3
-        let handler = VNImageRequestHandler(cvPixelBuffer: pb, orientation: .up)
-        try? handler.perform([req])
-        guard let face = req.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width }),
-              face.boundingBox.width > 0.12 || face.boundingBox.height > 0.12,
-              let roll = face.roll?.doubleValue else { return }
-        let quarters = Int((roll * 180 / .pi / 90).rounded())
-        let turn = ((quarters % 4) + 4) % 4 * 90
-        faceTurns.append(turn)
-        if faceTurns.count > 4 { faceTurns.removeFirst() }
-        guard turn != 0, faceTurns.count == 4, faceTurns.filter({ $0 == turn }).count >= 3 else { return }
-        faceTurns = []
-        sessionQueue.async {
-            self.lock.lock()
-            let angle = (Int(self._portraitAngle.rounded()) + turn) % 360
-            self._portraitAngle = CGFloat(angle)
-            self._learnedAngles[self._position.rawValue] = CGFloat(angle)
-            UserDefaults.standard.set(Double(angle), forKey: "rotationAngle\(self._position.rawValue)")
-            self.lock.unlock()
-            self.applyConnectionSettings()
-            self.videoQueue.async { self.pipeline.reset() }
-        }
-    }
-
     /// While the phone is upright, the system's horizon-level angle is exactly the rotation the
     /// portrait-only app needs; keep it (session queue).
     private func learnPortraitAngle() {
@@ -500,12 +468,6 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             out = fade(cover, over: out, alpha: CGFloat(gateFade) / 6, extent: extent)
             gateFade -= 1
         }
-
-        // Selfie camera: the performer's face shows which way up the picture should be, whatever way
-        // the phone is held (lying down, flat, at any angle). Twice a second, check it.
-        faceCheckCounter += 1
-        lock.lock(); let isFront = _position == .front; lock.unlock()
-        if isFront && faceCheckCounter % 15 == 0 { checkFaceTurn(pb) }
 
         // Auto re-arm once the card has been out of view for a couple of seconds.
         if !armed, let cb = autoRearm, pipeline.lastCardSeen > 0, t - pipeline.lastCardSeen > 2.0,

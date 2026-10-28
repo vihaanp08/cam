@@ -58,7 +58,7 @@ final class CardTracker {
     /// Vision works on a copy of the frame scaled by this factor.
     var analysisScale: CGFloat = 0.5
     /// While the flow tracker has the card, re-check with Vision this often.
-    var detectEvery = 5
+    var detectEvery = 10
     /// Use Vision's document detector alongside rectangle detection.
     var useDocumentDetector = true
     /// Use the optical-flow tracker between detections.
@@ -231,10 +231,6 @@ final class CardTracker {
                     for full in PlanarTracker.completeTruncated(tq, w: g.w, h: g.h) { consider(full, "flow part") }
                     // the current lock might be half the card, or have grown onto the fingers
                     for bigger in PlanarTracker.extendAcrossWeakSides(g, quad: tq) { consider(bigger, "flow x2") }
-                    // The lock may be only part of the card (round some of its pips): try it bigger.
-                    // Each is snapped to the real edges; one that lands on the whole card wins (the
-                    // card-inside-a-card check below prefers it).
-                    for f: CGFloat in [-0.25, -0.5, -0.8] { consider(PlanarTracker.shrunk(tq, f), "flow grow") }
                     if let r = refitInward(g, paper, tq) { consider(r, "flow fit") }
                 }
                 // Cards found by their printing (works when the outline is hard to see).

@@ -36,7 +36,6 @@ final class Compositor {
         var cardness: Double       // fraction of the border that looks like white paper
         var faceUp: Bool           // interior bright enough to be a face, not a card back
         var noise: Double          // estimated sensor noise (linear units, per camera pixel)
-        var paper: (Double, Double, Double) = (0.8, 0.8, 0.8)   // paper colour at the card's centre (linear)
     }
 
     init(context: CIContext) {
@@ -269,8 +268,7 @@ final class Compositor {
 
         return Analysis(lighting: gridImage(lightPx, colorSpace: linear),
                         keep: gridImage(keepPx, colorSpace: nil),
-                        cardness: cardness, faceUp: faceUp, noise: noise,
-                        paper: predict(0.5, 0.5))
+                        cardness: cardness, faceUp: faceUp, noise: noise)
     }
 
     /// Turns a gw x gh float grid into a smooth card-sized image.
@@ -405,7 +403,7 @@ final class Compositor {
         // Alpha = inside-the-border region x finger cut-outs (x opacity for fades).
         let mm = CIFilter.multiplyCompositing()
         mm.inputImage = region(insetScale: cfg.insetScale)
-        mm.backgroundImage = fingerKeep(frame: frame, quad: quad, analysis: a)
+        mm.backgroundImage = a.keep
         var alpha = (mm.outputImage ?? a.keep).cropped(to: Compositor.cardRect)
         if opacity < 0.999 {
             let om = CIFilter.colorMatrix()
@@ -476,64 +474,6 @@ final class Compositor {
         var out = warped.composited(over: frame)
         if cfg.debug { out = debugCorners(out, quad: quad) }
         return out.cropped(to: frame.extent)
-    }
-
-    /// 1 = paint the fake, 0 = show the camera (a finger over the card). The coarse analysis says
-    /// roughly where fingers come in over the edge; inside that area only the pixels that are
-    /// actually skin coloured show the camera, so the finger shows with its own outline and the real
-    /// card around it (its pips, its printing) never peeks through.
-    private func fingerKeep(frame: CIImage, quad: Quad, analysis a: Analysis) -> CIImage {
-        let W = Compositor.cardSize.width, H = Compositor.cardSize.height
-        let pc = CIFilter.perspectiveCorrection()
-        pc.inputImage = frame
-        pc.topLeft = quad.tl
-        pc.topRight = quad.tr
-        pc.bottomRight = quad.br
-        pc.bottomLeft = quad.bl
-        pc.crop = true
-        guard let corrected = pc.outputImage, corrected.extent.width > 4, corrected.extent.height > 4,
-              corrected.extent.width.isFinite, corrected.extent.height.isFinite else { return a.keep }
-        let e = corrected.extent
-        let card = corrected
-            .transformed(by: CGAffineTransform(translationX: -e.minX, y: -e.minY))
-            .transformed(by: CGAffineTransform(scaleX: W / e.width, y: H / e.height))
-            .cropped(to: Compositor.cardRect)
-        // Relative to the paper: warm = R/pr - B/pb (skin and orange/red/yellow ink are warm; paper,
-        // black and blue ink are not); some blue = B/pb - 0.15 R/pr (skin has some, red and yellow
-        // ink have almost none).
-        let pr = CGFloat(max(a.paper.0, 0.02)), pg = CGFloat(max(a.paper.1, 0.02)), pb = CGFloat(max(a.paper.2, 0.02))
-        _ = pg
-        let m = CIFilter.colorMatrix()
-        m.inputImage = card
-        m.rVector = CIVector(x: 8 / pr, y: 0, z: -8 / pb, w: 0)          // (warm - 0.06) x 8
-        m.gVector = CIVector(x: -1.5 / pr, y: 0, z: 10 / pb, w: 0)       // (blue - 0.03) x 10
-        m.bVector = CIVector(x: 0, y: 0, z: 0, w: 0)
-        m.aVector = CIVector(x: 0, y: 0, z: 0, w: 1)
-        m.biasVector = CIVector(x: -0.48, y: -0.3, z: 0, w: 0)
-        guard let scores = m.outputImage else { return a.keep }
-        let clamped = scores.applyingFilter("CIColorClamp", parameters: [
-            "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 1),
-            "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1)])
-        func channel(_ v: CIVector) -> CIImage {
-            let c = CIFilter.colorMatrix()
-            c.inputImage = clamped
-            c.rVector = v; c.gVector = v; c.bVector = v
-            c.aVector = CIVector(x: 0, y: 0, z: 0, w: 1)
-            return c.outputImage ?? clamped
-        }
-        let warm = channel(CIVector(x: 1, y: 0, z: 0, w: 0))
-        let blue = channel(CIVector(x: 0, y: 1, z: 0, w: 0))
-        let both = CIFilter.multiplyCompositing()
-        both.inputImage = warm
-        both.backgroundImage = blue
-        guard let skin = both.outputImage?.cropped(to: Compositor.cardRect) else { return a.keep }
-        // Only where the coarse analysis found a finger coming in over the edge.
-        let coarse = a.keep.applyingFilter("CIColorInvert")
-        let gate = CIFilter.multiplyCompositing()
-        gate.inputImage = skin.clampedToExtent().applyingGaussianBlur(sigma: 1.2).cropped(to: Compositor.cardRect)
-        gate.backgroundImage = coarse
-        guard let finger = gate.outputImage?.cropped(to: Compositor.cardRect) else { return a.keep }
-        return finger.applyingFilter("CIColorInvert").cropped(to: Compositor.cardRect)
     }
 
     func debugCorners(_ img: CIImage, quad: Quad, color: CIColor = CIColor(red: 0, green: 1, blue: 0)) -> CIImage {
