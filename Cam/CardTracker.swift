@@ -329,8 +329,24 @@ final class CardTracker {
             }
         }
         guard a.count >= 8, let fit = PlanarTracker.ransacSimilarity(a, b) else { return nil }
-        let m = fit.0, inliers = fit.1
+        let m = fit.0
+        var inliers = fit.1
         var nq = quad.map { m.apply($0) }
+        // A card tilting toward or away from the camera changes perspective, which turn + scale +
+        // shift can't follow: small per frame, but it adds up and the fake slides off the far edge.
+        // Follow the card with a perspective map whenever there are enough points for a solid one
+        // and it agrees with the simple fit to within a few percent (so a bad fit can't throw it).
+        if a.count >= 15, let hf = PlanarTracker.ransacHomography(a, b) {
+            let hq = quad.map { hf.0.apply($0) }
+            let simCount = inliers.filter { $0 }.count, hCount = hf.1.filter { $0 }.count
+            let size = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
+            let dev = zip(hq, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+            if hq.allSatisfy({ $0.x.isFinite && $0.y.isFinite }), hCount >= simCount, hCount >= 12,
+               dev < 0.06 * size {
+                nq = hq
+                inliers = hf.1
+            }
+        }
         var snapped = 0
         let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq)
         if n > 0 { nq = sq; snapped = n }

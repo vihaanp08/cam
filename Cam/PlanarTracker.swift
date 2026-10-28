@@ -276,6 +276,114 @@ enum PlanarTracker {
         return (m, bestInliers)
     }
 
+    // MARK: - Homography with RANSAC
+
+    /// A full perspective map (3x3, h[8] = 1). A card tilting toward or away from the camera changes
+    /// perspective, which a similarity (turn + scale + shift) can't follow: the fake then slides off
+    /// the card's far edge.
+    struct Homography {
+        var h: [Double]
+        func apply(_ p: CGPoint) -> CGPoint {
+            let x = Double(p.x), y = Double(p.y)
+            let w = h[6] * x + h[7] * y + h[8]
+            guard abs(w) > 1e-9 else { return CGPoint(x: CGFloat.nan, y: CGFloat.nan) }
+            return CGPoint(x: (h[0] * x + h[1] * y + h[2]) / w, y: (h[3] * x + h[4] * y + h[5]) / w)
+        }
+    }
+
+    private static func solve(_ A: [[Double]], _ b: [Double]) -> [Double]? {
+        let n = b.count
+        var M = A, r = b
+        for col in 0..<n {
+            var piv = col
+            for row in col..<n where abs(M[row][col]) > abs(M[piv][col]) { piv = row }
+            guard abs(M[piv][col]) > 1e-12 else { return nil }
+            M.swapAt(col, piv); r.swapAt(col, piv)
+            for row in 0..<n where row != col {
+                let f = M[row][col] / M[col][col]
+                if f == 0 { continue }
+                for j in col..<n { M[row][j] -= f * M[col][j] }
+                r[row] -= f * r[col]
+            }
+        }
+        return (0..<n).map { r[$0] / M[$0][$0] }
+    }
+
+    private static func mul3(_ a: [Double], _ b: [Double]) -> [Double] {
+        var o = [Double](repeating: 0, count: 9)
+        for i in 0..<3 { for j in 0..<3 { for k in 0..<3 { o[i * 3 + j] += a[i * 3 + k] * b[k * 3 + j] } } }
+        return o
+    }
+
+    /// Least-squares homography taking a to b (4 or more points), with Hartley normalisation.
+    static func fitHomography(_ a: [CGPoint], _ b: [CGPoint]) -> Homography? {
+        let n = a.count
+        guard n >= 4, b.count == n else { return nil }
+        func frame(_ p: [CGPoint]) -> (Double, Double, Double) {
+            let cx = p.map { Double($0.x) }.reduce(0, +) / Double(p.count)
+            let cy = p.map { Double($0.y) }.reduce(0, +) / Double(p.count)
+            let md = p.map { hypot(Double($0.x) - cx, Double($0.y) - cy) }.reduce(0, +) / Double(p.count)
+            return (cx, cy, md > 1e-9 ? 2.0.squareRoot() / md : 1)
+        }
+        let (ax, ay, sa) = frame(a), (bx, by, sb) = frame(b)
+        var M = [[Double]](repeating: [Double](repeating: 0, count: 8), count: 8)
+        var r = [Double](repeating: 0, count: 8)
+        for k in 0..<n {
+            let x = (Double(a[k].x) - ax) * sa, y = (Double(a[k].y) - ay) * sa
+            let u = (Double(b[k].x) - bx) * sb, v = (Double(b[k].y) - by) * sb
+            let r1: [Double] = [x, y, 1, 0, 0, 0, -u * x, -u * y]
+            let r2: [Double] = [0, 0, 0, x, y, 1, -v * x, -v * y]
+            for i in 0..<8 {
+                for j in 0..<8 { M[i][j] += r1[i] * r1[j] + r2[i] * r2[j] }
+                r[i] += r1[i] * u + r2[i] * v
+            }
+        }
+        guard let s = solve(M, r) else { return nil }
+        let hn = [s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], 1.0]
+        let ta = [sa, 0, -sa * ax, 0, sa, -sa * ay, 0, 0, 1]
+        let tbInv = [1 / sb, 0, bx, 0, 1 / sb, by, 0, 0, 1]
+        let h = mul3(tbInv, mul3(hn, ta))
+        guard abs(h[8]) > 1e-12, h.allSatisfy({ $0.isFinite }) else { return nil }
+        return Homography(h: h.map { $0 / h[8] })
+    }
+
+    static func ransacHomography(_ a: [CGPoint], _ b: [CGPoint], threshold: Double = 2.0,
+                                 iterations: Int = 150) -> (Homography, [Bool])? {
+        let n = a.count
+        guard n >= 10 else { return nil }
+        var seed: UInt64 = 0x2545F4914F6CDD1D
+        func rand(_ m: Int) -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int((seed >> 33) % UInt64(m))
+        }
+        let t2 = threshold * threshold
+        func inliers(_ m: Homography) -> ([Bool], Int) {
+            var inl = [Bool](repeating: false, count: n)
+            var cnt = 0
+            for k in 0..<n {
+                let p = m.apply(a[k])
+                let dx = Double(p.x - b[k].x), dy = Double(p.y - b[k].y)
+                if dx * dx + dy * dy < t2 { inl[k] = true; cnt += 1 }
+            }
+            return (inl, cnt)
+        }
+        var best: [Bool] = []
+        var bestCount = 0
+        for _ in 0..<iterations {
+            var idx: [Int] = []
+            while idx.count < 4 { let i = rand(n); if !idx.contains(i) { idx.append(i) } }
+            guard let m = fitHomography(idx.map { a[$0] }, idx.map { b[$0] }) else { continue }
+            let (inl, cnt) = inliers(m)
+            if cnt > bestCount { bestCount = cnt; best = inl }
+        }
+        guard bestCount >= max(8, n / 2) else { return nil }
+        let ia = zip(a, best).filter { $0.1 }.map { $0.0 }
+        let ib = zip(b, best).filter { $0.1 }.map { $0.0 }
+        guard let m = fitHomography(ia, ib) else { return nil }
+        let (inl, _) = inliers(m)
+        return (m, inl)
+    }
+
     // MARK: - Edge snapping
 
     /// Moves each edge of `quad` onto the strongest straight edge nearby (robust to fingers covering
