@@ -108,6 +108,9 @@ final class CameraModel: ObservableObject {
     }
 
     func start() {
+        // Opening the app always starts armed (the fake card ready).
+        engine.setArmed(true)
+        armed = true
         AVCaptureDeviceAuthorization.request { [weak self] ok in
             guard ok, let self = self else { return }
             self.engine.start()

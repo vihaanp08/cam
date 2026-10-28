@@ -41,7 +41,7 @@ final class AppSettings: ObservableObject {
             "rank": 9, "suit": 1,
             "snapEnabled": true, "snapSensitivity": 0.55,
             "buttonsEnabled": true, "tapEnabled": false,
-            "mirror": true, "showGrid": true, "haptics": true, "autoRearm": false,
+            "mirror": true, "showGrid": true, "haptics": true, "autoRearm": true,
             "facesOnly": true, "debug": false,
             "brightness": 0.0, "blurScale": 1.0, "noiseScale": 1.0, "insetScale": 1.0,
             "headStart": 4
