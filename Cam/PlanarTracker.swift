@@ -389,7 +389,13 @@ enum PlanarTracker {
     /// Moves each edge of `quad` onto the strongest straight edge nearby (robust to fingers covering
     /// parts of it), and rebuilds the corners from the four lines. Returns the refined quad and how
     /// many edges were snapped.
-    static func snapEdges(_ g: GrayImage, quad: [CGPoint]) -> ([CGPoint], Int) {
+    ///
+    /// Only an edge with the card's paper on its inner side counts: a line through the printing
+    /// (the side of a column of pips), the edge of the palm or of a finger has ink or skin there,
+    /// and snapping onto one of those is how one side of the fake used to slide in or out and stay
+    /// there. `maxShift` (pixels): a side that would move further than this keeps its place (the
+    /// tracker uses it so a side can be nudged onto the edge, never thrown onto another line).
+    static func snapEdges(_ g: GrayImage, quad: [CGPoint], maxShift: Double? = nil) -> ([CGPoint], Int) {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return (quad, 0) }
         let q = quad.map { (Double($0.x), Double($0.y)) }
         func len(_ a: (Double, Double), _ b: (Double, Double)) -> Double { hypot(b.0 - a.0, b.1 - a.1) }
@@ -397,6 +403,24 @@ enum PlanarTracker {
         guard size > 8, size < 1e4 else { return (quad, 0) }
         let rad = max(4.0, 0.07 * size)
         let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
+        // The paper's brightness: the bright majority of a band just inside the sides.
+        var ring: [Float] = []
+        for k in 0..<4 {
+            let a = q[k], b = q[(k + 1) % 4]
+            let L = len(a, b)
+            guard L > 1 else { continue }
+            var n = (-(b.1 - a.1) / L, (b.0 - a.0) / L)
+            if n.0 * ((a.0 + b.0) / 2 - cx) + n.1 * ((a.1 + b.1) / 2 - cy) < 0 { n = (-n.0, -n.1) }
+            for s in 0..<10 {
+                let t = 0.15 + 0.7 * Double(s) / 9
+                let x = a.0 + t * (b.0 - a.0) - 0.06 * size * n.0, y = a.1 + t * (b.1 - a.1) - 0.06 * size * n.1
+                if g.contains(x, y) { ring.append(g.sample(Float(x), Float(y))) }
+            }
+        }
+        ring.sort()
+        let paper: Float = ring.count >= 12 ? ring[Int(Double(ring.count - 1) * 0.8)] : 0
+        // (in a dim picture the check is skipped rather than throwing every edge away)
+        let insideMin: Float = paper > 0.3 ? 0.8 * paper : -1
         let samples = 28
         let steps = Int(2 * rad) + 1
         var seed: UInt64 = 12345
@@ -412,6 +436,7 @@ enum PlanarTracker {
             let L = len(a, b)
             guard L > 1 else { return (quad, 0) }
             var d = ((b.0 - a.0) / L, (b.1 - a.1) / L)
+            let d0 = d
             var nrm = (-d.1, d.0)
             let mid = ((a.0 + b.0) / 2, (a.1 + b.1) / 2)
             if nrm.0 * (mid.0 - cx) + nrm.1 * (mid.1 - cy) < 0 { nrm = (-nrm.0, -nrm.1) }
@@ -433,7 +458,10 @@ enum PlanarTracker {
                     let gm = g.sample(Float(x - nrm.0), Float(y - nrm.1))
                     let m = abs(Double(gp - gm)) * 0.5
                     mags[i] = m
-                    if m > best { best = m; bestOff = off; bestI = i }
+                    guard m > best else { continue }
+                    // paper on the inner side (3 px in), or it isn't the card's edge
+                    if insideMin > 0, g.sample(Float(x - 3 * nrm.0), Float(y - 3 * nrm.1)) < insideMin { continue }
+                    best = m; bestOff = off; bestI = i
                 }
                 // Sub-pixel: the top of a parabola through the strongest step and its neighbours
                 // (the edge is rarely exactly on a sample; rounding to one shows as a jiggle).
@@ -481,6 +509,12 @@ enum PlanarTracker {
             let theta = 0.5 * atan2(2 * sxy, sxx - syy)
             var u = (cos(theta), sin(theta))
             if u.0 * d.0 + u.1 * d.1 < 0 { u = (-u.0, -u.1) }
+            // too far from where the side was: keep it there (see maxShift)
+            if let ms = maxShift {
+                let nn = (-u.1, u.0)
+                let da = abs((a.0 - mx) * nn.0 + (a.1 - my) * nn.1), db = abs((b.0 - mx) * nn.0 + (b.1 - my) * nn.1)
+                if max(da, db) > ms { lines.append((a, d0)); continue }
+            }
             d = u
             lines.append(((mx, my), d))
             snapped += 1

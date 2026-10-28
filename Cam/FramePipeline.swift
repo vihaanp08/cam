@@ -268,8 +268,11 @@ final class FramePipeline {
             // there: a fake card painted on an empty wall would give the trick away.
             // (a card on its way out of the picture still counts while most of it is in view, so the
             // real card doesn't flash up as it leaves; once it is mostly gone, nothing is painted)
+            // (the printing must still be there too: on a white wall or ceiling the paper test
+            // alone passes where the card has just been, and the fake was left hanging in the air)
             let stillThere = n <= holdFrames && FramePipeline.fractionInside(q, frame.extent) > 0.6
                 && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
+                && (slot.view.map { CardTracker.hasPrinting($0, q) } ?? false)
             if overlayOn, stillThere, let a = lastAnalysis {
                 slot.draw = true
                 slot.analysis = a
@@ -290,7 +293,7 @@ final class FramePipeline {
         // any of the card can still be followed it is still there and must stay covered.
         if !slot.draw, followStreak < 8, let prev = lastDecided, prev.draw, let pq = prev.quad,
            let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
-           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)) {
+           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q) {
             let an = compositor.analyze(frame: frame, quad: q)
             if an.map({ $0.cardness > 0.3 }) ?? true {
                 slot.quad = q
@@ -329,12 +332,15 @@ final class FramePipeline {
                 continue
             }
             if q == nil {
-                // Too blurred or too little in view to follow: continue its motion backwards.
+                // Too blurred or too little in view to follow: continue its motion backwards, but
+                // only onto the card's printing (a guess that lands beside the card is worse than
+                // nothing).
                 if j + 2 < queue.count, let after = queue[j + 2].quad {
                     q = Quad(zip(nq.points, after.points).map { CGPoint(x: 2 * $0.x - $1.x, y: 2 * $0.y - $1.y) })
                 } else {
                     q = nq
                 }
+                if let guess = q, let v = queue[j].view, !CardTracker.hasPrinting(v, guess) { q = nil }
             }
             guard let found = q else { break }
             // Stop once the card is out of the picture (nothing to cover).
