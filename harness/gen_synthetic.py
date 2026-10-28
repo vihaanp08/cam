@@ -123,6 +123,34 @@ def pose(i, n):
     return cx, cy, size, rot, tx, ty
 
 
+def pose_close(i, n):
+    """Second script: close-ups and angles. Comes in, then is brought right up to the camera (much
+    bigger than the picture), then held at steep angles, then turned round a long way."""
+    seg = i / n
+    t = i / FPS
+    cx = FW / 2 + 60 * math.sin(t * 0.9)
+    cy = FH * 0.48 + 70 * math.sin(t * 0.7 + 1)
+    rot = math.radians(8 * math.sin(t * 0.8))
+    tx = math.radians(6 * math.sin(t * 0.5))
+    ty = math.radians(6 * math.sin(t * 0.6 + 0.5))
+    size = 300.0
+    if seg < 0.07:                    # comes up into view from below
+        k = 1 - seg / 0.07
+        cy += 900 * k * k
+    if 0.20 <= seg < 0.45:            # brought right up to the camera and back
+        k = (seg - 0.20) / 0.25
+        size += 700 * math.sin(k * math.pi)
+        cy += 120 * math.sin(k * math.pi)
+    if 0.50 <= seg < 0.72:            # steep angles: tipped back, forward, to each side
+        k = (seg - 0.50) / 0.22
+        tx += math.radians(48) * math.sin(k * 2 * math.pi)
+        ty += math.radians(42) * math.sin(k * math.pi)
+    if 0.75 <= seg < 0.95:            # turned a long way round, and back
+        k = (seg - 0.75) / 0.20
+        rot += math.radians(70) * math.sin(k * math.pi)
+    return cx, cy, size, rot, tx, ty
+
+
 def hand_layer(quad, behind):
     """Skin-coloured palm behind the card, or fingers/thumb in front of it."""
     layer = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
@@ -149,6 +177,7 @@ def hand_layer(quad, behind):
 def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
+    script = pose_close if len(sys.argv) > 3 and sys.argv[3] == "close" else pose
     os.makedirs(out, exist_ok=True)
     face = real_card()
     rng = np.random.default_rng(1)
@@ -156,7 +185,7 @@ def main():
     prev = None
     for i in range(n):
         t = i / FPS
-        cx, cy, size, rot, tx, ty = pose(i, n)
+        cx, cy, size, rot, tx, ty = script(i, n)
         quad = quad_for(cx, cy, size, rot, tx, ty)
         frame = background(t).convert("RGBA")
         frame.alpha_composite(hand_layer(quad, behind=True))

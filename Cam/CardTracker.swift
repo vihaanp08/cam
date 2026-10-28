@@ -181,7 +181,10 @@ final class CardTracker {
                 // A good lock that suddenly stops looking like a card at all (a fast exit, a hard
                 // blur) has lost the card: don't paint the fake wherever the flow ended up. Drop it
                 // and let the short prediction and detection take over.
-                let collapsed = trackedScore < 0.03 && lastScore >= 0.2
+                // (not when most of the card is out of the picture: held very close, too little of
+                // it is in view to score, but the flow is still following it)
+                let inView = FramePipeline.fractionInside(quadCI(next.quad), CGRect(x: 0, y: 0, width: W, height: H))
+                let collapsed = trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8
                 if !insideCard && !collapsed && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
                     points = next.points
@@ -820,6 +823,7 @@ final class CardTracker {
         let s2 = p[2].distance(to: p[3]), s3 = p[3].distance(to: p[0])
         guard s0 / s2 > 0.5, s0 / s2 < 2, s1 / s3 > 0.5, s1 / s3 < 2 else { return false }
         // Not something filling the whole picture (a doorway, a screen).
-        return q.boundingBox.width < w * 1.6 && q.boundingBox.height < h * 1.6
+        // (a card held very close can be much bigger than the picture, most of it out of view)
+        return q.boundingBox.width < w * 2.5 && q.boundingBox.height < h * 2.5
     }
 }

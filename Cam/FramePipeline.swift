@@ -185,7 +185,10 @@ final class FramePipeline {
             slot.status.tracking = "locked"
             slot.quad = q
             lastCardSeen = time
-            let a = compositor.analyze(frame: frame, quad: q)
+            var a = compositor.analyze(frame: frame, quad: q)
+            // Held so close that hardly any of the card's border is in the picture: nothing to
+            // measure the light from, so keep the last good measurement rather than giving up.
+            if a == nil, overlayOn, let last = lastAnalysis, FramePipeline.fractionInside(q, frame.extent) < 0.9 { a = last }
             slot.status.cardness = a?.cardness ?? 0
             let isFace = a.map { $0.faceUp || !cfg.facesOnly } ?? false
             // Turn on as soon as it plausibly is the card (the real card must never show); once on,
