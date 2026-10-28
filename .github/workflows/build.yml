@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 30
     permissions:
       contents: write
@@ -77,7 +77,7 @@ jobs:
           path: xcodebuild.log
 
   test:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 40
     permissions:
       contents: write
@@ -115,11 +115,27 @@ jobs:
             echo "harness crashed; backtrace:" | tee -a results/synth_log.txt
             lldb --batch -o run -k "bt 30" -k quit -- /tmp/harness synth /tmp/syn /tmp/fake_9h.png results/synth 0.75 2>&1 | tail -80 | tee -a results/synth_log.txt
           fi
+          .venv/bin/python harness/trace_eval.py /tmp/syn/gt.json results/synth_trace.csv results/synth.json results/eval_synth.json main 2>&1 | tee results/eval_synth.txt || true
 
       - name: Close-up and angles test
         continue-on-error: true
         run: |
           /tmp/harness synth /tmp/syn2 /tmp/fake_9h.png results/synth2 0.75 2>&1 | tee results/synth2_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn2/gt.json results/synth2_trace.csv results/synth2.json results/eval_synth2.json close 2>&1 | tee results/eval_synth2.txt || true
+
+      - name: Variants
+        continue-on-error: true
+        run: |
+          # the same tests with other settings, to compare (name, settings)
+          run_variant() {
+            /tmp/harness synth /tmp/syn /tmp/fake_9h.png "results/v_$1" 0.75 "$2" > "results/v_$1_log.txt" 2>&1 || true
+            .venv/bin/python harness/trace_eval.py /tmp/syn/gt.json "results/v_$1_trace.csv" "results/v_$1.json" "results/eval_v_$1.json" main > "results/eval_v_$1.txt" 2>&1 || true
+            /tmp/harness synth /tmp/syn2 /tmp/fake_9h.png "results/v2_$1" 0.75 "$2" > "results/v2_$1_log.txt" 2>&1 || true
+            .venv/bin/python harness/trace_eval.py /tmp/syn2/gt.json "results/v2_$1_trace.csv" "results/v2_$1.json" "results/eval_v2_$1.json" close > "results/eval_v2_$1.txt" 2>&1 || true
+          }
+          while read -r name settings; do
+            [ -n "$name" ] && run_variant "$name" "$settings"
+          done < harness/variants.txt
 
       - name: Real video tests
         run: |

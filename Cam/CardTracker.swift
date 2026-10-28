@@ -50,6 +50,8 @@ final class CardTracker {
     private(set) var lastScore = -1.0
     /// What detection saw on the last frame it ran (for the test harness and the debug view).
     private(set) var lastDebug = ""
+    /// This frame's measured outline before smoothing (nil when not locked), for the test harness.
+    private(set) var lastRawQuad: Quad?
     /// Below this a shape isn't accepted as a card.
     var minScore = 0.14
 
@@ -324,6 +326,7 @@ final class CardTracker {
             // sliding there (a sliding fake card is a visible ghost).
             let jumped = lastQuad.map { meanCornerDistance(m, $0) > 0.25 * max(m.width, m.height) } ?? true
             if framesSinceSeen > 1 || jumped { smoother.reset() }
+            lastRawQuad = m
             let s = smoother.smooth(m, dt: dt)
             lastQuad = s
             framesSinceSeen = 0
@@ -335,6 +338,7 @@ final class CardTracker {
         grayQuad = nil
         points = []
         lastSource = "none"
+        lastRawQuad = nil
         stableFrames = 0
         framesSinceSeen += 1
         guard let last = lastQuad, framesSinceSeen <= maxCoastFrames else {

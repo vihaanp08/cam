@@ -319,10 +319,26 @@ final class Compositor {
 
     // MARK: - Overlay
 
+    /// The fake is painted from this far in from the card's edges (fractions of its width and
+    /// height), with a soft edge of this width (a fraction of the card's width).
+    static let paintInsetX = 0.032, paintInsetY = 0.025, edgeSoftness = 0.007
+
+    /// Where the fake ends, and where it is fully opaque (two softness widths further in), as
+    /// fractions of the card's width and height from each edge (for the test harness).
+    static func paintInset(_ insetScale: Double) -> (x: Double, y: Double) {
+        (paintInsetX * insetScale, paintInsetY * insetScale)
+    }
+    static func opaqueInset(_ insetScale: Double) -> (x: Double, y: Double) {
+        let p = paintInset(insetScale)
+        let soft = 2 * edgeSoftness
+        return (p.x + soft, p.y + soft * Double(cardSize.width / cardSize.height))
+    }
+
     private func region(insetScale: Double) -> CIImage {
         if let m = regionMask, abs(regionInset - insetScale) < 0.001 { return m }
         let W = Compositor.cardSize.width, H = Compositor.cardSize.height
-        let ix = W * 0.032 * CGFloat(insetScale), iy = H * 0.025 * CGFloat(insetScale)
+        let p = Compositor.paintInset(insetScale)
+        let ix = W * CGFloat(p.x), iy = H * CGFloat(p.y)
         let gen = CIFilter.roundedRectangleGenerator()
         gen.extent = Compositor.cardRect.insetBy(dx: ix, dy: iy)
         gen.radius = Float(W * 0.035)
@@ -331,7 +347,7 @@ final class Compositor {
         let m = (gen.outputImage ?? black)
             .composited(over: black)
             .clampedToExtent()
-            .applyingGaussianBlur(sigma: Double(W * 0.007))
+            .applyingGaussianBlur(sigma: Double(W) * Compositor.edgeSoftness)
             .cropped(to: Compositor.cardRect)
         regionMask = m
         regionInset = insetScale

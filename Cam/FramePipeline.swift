@@ -29,6 +29,7 @@ final class FramePipeline {
         var overlay: Bool = false
         var score: Double = -1               // tracker's card-likeness for this frame
         var debug: String = ""               // what detection saw on this frame
+        var raw: Quad?                       // the tracker's unsmoothed outline (test harness)
     }
 
     struct Output {
@@ -177,6 +178,7 @@ final class FramePipeline {
         st.source = tracker.lastSource
         st.score = tracker.lastScore
         st.debug = tracker.lastDebug
+        st.raw = tracker.lastRawQuad
         var slot = Slot(index: inputCount, time: time, image: frame, view: tracker.lastView,
                         quad: nil, draw: false, analysis: nil, status: st)
 

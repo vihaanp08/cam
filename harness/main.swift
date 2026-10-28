@@ -147,6 +147,18 @@ pipe.tracker.analysisScale = analysisScale
 var cfg = RenderConfig()
 cfg.mirror = false
 cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
+// Optional settings to try instead of the app's, "key=value,key=value" (to compare variants in one run).
+if args.count > 6 {
+    for kv in args[6].split(separator: ",") {
+        let p = kv.split(separator: "=", maxSplits: 1).map(String.init)
+        guard p.count == 2, let v = Double(p[1]) else { continue }
+        switch p[0] {
+        case "hs": cfg.headStartFrames = Int(v)
+        case "inset": cfg.insetScale = v
+        default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
+        }
+    }
+}
 
 var drew: [Bool] = []
 var quads: [[CGPoint]?] = []
@@ -156,14 +168,15 @@ var msPerFrame: [Double] = []
 var thumbs: [Thumb] = []
 var frameSize = CGSize.zero
 
-var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3,debug\n"
+var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3,debug,rx0,ry0,rx1,ry1,rx2,ry2,rx3,ry3\n"
 
 func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
     drew.append(out.drewOverlay)
     let q = out.quad.map { q in q.points.map { CGPoint(x: $0.x, y: h - $0.y) } }
     quads.append(q)
     let qs = q.map { $0.map { String(format: "%.1f,%.1f", $0.x, $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
-    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", out.status.score)),\(qs),\(out.status.debug)\n"
+    let raw = out.status.raw.map { q in q.points.map { String(format: "%.1f,%.1f", $0.x, h - $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
+    trace += "\(i),\(out.drewOverlay ? 1 : 0),\(out.status.source),\(out.status.reason),\(String(format: "%.3f", out.status.score)),\(qs),\(out.status.debug.replacingOccurrences(of: ",", with: ";")),\(raw)\n"
     sources[out.status.source, default: 0] += 1
     let r = out.status.reason.hasPrefix("low paper") ? "low paper" : out.status.reason
     reasons[r, default: 0] += 1
@@ -279,7 +292,10 @@ if mode == "synth" {
         "reasons": reasons,
         "document_detector_errors": pipe.tracker.documentErrors,
         "worst_frames": worst,
-        "frame": "\(gt.width)x\(gt.height)"
+        "frame": "\(gt.width)x\(gt.height)",
+        "head_start": cfg.headStartFrames,
+        "paint_inset": [Compositor.paintInset(cfg.insetScale).x, Compositor.paintInset(cfg.insetScale).y],
+        "opaque_inset": [Compositor.opaqueInset(cfg.insetScale).x, Compositor.opaqueInset(cfg.insetScale).y]
     ]
     writeJSON(metrics, outPrefix + ".json")
     try? trace.write(toFile: outPrefix + "_trace.csv", atomically: true, encoding: .utf8)
