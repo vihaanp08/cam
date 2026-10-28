@@ -400,11 +400,17 @@ enum PlanarTracker {
     /// printed frame, just inside its edge, is one; the side snapped onto it and the fake came out
     /// short, with the real card's edge and index showing).
     static func snapEdges(_ g: GrayImage, quad: [CGPoint], maxShift: Double? = nil, fine: Bool = false) -> ([CGPoint], Int) {
-        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return (quad, 0) }
+        let r = snapEdgesBySide(g, quad: quad, maxShift: maxShift, fine: fine)
+        return (r.0, r.1)
+    }
+
+    /// `snapEdges`, also saying which sides (k: from corner k to k+1) were snapped.
+    static func snapEdgesBySide(_ g: GrayImage, quad: [CGPoint], maxShift: Double? = nil, fine: Bool = false) -> ([CGPoint], Int, [Bool]) {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return (quad, 0, [false, false, false, false]) }
         let q = quad.map { (Double($0.x), Double($0.y)) }
         func len(_ a: (Double, Double), _ b: (Double, Double)) -> Double { hypot(b.0 - a.0, b.1 - a.1) }
         let size = max(len(q[0], q[1]), len(q[0], q[3]))
-        guard size > 8, size < 1e4 else { return (quad, 0) }
+        guard size > 8, size < 1e4 else { return (quad, 0, [false, false, false, false]) }
         let rad = fine ? max(3.0, 0.025 * size) : max(4.0, 0.07 * size)
         let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
         // The paper's brightness: the bright majority of a band just inside the sides.
@@ -436,11 +442,12 @@ enum PlanarTracker {
         }
         var lines: [((Double, Double), (Double, Double))] = []   // (point, unit direction)
         var snapped = 0
+        var bySide = [false, false, false, false]
         let cosLimit = cos(12.0 * Double.pi / 180)
         for k in 0..<4 {
             let a = q[k], b = q[(k + 1) % 4]
             let L = len(a, b)
-            guard L > 1 else { return (quad, 0) }
+            guard L > 1 else { return (quad, 0, [false, false, false, false]) }
             var d = ((b.0 - a.0) / L, (b.1 - a.1) / L)
             let d0 = d
             var nrm = (-d.1, d.0)
@@ -529,22 +536,128 @@ enum PlanarTracker {
             d = u
             lines.append(((mx, my), d))
             snapped += 1
+            bySide[k] = true
         }
-        guard snapped > 0 else { return (quad, 0) }
+        guard snapped > 0 else { return (quad, 0, bySide) }
         var out: [CGPoint] = []
         for k in 0..<4 {
             let l1 = lines[(k + 3) % 4], l2 = lines[k]
             // p + t r = q + s s'
             let r = l1.1, s = l2.1
             let det = r.0 * (-s.1) - (-s.0) * r.1
-            if abs(det) < 1e-6 { return (quad, 0) }
+            if abs(det) < 1e-6 { return (quad, 0, [false, false, false, false]) }
             let dx = l2.0.0 - l1.0.0, dy = l2.0.1 - l1.0.1
             let t = (dx * (-s.1) - (-s.0) * dy) / det
             let p = CGPoint(x: l1.0.0 + t * r.0, y: l1.0.1 + t * r.1)
-            if hypot(Double(p.x) - q[k].0, Double(p.y) - q[k].1) > rad * 1.5 { return (quad, 0) }
+            if hypot(Double(p.x) - q[k].0, Double(p.y) - q[k].1) > rad * 1.5 { return (quad, 0, [false, false, false, false]) }
             out.append(p)
         }
-        return (out, snapped)
+        return (out, snapped, bySide)
+    }
+
+    /// Side k of `quad` (from corner k to k+1) moved outward onto the card's edge: the straight edge
+    /// beyond it, within `reach` pixels, that most of the side finds walking out over the card's
+    /// paper. For a side stuck on the paper inside the card (paper on both sides of it, the real edge
+    /// a little further out, too far for the usual small corrections): it stayed there, and the real
+    /// card showed along it like a cut-out. The two neighbouring sides keep their lines. nil when no
+    /// such edge is found along most of the side.
+    static func pushSideOut(_ g: GrayImage, quad: [CGPoint], side k: Int, reach: Double) -> [CGPoint]? {
+        guard quad.count == 4, reach > 3,
+              quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let q = quad.map { (Double($0.x), Double($0.y)) }
+        let cx = q.map(\.0).reduce(0, +) / 4, cy = q.map(\.1).reduce(0, +) / 4
+        let a = q[k], b = q[(k + 1) % 4]
+        let L = hypot(b.0 - a.0, b.1 - a.1)
+        guard L > 8 else { return nil }
+        let d = ((b.0 - a.0) / L, (b.1 - a.1) / L)
+        var nrm = (-d.1, d.0)
+        let mid = ((a.0 + b.0) / 2, (a.1 + b.1) / 2)
+        if nrm.0 * (mid.0 - cx) + nrm.1 * (mid.1 - cy) < 0 { nrm = (-nrm.0, -nrm.1) }    // pointing out
+        // the paper's brightness just inside the side
+        var inner: [Float] = []
+        for s in 0..<16 {
+            let t = 0.15 + 0.7 * Double(s) / 15
+            let x = a.0 + t * (b.0 - a.0) - 4 * nrm.0, y = a.1 + t * (b.1 - a.1) - 4 * nrm.1
+            if g.contains(x, y) { inner.append(g.sample(Float(x), Float(y))) }
+        }
+        guard inner.count >= 8 else { return nil }
+        inner.sort()
+        let paper = inner[Int(Double(inner.count - 1) * 0.7)]
+        guard paper > 0.3 else { return nil }
+        let paperMin = 0.8 * paper
+        let samples = 24
+        var pts: [(Double, Double)] = []
+        for s in 0..<samples {
+            let t = 0.15 + 0.7 * Double(s) / Double(samples - 1)
+            let px = a.0 + t * (b.0 - a.0), py = a.1 + t * (b.1 - a.1)
+            // walk out over the paper; the strongest step before the paper ends is the card's edge
+            var best = 0.0, bestOff = -1.0
+            var off = 1.0
+            while off <= reach {
+                let x = px + off * nrm.0, y = py + off * nrm.1
+                guard g.contains(x - 2 * nrm.0, y - 2 * nrm.1), g.contains(x + 2 * nrm.0, y + 2 * nrm.1) else { break }
+                let inside = g.sample(Float(x - 2 * nrm.0), Float(y - 2 * nrm.1))
+                if inside < paperMin { break }
+                let step = Double(abs(inside - g.sample(Float(x + 2 * nrm.0), Float(y + 2 * nrm.1))))
+                if step > best { best = step; bestOff = off }
+                off += 1
+            }
+            if best >= 6.0 / 255.0, bestOff > 2 { pts.append((px + bestOff * nrm.0, py + bestOff * nrm.1)) }
+        }
+        guard pts.count >= samples / 2 else { return nil }
+        // a straight line through most of them, close to the side's direction
+        var seed: UInt64 = 98765
+        func rand(_ m: Int) -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int((seed >> 33) % UInt64(m))
+        }
+        let cosLimit = cos(10.0 * Double.pi / 180)
+        var bestInl: [Bool] = []
+        var bestCount = 0
+        for _ in 0..<40 {
+            let i = rand(pts.count), j = rand(pts.count)
+            if i == j { continue }
+            var u = (pts[j].0 - pts[i].0, pts[j].1 - pts[i].1)
+            let nu = hypot(u.0, u.1)
+            if nu < 1e-3 { continue }
+            u = (u.0 / nu, u.1 / nu)
+            if abs(u.0 * d.0 + u.1 * d.1) < cosLimit { continue }
+            let nn = (-u.1, u.0)
+            var inl = [Bool](repeating: false, count: pts.count)
+            var cnt = 0
+            for (m, p) in pts.enumerated() where abs((p.0 - pts[i].0) * nn.0 + (p.1 - pts[i].1) * nn.1) < 1.5 {
+                inl[m] = true
+                cnt += 1
+            }
+            if cnt > bestCount { bestCount = cnt; bestInl = inl }
+        }
+        guard bestCount >= Int(0.45 * Double(samples)) else { return nil }
+        let inPts = zip(pts, bestInl).filter { $0.1 }.map { $0.0 }
+        let mx = inPts.map(\.0).reduce(0, +) / Double(inPts.count)
+        let my = inPts.map(\.1).reduce(0, +) / Double(inPts.count)
+        var sxx = 0.0, sxy = 0.0, syy = 0.0
+        for p in inPts { let dx = p.0 - mx, dy = p.1 - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy }
+        let theta = 0.5 * atan2(2 * sxy, sxx - syy)
+        var u = (cos(theta), sin(theta))
+        if u.0 * d.0 + u.1 * d.1 < 0 { u = (-u.0, -u.1) }
+        // the new corners: where the neighbouring sides' lines meet the new one
+        func meet(_ p: (Double, Double), _ r: (Double, Double)) -> CGPoint? {
+            let det = r.0 * (-u.1) - (-u.0) * r.1
+            guard abs(det) > 1e-6 else { return nil }
+            let t = ((mx - p.0) * (-u.1) - (-u.0) * (my - p.1)) / det
+            return CGPoint(x: p.0 + t * r.0, y: p.1 + t * r.1)
+        }
+        let prev = q[(k + 3) % 4], next = q[(k + 2) % 4]
+        let rPrev = (a.0 - prev.0, a.1 - prev.1), rNext = (b.0 - next.0, b.1 - next.1)
+        guard let na = meet(prev, rPrev), let nb = meet(next, rNext) else { return nil }
+        var out = quad
+        out[k] = na
+        out[(k + 1) % 4] = nb
+        // (outward only, and not further than asked)
+        let movedA = (Double(na.x) - a.0) * nrm.0 + (Double(na.y) - a.1) * nrm.1
+        let movedB = (Double(nb.x) - b.0) * nrm.0 + (Double(nb.y) - b.1) * nrm.1
+        guard movedA > 0, movedB > 0, max(movedA, movedB) <= reach * 1.3 else { return nil }
+        return out
     }
 
     // MARK: - How much does this quad look like a playing card?

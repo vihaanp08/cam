@@ -49,6 +49,17 @@ final class FramePipeline {
     var holdFrames = 3
     /// Consecutive "not a card face" frames before the fake turns off (card turned around, etc.).
     var badFramesToDrop = 8
+    /// A card coming in at the edge of the picture that isn't covered yet when its frame is due: the
+    /// frame before is shown again instead (the picture holds for a moment) for up to this many
+    /// frames, while the tracker makes sure of the card and the fake is painted back onto the frames
+    /// waiting to be shown. A card coming in fast and blurred can take longer to be sure of than the
+    /// head start, and its index, the first thing to come into view, showed. Only while the fake is
+    /// to be shown, and at most once per card coming in.
+    var entryHoldMax = 3
+    private var entryHolds = 0
+    private var entryQuiet = 100
+    /// The frame shown last (shown again while holding).
+    private var lastShown: Slot?
 
     private(set) var overlayOn = false
     private var badStreak = 0
@@ -70,6 +81,8 @@ final class FramePipeline {
         /// skipped or repeated, to change the head start, while the picture is nearly still, so it
         /// never shows as a jump or a stutter.
         var motion: Double = 1
+        /// Printing at the edge of the picture and no card followed: a card may be coming in.
+        var entering = false
     }
     private var queue: [Slot] = []
     private var inputCount = 0
@@ -105,6 +118,9 @@ final class FramePipeline {
         missStreak = 0
         live = false
         ticksSinceAdjust = 0
+        entryHolds = 0
+        entryQuiet = 100
+        lastShown = nil
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -160,18 +176,29 @@ final class FramePipeline {
         if missStreak >= 10 { live = false }
         let showArmed = armedNow?() ?? armed
 
+        // A card coming in that isn't covered yet when its frame is due: hold (see `entryHoldMax`).
+        entryQuiet = slot.entering ? 0 : entryQuiet + 1
+        if entryQuiet >= 15 { entryHolds = 0 }
+        while queue.count > maxDelay + 1 + entryHoldMax { queue.removeFirst() }
+        if holdForEntry(armed: showArmed, maxDelay: maxDelay), let last = lastShown {
+            entryHolds += 1
+            return show(last, cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
+        }
+
         // The head start is only needed for the moment the card comes into view. Once the fake is on
         // the card the picture catches up to live within a few frames (a frame skipped every other
         // frame, moving or not: a picture running behind the camera is what reads as lag), and it
         // falls back behind again (showing the odd frame twice, only while the picture is still, so
         // it is never seen) once the card has gone.
         let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
-        while queue.count > maxDelay + 1 { queue.removeFirst() }
         let behind = queue.count - 1
         guard cfg.adaptiveHeadStart else {
             // fixed head start (test harness): fill it up at the start, then keep it
-            if behind < target { return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false) }
-            return show(queue.removeFirst(), cfg: cfg, armed: showArmed, albedo: albedo)
+            if behind < target {
+                lastShown = queue[0]
+                return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
+            }
+            return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
         }
         ticksSinceAdjust += 1
         let around = queue.prefix(2).map(\.motion).max() ?? 1
@@ -181,9 +208,33 @@ final class FramePipeline {
             queue.removeFirst()
         } else if behind < target && mayFallBack {
             ticksSinceAdjust = 0
+            lastShown = queue[0]
             return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
         }
-        return show(queue.removeFirst(), cfg: cfg, armed: showArmed, albedo: albedo)
+        return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
+    }
+
+    /// The frame due next has a card coming in that isn't covered (yet), and the picture may still
+    /// hold for it (see `entryHoldMax`).
+    private func holdForEntry(armed: Bool, maxDelay: Int) -> Bool {
+        guard armed, maxDelay > 0, entryHoldMax > 0, entryHolds < entryHoldMax, lastShown != nil,
+              let head = queue.first else { return false }
+        return head.entering && !head.draw
+    }
+
+    private func showNext(cfg: RenderConfig, armed: Bool, albedo: CIImage?) -> Output {
+        let s = queue.removeFirst()
+        lastShown = s
+        return show(s, cfg: cfg, armed: armed, albedo: albedo)
+    }
+
+    /// Test harness (fixed head start): a frame kept back while the picture held for a card coming
+    /// in is shown now, one at a time, so the head start goes back to what it was. (The app skips
+    /// such frames on its way back to live; the harness scores every frame.)
+    func catchUp(cfg: RenderConfig, armed: Bool, albedo: CIImage?) -> Output? {
+        let maxDelay = max(0, min(8, cfg.headStartFrames))
+        guard !cfg.adaptiveHeadStart, queue.count > maxDelay + 1, !holdForEntry(armed: armed, maxDelay: maxDelay) else { return nil }
+        return showNext(cfg: cfg, armed: armed, albedo: albedo)
     }
 
     /// Mean brightness change per pixel (0...1, at 1/8 scale) below which the picture counts as
@@ -222,6 +273,7 @@ final class FramePipeline {
         var slot = Slot(index: inputCount, time: time, image: frame, view: tracker.lastView,
                         quad: nil, draw: false, analysis: nil, status: st)
         slot.motion = FramePipeline.motion(lastDecided?.view, tracker.lastView)
+        slot.entering = tracker.lastEntering
 
         switch state {
         case .locked(let q):
@@ -370,7 +422,7 @@ final class FramePipeline {
                 // (a card just coming into view is a strip at the edge of the picture: a little of its
                 // printing in view is enough, its index is what must not show)
                 if let guess = q, let v = queue[j].view {
-                    let printed = CardTracker.hasPrinting(v, guess, minSamples: 12)
+                    let printed = CardTracker.hasPrinting(v, guess, minSamples: 8)
                     let match = tracker.hasPicture ? tracker.pictureMatch(guess, in: v) : nil
                     if !printed || (match.map { $0 < 0.75 } ?? false) { q = nil }
                 }

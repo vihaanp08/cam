@@ -61,6 +61,14 @@ final class CameraModel: ObservableObject {
         } else if args.contains("-demoFront") {
             position = .front
         }
+        // (the real card goes on screen straight from the audio thread, the moment the snap is
+        // heard: the very next frame shows it, without waiting for the main thread; `trigger` then
+        // does the rest)
+        let cam = engine
+        snap.onSnapNow = { [weak cam] in
+            guard let cam = cam, cam.isArmed, cam.isShowingFake else { return }
+            cam.setArmed(false)
+        }
         snap.onSnap = { [weak self] in self?.trigger(source: "snap") }
         snap.onLevel = { [weak self] lvl in
             guard let self = self, self.meterActive else { return }
@@ -134,10 +142,17 @@ final class CameraModel: ObservableObject {
     // MARK: - Triggers
 
     func trigger(source: String) {
-        guard engine.isArmed else { return }
-        // A snap only counts while the fake card is actually on screen, so a stray noise with no
-        // card in view can't quietly disarm the trick. (Buttons always work.)
-        if source == "snap" && !engine.isShowingFake { return }
+        if source == "snap" {
+            // (the snap may already have shown the real card from the audio thread: see init)
+            guard armed else { return }
+            if engine.isArmed {
+                // A snap only counts while the fake card is actually on screen, so a stray noise with
+                // no card in view can't quietly disarm the trick. (Buttons always work.)
+                guard engine.isShowingFake else { return }
+            }
+        } else {
+            guard engine.isArmed else { return }
+        }
         engine.setArmed(false)
         armed = false
         if settings.haptics {

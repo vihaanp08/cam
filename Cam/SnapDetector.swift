@@ -10,6 +10,9 @@ import QuartzCore
 /// reveal waited for the next chunk; if the sink delivers nothing, the tap is used instead.
 final class SnapDetector {
     var onSnap: (() -> Void)?
+    /// Called on the audio thread the moment a snap is confirmed, before `onSnap` (which waits for the
+    /// main thread): for showing the real card without that wait. Keep it short.
+    var onSnapNow: (() -> Void)?
     var onLevel: ((Float) -> Void)?          // 0...1 meter for the debug view
     var sensitivity: Double = 0.55           // 0 = needs a loud snap, 1 = very touchy
 
@@ -219,6 +222,7 @@ final class SnapDetector {
             } else if pendingAge >= 0.03 {
                 pendingAge = -1
                 lastTrigger = now
+                onSnapNow?()
                 DispatchQueue.main.async { [weak self] in self?.onSnap?() }
             }
             return

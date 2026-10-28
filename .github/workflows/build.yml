@@ -171,6 +171,8 @@ jobs:
           for f in testdata/*.mov testdata/*.MOV testdata/*.mp4; do
             n=$(basename "$f"); n="${n%.*}"
             /tmp/harness video "$f" /tmp/fake_9h.png "results/real_$n" 0.5 2>&1 | tee "results/real_${n}_log.txt" || true
+            # (and without holding the picture for a card coming in, to compare)
+            /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_nohold" 0.5 hold=0 > "results/real_${n}_nohold_log.txt" 2>&1 || true
           done
 
       - name: Publish harness results early

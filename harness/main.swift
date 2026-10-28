@@ -160,6 +160,7 @@ if args.count > 6 {
         case "dc": Tuning.smoothDCutoff = v
         case "cf": Tuning.confirmFrames = Int(v)
         case "entry": Tuning.entryByIndex = v != 0
+        case "hold": pipe.entryHoldMax = Int(v)
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
@@ -180,12 +181,11 @@ var trace = "i,drew,source,reason,score,x0,y0,x1,y1,x2,y2,x3,y3,debug,rx0,ry0,rx
 // Every candidate detection scored on the first frames of a clip (where a card comes into view),
 // by input frame, corners top-left origin.
 pipe.tracker.keepCandidates = true
-var cands = "i,how,score,x0,y0,x1,y1,x2,y2,x3,y3\n"
+var cands = "i,how,score,x0,y0,x1,y1,x2,y2,x3,y3,note\n"
 func dumpCandidates(_ i: Int, _ h: CGFloat) {
-    guard i < 60 else { return }
     for c in pipe.tracker.lastCandidates {
         let q = c.quad.points.map { String(format: "%.1f,%.1f", $0.x, h - $0.y) }.joined(separator: ",")
-        cands += "\(i),\(c.how),\(String(format: "%.3f", c.score)),\(q)\n"
+        cands += "\(i),\(c.how),\(String(format: "%.3f", c.score)),\(q),\(c.note.replacingOccurrences(of: ",", with: ";"))\n"
     }
 }
 
@@ -239,6 +239,8 @@ if mode == "synth" {
         let out = pipe.process(pb, time: Double(f.i) / gt.fps, cfg: cfg, armed: true, albedo: albedo)
         dumpCandidates(f.i, CGFloat(gt.height))
         handle(out, ms: Date().timeIntervalSince(t0) * 1000)
+        // (frames kept back while the picture held for a card coming in)
+        if let extra = pipe.catchUp(cfg: cfg, armed: true, albedo: albedo) { handle(extra, ms: 0) }
     }
     for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) { handle(out, ms: 0) }
 
@@ -428,6 +430,7 @@ if mode == "synth" {
         inputIndex += 1
         if startTime == nil { startTime = pts }
         emit(out, ms: ms, w: w, h: h)
+        if let extra = pipe.catchUp(cfg: cfg, armed: true, albedo: albedo) { emit(extra, ms: 0, w: w, h: h) }
     }
     for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) {
         emit(out, ms: 0, w: Int(frameSize.width), h: Int(frameSize.height))

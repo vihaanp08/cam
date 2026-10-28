@@ -1,2 +1,2 @@
-noentry entry=0 syn,syn3,syn4
-hs6 hs=6 syn4
+nohold hold=0 syn,syn4
+noentry entry=0 syn4

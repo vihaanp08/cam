@@ -65,13 +65,17 @@ final class CardTracker {
     /// The lock was taken on a card coming into view, by where its corner index is, and much of it is
     /// still out of view (see `completions`).
     private var entryLock = false
+    /// This frame showed printing on paper right at the edge of the picture and no card is being
+    /// followed: a card may be coming into view that isn't taken yet (FramePipeline holds the picture
+    /// for a moment rather than show it uncovered).
+    private(set) var lastEntering = false
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// What detection saw on the last frame it ran (for the test harness and the debug view).
     private(set) var lastDebug = ""
     /// Every scored candidate of the last detection, when `keepCandidates` is on (test harness).
     var keepCandidates = false
-    private(set) var lastCandidates: [(how: String, score: Double, quad: Quad)] = []
+    private(set) var lastCandidates: [(how: String, score: Double, quad: Quad, note: String)] = []
     /// This frame's measured outline before smoothing (nil when not locked), for the test harness.
     private(set) var lastRawQuad: Quad?
     /// Below this a shape isn't accepted as a card.
@@ -203,6 +207,7 @@ final class CardTracker {
         pictureMismatch = 0
         lastWasCorrection = false
         entryLock = false
+        lastEntering = false
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -239,6 +244,7 @@ final class CardTracker {
 
         var measured: Quad?
         var source = "none"
+        var entering = false
         let previousMatch = lastPictureMatch
         lastPictureMatch = -1
         lastWasCorrection = false
@@ -424,6 +430,12 @@ final class CardTracker {
                 // Cards found by their printing (works when the outline is hard to see).
                 if let pr = paper {
                     for q in InkFinder.candidates(pr) {
+                        // (printing on paper right at the edge of the picture, with no card being
+                        // followed: a card may be coming into view, see `lastEntering`)
+                        let edge = 0.06 * CGFloat(min(g.w, g.h))
+                        if grayQuad == nil, q.contains(where: { $0.x <= edge || $0.y <= edge || $0.x >= CGFloat(g.w - 1) - edge || $0.y >= CGFloat(g.h - 1) - edge }) {
+                            entering = true
+                        }
                         if let f = InkFinder.refine(g, pr, q) {
                             consider(f, "ink")
                             for c in completions(f) { consider(c.quad, c.early ? "ink entry" : "ink part", completed: true) }
@@ -480,8 +492,16 @@ final class CardTracker {
                     if bestIdx < 0 || sc > all[bestIdx].score { bestIdx = k }
                 }
                 if keepCandidates {
-                    var list: [(how: String, score: Double, quad: Quad)] = []
-                    for c in all { list.append((c.how, c.score, quadCI(c.quad))) }
+                    var list: [(how: String, score: Double, quad: Quad, note: String)] = []
+                    for (k, c) in all.enumerated() {
+                        var note = found[k].note
+                        if found[k].match > -2 { note += String(format: " m %.2f", found[k].match) }
+                        if let ip = indexPattern(paper, c.quad) {
+                            note += String(format: " idx %.2f", ip.both) + (ip.cardLike ? "" : " notcard") + (ip.misScaled ? " part" : "")
+                        }
+                        if let e = entryIndex(paper, c.quad) { note += e ? " entry+" : " entry-" }
+                        list.append((c.how, c.score, quadCI(c.quad), note))
+                    }
                     lastCandidates = list
                 }
                 if bestIdx >= 0 {
@@ -615,6 +635,7 @@ final class CardTracker {
             entryLock = false
         }
         if !runDetect { lastDebug = ""; lastCandidates = [] }
+        lastEntering = entering && grayQuad == nil
         // (only from a lock that has held for a few frames, and that matches the card's picture once
         // that is known: a wrong lock must not become the size and picture the card is searched for by)
         // (and with nearly all of it in view: its picture is what a fast-moving card is searched for by)
@@ -629,7 +650,12 @@ final class CardTracker {
         // card's edges for a few frames (or three, for longer, when a finger is over the fourth).
         // Every later outline is lined up with this picture, so any error in it would stay.
         let fullyInView = grayQuad.map { q in q.allSatisfy { $0.x > 3 && $0.y > 3 && $0.x < gw - 4 && $0.y < gh - 4 } } ?? false
-        if cardPicture == nil, fullyInView, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 6,
+        // (and the card's proportions right: from an outline a little off, every later outline was
+        // lined up that little off)
+        let rightShape = grayQuad.flatMap { gq in gray.map { g in
+            abs(PlanarTracker.trueAspect(gq, f: PlanarTracker.focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2) - 0.716) < 0.03
+        } } ?? false
+        if cardPicture == nil, fullyInView, rightShape, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 6,
            snapStreak4 >= 3 || (snapStreak3 >= 10 && trackedScore >= 0.5), lastMotion < 0.02 * quadSize(gq),
            let ip = indexPattern(paper, gq), ip.both >= 0.12,
            let pic = CardTracker.samplePicture(pyr, gq) {
@@ -710,6 +736,27 @@ final class CardTracker {
         var snapped: Int
     }
 
+    /// Side k of the outline moved out onto the card's edge when it is too far in (see flowStep):
+    /// only if the card's proportions say so, and come out right afterwards. Gray coordinates.
+    private func pushOut(_ g: GrayImage, _ quad: [CGPoint], side k: Int) -> [CGPoint]? {
+        guard quad.count == 4 else { return nil }
+        func aspect(_ q: [CGPoint]) -> Double {
+            PlanarTracker.trueAspect(q, f: PlanarTracker.focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2)
+        }
+        func len(_ i: Int) -> Double { Double(hypot(quad[(i + 1) % 4].x - quad[i].x, quad[(i + 1) % 4].y - quad[i].y)) }
+        // (the side must be in view: its middle inside the picture)
+        let mid = CGPoint(x: (quad[k].x + quad[(k + 1) % 4].x) / 2, y: (quad[k].y + quad[(k + 1) % 4].y) / 2)
+        guard mid.x > 4, mid.y > 4, mid.x < CGFloat(g.w - 5), mid.y < CGFloat(g.h - 5) else { return nil }
+        let r = aspect(quad)
+        let longSide = (len(k) + len((k + 2) % 4)) > (len((k + 1) % 4) + len((k + 3) % 4))
+        // a long side too far in makes the card too narrow; a short side, too short
+        guard longSide ? r < 0.716 - 0.035 : r > 0.716 + 0.035 else { return nil }
+        let across = (len((k + 1) % 4) + len((k + 3) % 4)) / 2      // the card's size across this side
+        guard let out = PlanarTracker.pushSideOut(g, quad: quad, side: k, reach: 0.2 * across) else { return nil }
+        guard abs(aspect(out) - 0.716) < 0.03 else { return nil }
+        return out
+    }
+
     private func flowStep(prev: [GrayImage], cur: [GrayImage], quad: [CGPoint]) -> FlowResult? {
         var pts = points
         if pts.count < 30 {
@@ -765,8 +812,17 @@ final class CardTracker {
         var snapped = 0
         let side = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
         let flowQuad = nq
-        let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(2, 0.04 * Double(side)))
+        let (sq, n, bySide) = PlanarTracker.snapEdgesBySide(cur[0], quad: nq, maxShift: max(2, 0.04 * Double(side)))
         if n > 0 { nq = sq; snapped = n }
+        // One side not on an edge and the card's proportions off the way that side being too far in
+        // would make them: it is stuck on the card's paper (a corner index or a thumb kept it there
+        // when the card was found), the real edge further out. Move it out onto the edge, if that
+        // puts the proportions right. (Before the card's picture is known: after, the printing
+        // places every side.)
+        if snapped == 3, cardPicture == nil, let k = bySide.firstIndex(of: false), let fixed = pushOut(cur[0], nq, side: k) {
+            nq = fixed
+            snapped = 4
+        }
         snapStreak4 = snapped == 4 ? snapStreak4 + 1 : 0
         snapStreak3 = snapped >= 3 ? snapStreak3 + 1 : 0
         lastMotion = zip(nq, quad).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
@@ -795,6 +851,19 @@ final class CardTracker {
                 let w = CGFloat(cur[0].w), h = CGFloat(cur[0].h)
                 if al.match >= 0.85, snapStreak4 >= 3, lastMotion < 0.02 * side, frameIndex - cardPictureFrame >= 10,
                    nq.allSatisfy({ $0.x > 3 && $0.y > 3 && $0.x < w - 4 && $0.y < h - 4 }),
+                   let fresh = CardTracker.samplePicture(cur, nq) {
+                    cardPicture = fresh
+                    cardPictureFrame = frameIndex
+                }
+            } else if snapped == 4, snapStreak4 >= 5, lastMotion < 0.02 * side, shift < 0.04 * side, al.match >= 0.75,
+                      frameIndex - cardPictureFrame >= 5,
+                      abs(PlanarTracker.trueAspect(nq, f: PlanarTracker.focalGuess(cur[0]), cx: Double(cur[0].w) / 2, cy: Double(cur[0].h) / 2) - 0.716) < 0.03 {
+                // All four sides on the card's edges for a while, the card's proportions right and held
+                // nearly still, but its printing a few pixels off them: the picture was taken from an
+                // outline a little off, and every outline lined up with it since was that little off.
+                // The edges are right: keep them, and take the picture again from them.
+                let w = CGFloat(cur[0].w), h = CGFloat(cur[0].h)
+                if nq.allSatisfy({ $0.x > 3 && $0.y > 3 && $0.x < w - 4 && $0.y < h - 4 }),
                    let fresh = CardTracker.samplePicture(cur, nq) {
                     cardPicture = fresh
                     cardPictureFrame = frameIndex
@@ -1050,9 +1119,9 @@ final class CardTracker {
     /// A card coming into view, completed from the part of it in the picture (one way round or the
     /// other, see `completions`): does the part in view show a corner index where this completion
     /// puts one? A card's index is long and thin along the card, so the wrong way round puts the index
-    /// boxes beside the real index, on blank paper. true: an index box in view is inked (and the paper
-    /// just past it along the card is blank, where that is in view); false: the index boxes in view
-    /// are blank, or inked with printing carrying on past them; nil: no index box in view yet.
+    /// boxes beside the real index, on blank paper. true: an index box in view is inked and the paper
+    /// just past it along the card is in view and blank; false: the index boxes in view are blank, or
+    /// inked with printing carrying on past them; nil: no index box in view yet.
     private func entryIndex(_ paper: PaperReader?, _ quad: [CGPoint]) -> Bool? {
         guard let paper = paper, quad.count == 4,
               quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
@@ -1102,7 +1171,11 @@ final class CardTracker {
             guard m >= 0.12 else { continue }
             // (solid dark is not an index: hair or a dark sleeve where the box is off the card)
             if m > 0.65 { crowded = true; continue }
-            if let p = inkIn(pasts[k].0, pasts[k].1, 0.11), p >= 0.2 { crowded = true } else { indexed += 1 }
+            // (and only an index with blank paper just past it, in view, counts: a box that lands on
+            // a pip or a piece of the court picture, the wrong way round, has printing there or past
+            // the edge of the picture)
+            guard let p = inkIn(pasts[k].0, pasts[k].1, 0.11) else { continue }
+            if p >= 0.2 { crowded = true } else if p <= 0.06 { indexed += 1 }
         }
         guard tested > 0 else { return nil }
         return indexed > 0 && !crowded
