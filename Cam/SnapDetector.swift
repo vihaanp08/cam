@@ -130,10 +130,10 @@ final class SnapDetector {
         // Confirm or reject a waiting candidate.
         if pendingAge >= 0 {
             pendingAge += blockSeconds
-            if pendingAge > 0.015 { pendingTail = max(pendingTail, rms) }
+            if pendingAge > 0.012 { pendingTail = max(pendingTail, rms) }
             if pendingTail > 0.35 * pendingRMS {
                 pendingAge = -1                  // still loud: not a snap
-            } else if pendingAge >= 0.06 {
+            } else if pendingAge >= 0.035 {
                 pendingAge = -1
                 lastTrigger = now
                 DispatchQueue.main.async { [weak self] in self?.onSnap?() }

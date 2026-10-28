@@ -146,6 +146,7 @@ let pipe = FramePipeline(context: ciContext)
 pipe.tracker.analysisScale = analysisScale
 var cfg = RenderConfig()
 cfg.mirror = false
+cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
 
 var drew: [Bool] = []
 var quads: [[CGPoint]?] = []

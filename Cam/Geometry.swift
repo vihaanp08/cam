@@ -89,9 +89,10 @@ struct OneEuroFilter {
     private var dxPrev: Double = 0
     private(set) var velocity: Double = 0
 
-    init(minCutoff: Double, beta: Double) {
+    init(minCutoff: Double, beta: Double, dCutoff: Double = 1.0) {
         self.minCutoff = minCutoff
         self.beta = beta
+        self.dCutoff = dCutoff
     }
 
     private func alpha(_ cutoff: Double, _ dt: Double) -> Double {
@@ -126,8 +127,8 @@ struct OneEuroFilter {
 /// Smooths a quad as its centre (follows movement quickly) plus each corner's offset from the
 /// centre (shape, turn and tilt: held steadier, since that is where edge noise shows as a wobble).
 struct QuadSmoother {
-    private var centre = (0..<2).map { _ in OneEuroFilter(minCutoff: 1.0, beta: 0.05) }
-    private var offsets = (0..<8).map { _ in OneEuroFilter(minCutoff: 0.5, beta: 0.04) }
+    private var centre = (0..<2).map { _ in OneEuroFilter(minCutoff: 0.6, beta: 0.08, dCutoff: 2) }
+    private var offsets = (0..<8).map { _ in OneEuroFilter(minCutoff: 0.3, beta: 0.05, dCutoff: 2) }
 
     mutating func smooth(_ q: Quad, dt: Double) -> Quad {
         let c = q.center

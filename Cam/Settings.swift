@@ -87,4 +87,6 @@ struct RenderConfig {
     var noiseScale = 1.0
     var insetScale = 1.0
     var headStartFrames = 4
+    /// Run live while the fake is on the card; only fall behind while waiting for the card.
+    var adaptiveHeadStart = true
 }

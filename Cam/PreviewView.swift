@@ -28,7 +28,7 @@ final class PreviewView: UIView, MTKViewDelegate {
 
         mtkView.framebufferOnly = false
         mtkView.colorPixelFormat = .bgra8Unorm
-        mtkView.preferredFramesPerSecond = 30
+        mtkView.preferredFramesPerSecond = 60   // show each new frame within ~8 ms, not up to 33
         mtkView.enableSetNeedsDisplay = false
         mtkView.isPaused = false
         mtkView.delegate = self

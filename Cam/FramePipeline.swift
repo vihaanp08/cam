@@ -70,6 +70,11 @@ final class FramePipeline {
     /// on its own printing after the tracker let go of it.
     private var lastDecided: Slot?
     private var followStreak = 0
+    /// Frames in a row with the fake on the card, and a frame counter for pacing the head start.
+    private var drawnStreak = 0
+    private var missStreak = 0
+    private var live = false
+    private var tick = 0
     private var pool: CVPixelBufferPool?
     private var poolSize = CGSize.zero
 
@@ -88,6 +93,9 @@ final class FramePipeline {
         inputCount = 0
         lastDecided = nil
         followStreak = 0
+        drawnStreak = 0
+        missStreak = 0
+        live = false
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -107,23 +115,36 @@ final class FramePipeline {
     /// `armed` decides only whether the fake is painted on the frame being shown; the analysis
     /// always runs as if armed, so re-arming puts the fake straight back on the card.
     func process(_ pb: CVPixelBuffer, time: Double, cfg: RenderConfig, armed: Bool, albedo: CIImage?) -> Output {
-        let delay = max(0, min(8, cfg.headStartFrames))
+        let maxDelay = max(0, min(8, cfg.headStartFrames))
         // The camera reuses its buffers, so keep our own copy while the frame waits to be shown.
-        let image = delay > 0 ? (copy(pb).map { CIImage(cvPixelBuffer: $0) } ?? CIImage(cvPixelBuffer: pb))
-                              : CIImage(cvPixelBuffer: pb)
+        let image = maxDelay > 0 ? (copy(pb).map { CIImage(cvPixelBuffer: $0) } ?? CIImage(cvPixelBuffer: pb))
+                                 : CIImage(cvPixelBuffer: pb)
         var slot = decide(pb, image: image, time: time, cfg: cfg)
         slot.status.overlay = slot.draw
         queue.append(slot)
         inputCount += 1
+        tick += 1
         if slot.draw { backfill() }
+        drawnStreak = slot.draw ? drawnStreak + 1 : 0
+        missStreak = slot.draw ? 0 : missStreak + 1
+        if drawnStreak >= 6 { live = true }
+        if missStreak >= 15 { live = false }    // (a short tracking hiccup doesn't count)
 
-        // (head start just lowered in Settings: skip the extra waiting frames)
-        while queue.count > delay + 1 { queue.removeFirst() }
-        // While the queue is filling up (just after a reset) keep showing the oldest frame.
-        if queue.count > delay {
+        // The head start is only needed for the moment the card comes into view. Once the fake has
+        // been on the card for a few frames the picture catches up to live (dropping every other
+        // frame for a moment, which isn't noticeable), and it falls back behind again (repeating
+        // the odd frame) once the card has gone.
+        let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
+        while queue.count > maxDelay + 1 { queue.removeFirst() }
+        let behind = queue.count - 1
+        if behind > target {
+            if tick % 2 == 0 && queue.count >= 2 { queue.removeFirst() }
             return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
         }
-        return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false)
+        if behind < target && (!cfg.adaptiveHeadStart || tick % 3 == 0) {
+            return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false)
+        }
+        return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
     }
 
     /// The frames still waiting to be shown (for the test harness at the end of a clip).

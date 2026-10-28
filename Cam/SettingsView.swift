@@ -97,7 +97,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Speed")
                 } footer: {
-                    Text("The picture runs this many frames behind the camera, so the fake card is already on the card the instant it comes into view. 4 frames is about 0.13 s. Lower it if the picture feels laggy, raise it if you ever see the real card as it comes in.")
+                    Text("While it waits for a card, the picture runs this many frames behind the camera, so the fake is already on the card the instant it comes into view. Once the fake is on, the picture catches up to live. 4 frames is about 0.13 s. Raise it if you ever see the real card as it comes in.")
                 }
 
                 Section("Look") {
@@ -121,7 +121,7 @@ struct SettingsView: View {
                     Text("Two-finger long-press: these settings")
                     Text("Two-finger double-tap: re-arm")
                     Text("Snap: reveal")
-                    Text("Volume or Camera Control button: reveal, press again to re-arm")
+                    Text("Volume or Camera Control button: press once to reveal, twice quickly to re-arm")
                 }
                 .font(.footnote)
             }
