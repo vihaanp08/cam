@@ -66,6 +66,10 @@ final class FramePipeline {
     }
     private var queue: [Slot] = []
     private var inputCount = 0
+    /// The previous frame's decision, and how many frames in a row the card has been followed
+    /// on its own printing after the tracker let go of it.
+    private var lastDecided: Slot?
+    private var followStreak = 0
     private var pool: CVPixelBufferPool?
     private var poolSize = CGSize.zero
 
@@ -82,6 +86,8 @@ final class FramePipeline {
         lastAnalysis = nil
         queue = []
         inputCount = 0
+        lastDecided = nil
+        followStreak = 0
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -193,6 +199,24 @@ final class FramePipeline {
             slot.status.reason = "no card"
             overlayOn = false
         }
+
+        // The tracker let go but the fake was on the card a frame ago (usually the card going out of
+        // the picture fast, or a hard tilt): follow the card's own printing from that frame. While
+        // any of the card can still be followed it is still there and must stay covered.
+        if !slot.draw, followStreak < 8, let prev = lastDecided, prev.draw, let pq = prev.quad,
+           let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
+           q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)) {
+            let an = compositor.analyze(frame: frame, quad: q)
+            if an.map({ $0.cardness > 0.3 }) ?? true {
+                slot.quad = q
+                slot.draw = true
+                slot.analysis = an ?? prev.analysis
+                slot.status.reason = "followed"
+                followStreak += 1
+            }
+        }
+        if slot.status.reason != "followed" { followStreak = 0 }
+        lastDecided = slot
         return slot
     }
 
