@@ -410,9 +410,22 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     // MARK: - Per-frame pipeline
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard !testMode, let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let t = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
+        handleFrame(pb, time: t)
+    }
 
+    /// Test runs (simulator, no camera): frames are fed in here instead of from the camera.
+    var testMode = false
+    /// Called after every frame in test runs: the pipeline's result and whether the trick was armed.
+    var onTestFrame: ((FramePipeline.Output, Bool) -> Void)?
+
+    /// Runs one test frame through exactly the same path as a camera frame (on the video queue).
+    func processTestFrame(_ pb: CVPixelBuffer, time: Double) {
+        videoQueue.sync { handleFrame(pb, time: time) }
+    }
+
+    private func handleFrame(_ pb: CVPixelBuffer, time t: Double) {
         lock.lock()
         let cfg = _config
         let armed = _armed
@@ -475,6 +488,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
                                   cardness: s.cardness, armed: armed, fps: fps, info: info)
             DispatchQueue.main.async { cb(st) }
         }
+        onTestFrame?(result, armed)
     }
 
     private func fade(_ top: CIImage, over base: CIImage, alpha: CGFloat, extent: CGRect) -> CIImage {
