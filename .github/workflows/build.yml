@@ -171,7 +171,7 @@ jobs:
           echo "commit ${GITHUB_SHA} (harness only, simulator still running)" > COMMIT.txt
           git add -A
           git commit -qm "Harness results for ${GITHUB_SHA}"
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" results
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:results-harness
 
       - name: Screenshot the camera screen in the simulator
         continue-on-error: true

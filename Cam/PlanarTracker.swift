@@ -509,8 +509,9 @@ enum PlanarTracker {
             let theta = 0.5 * atan2(2 * sxy, sxx - syy)
             var u = (cos(theta), sin(theta))
             if u.0 * d.0 + u.1 * d.1 < 0 { u = (-u.0, -u.1) }
-            // too far from where the side was: keep it there (see maxShift)
-            if let ms = maxShift {
+            // too far from where the side was: keep it there (see maxShift), unless most of the side
+            // lines up on this edge (then it is the card's edge and the side had slipped)
+            if let ms = maxShift, bestCount < Int(0.65 * Double(samples)) {
                 let nn = (-u.1, u.0)
                 let da = abs((a.0 - mx) * nn.0 + (a.1 - my) * nn.1), db = abs((b.0 - mx) * nn.0 + (b.1 - my) * nn.1)
                 if max(da, db) > ms { lines.append((a, d0)); continue }

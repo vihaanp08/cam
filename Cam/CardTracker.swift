@@ -197,10 +197,13 @@ final class CardTracker {
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let next = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(next.quad), w: W, h: H) {
                 trackedScore = cardLikeness(g, paper, next.quad)
+                let inView = FramePipeline.fractionInside(quadCI(next.quad), CGRect(x: 0, y: 0, width: W, height: H))
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
                 // a weak track is kept while detection looks for something better (step 2); only a
-                // long run of clearly-not-a-card frames drops it.
-                weakFrames = trackedScore < minScore ? weakFrames + 1 : 0
+                // long run of clearly-not-a-card frames drops it. (Held so close that much of it is
+                // out of the picture, too little of it is in view to judge: a low score then means
+                // nothing, and it is followed as long as the flow holds.)
+                if trackedScore >= minScore { weakFrames = 0 } else if inView > 0.85 { weakFrames += 1 }
                 // Shrunk onto part of the card (paper carries on past two sides): drop it at once so
                 // detection replaces it this very frame, never keep painting a card inside the card.
                 // (three sides: against a plain white ceiling one or two real edges can look like that)
@@ -210,7 +213,6 @@ final class CardTracker {
                 // and let the short prediction and detection take over.
                 // (not when most of the card is out of the picture: held very close, too little of
                 // it is in view to score, but the flow is still following it)
-                let inView = FramePipeline.fractionInside(quadCI(next.quad), CGRect(x: 0, y: 0, width: W, height: H))
                 let collapsed = trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8
                 if !insideCard && !collapsed && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
@@ -475,8 +477,14 @@ final class CardTracker {
             let simCount = inliers.filter { $0 }.count, hCount = hf.1.filter { $0 }.count
             let size = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
             let dev = zip(hq, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+            // (only from points spread over the card: from a cluster in the middle, the perspective
+            // part is a guess that swings the far corners about)
+            let used = zip(b, hf.1).filter { $0.1 }.map { $0.0 }
+            let ux = used.map(\.x), uy = used.map(\.y), qx = quad.map(\.x), qy = quad.map(\.y)
+            let spread = min(((ux.max() ?? 0) - (ux.min() ?? 0)) / max(1, (qx.max() ?? 0) - (qx.min() ?? 0)),
+                             ((uy.max() ?? 0) - (uy.min() ?? 0)) / max(1, (qy.max() ?? 0) - (qy.min() ?? 0)))
             if hq.allSatisfy({ $0.x.isFinite && $0.y.isFinite }), hCount >= simCount, hCount >= 12,
-               dev < 0.06 * size {
+               dev < 0.06 * size, spread > 0.45 {
                 nq = hq
                 inliers = hf.1
             }
@@ -657,8 +665,8 @@ final class CardTracker {
     /// the other two. About 0.25-0.3 for the whole card; about 0 for half a card, a corner of it,
     /// the box round a court card's picture or most other rectangles; nil when a corner is out of
     /// view. (a thumb over a corner hides it too, so this only ever decides between candidates)
-    /// `cardLike`: an index in at least one of two opposite corners and the other two corners blank
-    /// (true of any card face even with a thumb over one index; not of a printed sheet or poster).
+    /// `cardLike`: both indices in two opposite corners and the other two corners clearly emptier
+    /// (true of a card face unless a thumb covers an index; not of a printed sheet or poster).
     private func indexPattern(_ paper: PaperReader?, _ quad: [CGPoint]) -> (both: Double, cardLike: Bool)? {
         guard let paper = paper, quad.count == 4,
               quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
@@ -703,8 +711,9 @@ final class CardTracker {
         guard let tl = inkIn(0.045, 0.06), let tr = inkIn(0.87, 0.06),
               let bl = inkIn(0.045, 0.76), let br = inkIn(0.87, 0.76) else { return nil }
         let both = max(min(tl, br) - max(tr, bl), min(tr, bl) - max(tl, br))
-        let cardLike = (max(tl, br) >= 0.08 && max(tr, bl) <= 0.04) || (max(tr, bl) >= 0.08 && max(tl, br) <= 0.04)
-        return (both, cardLike)
+        // (both indices: a white sheet with one dark mark in a corner looks like a card with a thumb
+        // over one index, so only the full pattern counts as proof)
+        return (both, both >= 0.1)
     }
 
     /// Is `q` where the card was last seen clearly (re-finding the card itself)?
