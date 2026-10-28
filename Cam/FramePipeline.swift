@@ -211,6 +211,7 @@ final class FramePipeline {
         st.source = tracker.lastSource
         st.score = tracker.lastScore
         st.debug = tracker.lastDebug
+        if tracker.lastPictureMatch > -0.5 { st.debug += String(format: " pic %.2f", tracker.lastPictureMatch) }
         st.raw = tracker.lastRawQuad
         var slot = Slot(index: inputCount, time: time, image: frame, view: tracker.lastView,
                         quad: nil, draw: false, analysis: nil, status: st)

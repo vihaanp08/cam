@@ -46,6 +46,11 @@ final class CardTracker {
     /// prefer shapes of about the same size (the card's distance from the camera changes slowly).
     private var lastGood: (quad: [CGPoint], size: CGFloat, frame: Int)?
     private var lastGoodPyramid: [GrayImage]?
+    /// The card's own printing as seen face-on (see "The card's picture" below), and when it was taken.
+    private var cardPicture: [Float]?
+    private var cardPictureFrame = 0
+    /// How well the last outline lined up with the card's picture (-1 when not checked).
+    private(set) var lastPictureMatch: Float = -1
     /// Card-likeness of the current lock (PlanarTracker.cardScore), -1 when none.
     private(set) var lastScore = -1.0
     /// What detection saw on the last frame it ran (for the test harness and the debug view).
@@ -155,6 +160,8 @@ final class CardTracker {
         weakFrames = 0
         lastGood = nil
         lastGoodPyramid = nil
+        cardPicture = nil
+        lastPictureMatch = -1
     }
 
     /// Drop the current lock and search again (used when the locked shape doesn't look like a card face).
@@ -261,6 +268,14 @@ final class CardTracker {
                     // Fully in view but not a card face (a printed sheet on the wall, a poster) and not
                     // where the card was just seen: it can't be the card.
                     if sc > 0, let ip = indexPattern(paper, gq), !ip.cardLike, !nearLastCard(gq) { sc *= 0.3 }
+                    // Once the card's picture is known, an outline whose printing doesn't line up
+                    // with it (half the card, the box round its picture, another object) can't win.
+                    // (it is also turned the way the picture was taken)
+                    if sc > 0, let pic = cardPicture, let pyr = pyramid {
+                        let (m, turned) = CardTracker.bestPictureMatch(pic, pyr, gq)
+                        gq = turned
+                        sc *= Double(max(0.25, min(1, (m - 0.1) / 0.45)))
+                    }
                     all.append((gq, how, sc))
                     if best == nil || sc > best!.score { best = (gq, how, sc); bestNote = partsNote + String(format: " size %.2f", sz) }
                 }
@@ -380,6 +395,19 @@ final class CardTracker {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
         }
+        // Take the card's picture once it is clearly the whole card (both corner indices where they
+        // belong), all of it in view; forget it once no card has been seen for two seconds (the
+        // next card may be a different one).
+        if cardPicture == nil, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 4,
+           gq.allSatisfy({ $0.x > 3 && $0.y > 3 && $0.x < gw - 4 && $0.y < gh - 4 }),
+           let ip = indexPattern(paper, gq), ip.both >= 0.12,
+           let pic = CardTracker.samplePicture(pyr, gq) {
+            cardPicture = pic
+            cardPictureFrame = frameIndex
+        }
+        if cardPicture != nil, (lastGood.map { frameIndex - $0.frame > 60 } ?? true), frameIndex - cardPictureFrame > 60 {
+            cardPicture = nil
+        }
         prevPyramid = pyramid
 
         // 3. Sanity: reject shapes that are clearly not a card held up to the camera.
@@ -496,6 +524,13 @@ final class CardTracker {
         let side = (0..<4).map { k in hypot(nq[(k + 1) % 4].x - nq[k].x, nq[(k + 1) % 4].y - nq[k].y) }.max() ?? 0
         let (sq, n) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(2, 0.04 * Double(side)))
         if n > 0 { nq = sq; snapped = n }
+        // Then pin all four corners to the card's own printing (see "The card's picture").
+        lastPictureMatch = -1
+        if let pic = cardPicture, let al = CardTracker.alignPicture(pic, cur, nq) {
+            let moved = zip(al.quad, nq).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? .infinity
+            lastPictureMatch = al.match
+            if al.match >= 0.55, moved < 0.12 * side { nq = al.quad }
+        }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
         return FlowResult(quad: nq, points: kept, snapped: snapped)
     }
@@ -715,6 +750,168 @@ final class CardTracker {
         // (both indices: a white sheet with one dark mark in a corner looks like a card with a thumb
         // over one index, so only the full pattern counts as proof)
         return (both, both >= 0.1)
+    }
+
+    // MARK: - The card's picture
+
+    /// The card's printing as seen face-on: a grid of gray values (zero mean, unit spread, NaN where
+    /// out of view) over the card's face, taken once the card is clearly and fully in view. Lining
+    /// the card's picture up with it every frame pins all four corners to the printing itself, so
+    /// the outline can't slide off at a steep angle, close up, or onto a finger; and an outline that
+    /// isn't the whole card (half of it, the frame round a court card's picture) or isn't this card
+    /// at all doesn't match it.
+    static let picW = 40, picH = 56
+    private static let unitSquare = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]
+
+    /// Where on the card each grid cell is (the middle 90% of the face).
+    private static func picUV(_ i: Int, _ j: Int) -> CGPoint {
+        CGPoint(x: 0.05 + 0.9 * (CGFloat(i) + 0.5) / CGFloat(picW), y: 0.05 + 0.9 * (CGFloat(j) + 0.5) / CGFloat(picH))
+    }
+
+    /// The pyramid level at which a card this big covers the grid about one to two pixels per cell.
+    private static func pictureLevel(_ quad: [CGPoint], levels: Int) -> Int {
+        let w = (hypot(quad[1].x - quad[0].x, quad[1].y - quad[0].y) + hypot(quad[2].x - quad[3].x, quad[2].y - quad[3].y)) / 2
+        let h = (hypot(quad[3].x - quad[0].x, quad[3].y - quad[0].y) + hypot(quad[2].x - quad[1].x, quad[2].y - quad[1].y)) / 2
+        let short = min(w, h)
+        var L = 0
+        while L + 1 < levels, short / CGFloat(1 << (L + 1)) >= CGFloat(picW) * 1.2 { L += 1 }
+        return L
+    }
+
+    /// The card's picture inside `quad` (gray coordinates, labelled tl, tr, br, bl), normalised;
+    /// nil when too little of it is in view or it is blank.
+    static func samplePicture(_ pyr: [GrayImage], _ quad: [CGPoint]) -> [Float]? {
+        guard !pyr.isEmpty, quad.count == 4,
+              quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let L = pictureLevel(quad, levels: pyr.count)
+        let s = CGFloat(1 << L)
+        let img = pyr[L]
+        guard let H = PlanarTracker.fitHomography(unitSquare, quad.map { CGPoint(x: $0.x / s, y: $0.y / s) }) else { return nil }
+        var out = [Float](repeating: .nan, count: picW * picH)
+        var sum: Float = 0, sum2: Float = 0, n = 0
+        for j in 0..<picH {
+            for i in 0..<picW {
+                let p = H.apply(picUV(i, j))
+                guard img.contains(Double(p.x), Double(p.y)) else { continue }
+                let v = img.sample(Float(p.x), Float(p.y))
+                out[j * picW + i] = v
+                sum += v; sum2 += v * v; n += 1
+            }
+        }
+        guard n >= picW * picH / 3 else { return nil }
+        let mean = sum / Float(n)
+        let sd = (max(1e-8, sum2 / Float(n) - mean * mean)).squareRoot()
+        guard sd > 0.01 else { return nil }
+        for k in out.indices where !out[k].isNaN { out[k] = (out[k] - mean) / sd }
+        return out
+    }
+
+    /// Correlation (-1...1) of two pictures over the cells seen in both.
+    static func pictureMatch(_ a: [Float], _ b: [Float]) -> Float {
+        var sa: Float = 0, sb: Float = 0, saa: Float = 0, sbb: Float = 0, sab: Float = 0, n: Float = 0
+        for k in a.indices where !a[k].isNaN && !b[k].isNaN {
+            sa += a[k]; sb += b[k]; saa += a[k] * a[k]; sbb += b[k] * b[k]; sab += a[k] * b[k]; n += 1
+        }
+        guard n >= Float(picW * picH / 3) else { return -1 }
+        let va = saa - sa * sa / n, vb = sbb - sb * sb / n
+        guard va > 1e-6, vb > 1e-6 else { return -1 }
+        return (sab - sa * sb / n) / (va * vb).squareRoot()
+    }
+
+    /// The best match of the outline's picture with the card's, trying the outline each way round;
+    /// returns the match and the outline labelled the way that matched.
+    static func bestPictureMatch(_ pic: [Float], _ pyr: [GrayImage], _ quad: [CGPoint]) -> (Float, [CGPoint]) {
+        var best: (Float, [CGPoint]) = (-1, quad)
+        for k in 0..<4 {
+            let q = Array(quad[k...] + quad[..<k])
+            if let p = samplePicture(pyr, q) {
+                let m = pictureMatch(pic, p)
+                if m > best.0 { best = (m, q) }
+            }
+        }
+        return best
+    }
+
+    /// Moves the four corners so the card's printing lines up with its picture: Gauss-Newton on the
+    /// eight corner coordinates, with robust weights so fingers over part of the card don't pull it.
+    /// Returns the new outline and how well it then matches.
+    static func alignPicture(_ pic: [Float], _ pyr: [GrayImage], _ quad: [CGPoint]) -> (quad: [CGPoint], match: Float)? {
+        guard !pyr.isEmpty, quad.count == 4,
+              quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let L = pictureLevel(quad, levels: pyr.count)
+        let s = CGFloat(1 << L)
+        let img = pyr[L]
+        var c = quad.map { CGPoint(x: $0.x / s, y: $0.y / s) }
+        var uv: [CGPoint] = [], T: [Float] = []
+        for j in 0..<picH {
+            for i in 0..<picW where !pic[j * picW + i].isNaN {
+                uv.append(picUV(i, j))
+                T.append(pic[j * picW + i])
+            }
+        }
+        guard uv.count >= picW * picH / 3 else { return nil }
+        let d: CGFloat = 0.5
+        for _ in 0..<8 {
+            guard let H = PlanarTracker.fitHomography(unitSquare, c) else { return nil }
+            // how each grid point moves when each corner coordinate moves by d
+            var Hd: [PlanarTracker.Homography] = []
+            for m in 0..<8 {
+                var cc = c
+                if m % 2 == 0 { cc[m / 2].x += d } else { cc[m / 2].y += d }
+                guard let h = PlanarTracker.fitHomography(unitSquare, cc) else { return nil }
+                Hd.append(h)
+            }
+            var I = [Float](repeating: .nan, count: uv.count)
+            var gx = I, gy = I
+            var pts = [CGPoint](repeating: .zero, count: uv.count)
+            var sum: Float = 0, sum2: Float = 0, n = 0
+            for k in uv.indices {
+                let p = H.apply(uv[k])
+                pts[k] = p
+                guard img.contains(Double(p.x) - 1, Double(p.y) - 1), img.contains(Double(p.x) + 1, Double(p.y) + 1) else { continue }
+                let x = Float(p.x), y = Float(p.y)
+                let v = img.sample(x, y)
+                I[k] = v
+                gx[k] = 0.5 * (img.sample(x + 1, y) - img.sample(x - 1, y))
+                gy[k] = 0.5 * (img.sample(x, y + 1) - img.sample(x, y - 1))
+                sum += v; sum2 += v * v; n += 1
+            }
+            guard n >= picW * picH / 4 else { return nil }
+            let mean = sum / Float(n)
+            let sd = (max(1e-8, sum2 / Float(n) - mean * mean)).squareRoot()
+            guard sd > 0.01 else { return nil }
+            var A = [[Double]](repeating: [Double](repeating: 0, count: 8), count: 8)
+            var bvec = [Double](repeating: 0, count: 8)
+            for k in uv.indices where !I[k].isNaN {
+                let r = Double((I[k] - mean) / sd - T[k])
+                let w = abs(r) <= 1 ? 1.0 : 1 / abs(r)
+                var J = [Double](repeating: 0, count: 8)
+                for m in 0..<8 {
+                    let q = Hd[m].apply(uv[k])
+                    let dx = Double(q.x - pts[k].x) / Double(d), dy = Double(q.y - pts[k].y) / Double(d)
+                    J[m] = (Double(gx[k]) * dx + Double(gy[k]) * dy) / Double(sd)
+                }
+                for a in 0..<8 {
+                    bvec[a] -= w * J[a] * r
+                    for e in 0..<8 { A[a][e] += w * J[a] * J[e] }
+                }
+            }
+            for a in 0..<8 { A[a][a] = A[a][a] * 1.05 + 1e-6 }
+            guard let step = PlanarTracker.solve(A, bvec) else { break }
+            var biggest: CGFloat = 0
+            for m in 0..<8 {
+                let dm = CGFloat(step[m])
+                guard dm.isFinite else { return nil }
+                // (a step at most a pixel or two at a time: it is a refinement, not a search)
+                let dmc = max(-2, min(2, dm))
+                if m % 2 == 0 { c[m / 2].x += dmc } else { c[m / 2].y += dmc }
+                biggest = max(biggest, abs(dmc))
+            }
+            if biggest < 0.02 { break }
+        }
+        let out = c.map { CGPoint(x: $0.x * s, y: $0.y * s) }
+        guard let now = samplePicture(pyr, out) else { return nil }
+        return (out, pictureMatch(pic, now))
     }
 
     /// Is `q` the card as last seen clearly: the same size, in about the same place (re-finding the

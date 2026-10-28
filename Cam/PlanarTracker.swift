@@ -291,7 +291,7 @@ enum PlanarTracker {
         }
     }
 
-    private static func solve(_ A: [[Double]], _ b: [Double]) -> [Double]? {
+    static func solve(_ A: [[Double]], _ b: [Double]) -> [Double]? {
         let n = b.count
         var M = A, r = b
         for col in 0..<n {
