@@ -68,6 +68,8 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var lastStatusSent: CFTimeInterval = 0
     private var lastFrameTime: Double = -1
     private var fps: Double = 30
+    /// How long each frame takes to analyse and paint (milliseconds, smoothed; debug view).
+    private var processMs: Double = 0
     private var rearmFiredFor: Double = -2
 
     /// Main-thread callback with tracking info for the debug view.
@@ -490,7 +492,12 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         if lastFrameTime > 0, t > lastFrameTime { fps = 0.9 * fps + 0.1 / (t - lastFrameTime) }
         lastFrameTime = t
 
-        let result = pipeline.process(pb, time: t, cfg: cfg, armed: armed, albedo: albedo)
+        let started = CACurrentMediaTime()
+        // (whether the fake is painted is asked again just before the frame is shown, so a snap that
+        // came while this frame was being analysed reveals the card on this very frame)
+        let result = pipeline.process(pb, time: t, cfg: cfg, armed: armed, albedo: albedo,
+                                      armedNow: { [weak self] in self?.isArmed ?? armed })
+        processMs = 0.9 * processMs + 0.1 * (CACurrentMediaTime() - started) * 1000
         var out = result.image
         let extent = out.extent
         let now = CACurrentMediaTime()
@@ -534,7 +541,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             lastStatusSent = now
             let s = result.status
             lock.lock(); let rot = Int(_portraitAngle); lock.unlock()
-            let info = "\(Int(extent.width))x\(Int(extent.height)) rot \(rot)  \(pipeline.tracker.lastDebug.prefix(70))"
+            let info = "\(Int(extent.width))x\(Int(extent.height)) rot \(rot) \(Int(processMs.rounded())) ms  \(pipeline.tracker.lastDebug.prefix(70))"
             let st = EngineStatus(tracking: s.tracking, source: s.source, reason: s.reason,
                                   cardness: s.cardness, armed: armed, fps: fps, info: info)
             DispatchQueue.main.async { cb(st) }

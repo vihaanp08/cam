@@ -297,7 +297,7 @@ final class CardTracker {
         let lockIndex: Double? = lockPattern.map { $0.both }
         let lockMisScaled: Bool = lockPattern.map { $0.misScaled } ?? false
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
-            || stableFrames < 10 || lockMisScaled || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0)
+            || stableFrames < 5 || lockMisScaled || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0)
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
@@ -765,6 +765,12 @@ final class CardTracker {
                 // A side slid onto the printing, a finger or the palm, or an edge is covered or out of
                 // the picture: the printing decides where all four corners are.
                 nq = al.quad
+                // Then the sides that are in view go exactly onto the card's own edges, a short way
+                // only. (The printing alone can be a little off in scale, most of all held close with
+                // part of the card out of the picture, and the plain border has nothing to line up:
+                // the long edge then sat inside the real one and a strip of the real card showed.)
+                let (es, en) = PlanarTracker.snapEdges(cur[0], quad: nq, maxShift: max(1.5, 0.015 * Double(side)))
+                if en > 0 { nq = es }
             }
         }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }

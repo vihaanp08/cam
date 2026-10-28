@@ -43,8 +43,10 @@ final class FramePipeline {
         var time: Double
     }
 
-    /// Frames to keep the fake card on after the tracker loses the card (about 0.4 s at 30 fps).
-    var holdFrames = 5
+    /// Frames to keep the fake card on after the tracker loses the card (0.1 s at 30 fps), and only
+    /// one while the card's own printing isn't known yet: held longer, a card that had left fast
+    /// left the fake behind on the wall.
+    var holdFrames = 3
     /// Consecutive "not a card face" frames before the fake turns off (card turned around, etc.).
     var badFramesToDrop = 8
 
@@ -136,7 +138,10 @@ final class FramePipeline {
     /// Analyse frame `pb` and return the frame to show now (`cfg.headStartFrames` frames older).
     /// `armed` decides only whether the fake is painted on the frame being shown; the analysis
     /// always runs as if armed, so re-arming puts the fake straight back on the card.
-    func process(_ pb: CVPixelBuffer, time: Double, cfg: RenderConfig, armed: Bool, albedo: CIImage?) -> Output {
+    /// `armedNow`, when given, is asked again just before the frame is shown: a snap or a button press
+    /// that came while this frame was being analysed already counts for it.
+    func process(_ pb: CVPixelBuffer, time: Double, cfg: RenderConfig, armed: Bool, albedo: CIImage?,
+                 armedNow: (() -> Bool)? = nil) -> Output {
         let maxDelay = max(0, min(8, cfg.headStartFrames))
         // The camera reuses its buffers, so keep our own copy while the frame waits to be shown.
         let image = maxDelay > 0 ? (copy(pb).map { CIImage(cvPixelBuffer: $0) } ?? CIImage(cvPixelBuffer: pb))
@@ -149,35 +154,34 @@ final class FramePipeline {
         if slot.draw { backfill(redo: tracker.lastWasCorrection) }
         drawnStreak = slot.draw ? drawnStreak + 1 : 0
         missStreak = slot.draw ? 0 : missStreak + 1
-        if drawnStreak >= 6 { live = true }
+        if drawnStreak >= 3 { live = true }
         if missStreak >= 15 { live = false }    // (a short tracking hiccup doesn't count)
+        let showArmed = armedNow?() ?? armed
 
-        // The head start is only needed for the moment the card comes into view. Once the fake has
-        // been on the card for a few frames the picture catches up to live (skipping a frame now
-        // and then while the picture is still), and it falls back behind again (showing the odd
-        // frame twice, again only while still) once the card has gone.
+        // The head start is only needed for the moment the card comes into view. Once the fake is on
+        // the card the picture catches up to live within a few frames (a frame skipped every other
+        // frame, moving or not: a picture running behind the camera is what reads as lag), and it
+        // falls back behind again (showing the odd frame twice, only while the picture is still, so
+        // it is never seen) once the card has gone.
         let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
         while queue.count > maxDelay + 1 { queue.removeFirst() }
         let behind = queue.count - 1
         guard cfg.adaptiveHeadStart else {
             // fixed head start (test harness): fill it up at the start, then keep it
-            if behind < target { return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false) }
-            return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
+            if behind < target { return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false) }
+            return show(queue.removeFirst(), cfg: cfg, armed: showArmed, albedo: albedo)
         }
-        // Catching up (skipping a frame) or falling back (showing one twice) only while the picture
-        // is nearly still, at most every other frame, so neither is ever seen; if the picture keeps
-        // moving, do it anyway after a while.
         ticksSinceAdjust += 1
         let around = queue.prefix(2).map(\.motion).max() ?? 1
-        let mayAdjust = ticksSinceAdjust >= 2 && (around < FramePipeline.stillMotion || ticksSinceAdjust >= 24)
-        if behind > target && mayAdjust && queue.count >= 2 {
+        let mayFallBack = ticksSinceAdjust >= 2 && (around < FramePipeline.stillMotion || ticksSinceAdjust >= 24)
+        if behind > target && ticksSinceAdjust >= 2 && queue.count >= 2 {
             ticksSinceAdjust = 0
             queue.removeFirst()
-        } else if behind < target && mayAdjust {
+        } else if behind < target && mayFallBack {
             ticksSinceAdjust = 0
-            return show(queue[0], cfg: cfg, armed: armed, albedo: albedo, advance: false)
+            return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
         }
-        return show(queue.removeFirst(), cfg: cfg, armed: armed, albedo: albedo)
+        return show(queue.removeFirst(), cfg: cfg, armed: showArmed, albedo: albedo)
     }
 
     /// Mean brightness change per pixel (0...1, at 1/8 scale) below which the picture counts as
@@ -274,7 +278,7 @@ final class FramePipeline {
             // alone passes where the card has just been, and the fake was left hanging in the air)
             // (and once the card's picture is known, it must be the card's own printing there: after
             // a sudden fast move the place the card has just left can still have some of it)
-            let stillThere = n <= holdFrames && FramePipeline.fractionInside(q, frame.extent) > 0.6
+            let stillThere = n <= (tracker.hasPicture ? holdFrames : 1) && FramePipeline.fractionInside(q, frame.extent) > 0.6
                 && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
                 && (slot.view.map { CardTracker.hasPrinting($0, q) } ?? false)
                 && (slot.view.flatMap { tracker.pictureMatch(q, in: $0) }.map { $0 >= 0.75 } ?? true)
@@ -296,12 +300,14 @@ final class FramePipeline {
         // The tracker let go but the fake was on the card a frame ago (usually the card going out of
         // the picture fast, or a hard tilt): follow the card's own printing from that frame. While
         // any of the card can still be followed it is still there and must stay covered.
-        if !slot.draw, followStreak < 8, let prev = lastDecided, prev.draw, let pq = prev.quad,
+        // (a few frames at most, and only onto the card's own printing: followed longer, or onto
+        // anything printed, the fake was left on the wall where the card had been)
+        if !slot.draw, followStreak < (tracker.hasPicture ? 4 : 2), let prev = lastDecided, prev.draw, let pq = prev.quad,
            let a = prev.view, let b = slot.view, let q = CardTracker.follow(pq, from: a, to: b),
            q.boundingBox.intersects(frame.extent.insetBy(dx: 2, dy: 2)), CardTracker.hasPrinting(b, q),
-           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.75 }) ?? true) {
+           (tracker.pictureMatch(q, in: b).map({ $0 >= 0.8 }) ?? true) {
             let an = compositor.analyze(frame: frame, quad: q)
-            if an.map({ $0.cardness > 0.3 }) ?? true {
+            if an.map({ $0.cardness > 0.45 }) ?? true {
                 slot.quad = q
                 slot.draw = true
                 slot.analysis = an ?? prev.analysis

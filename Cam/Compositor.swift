@@ -29,6 +29,7 @@ final class Compositor {
     private var fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
     private var regionMask: CIImage?
     private var regionInset: Double = -1
+    private var regionInsetY: Double = -1
     private var prevCenter: CGPoint?
 
     struct Analysis {
@@ -337,11 +338,13 @@ final class Compositor {
         return (p.x + soft, p.y + soft * Double(cardSize.width / cardSize.height))
     }
 
-    private func region(insetScale: Double) -> CIImage {
-        if let m = regionMask, abs(regionInset - insetScale) < 0.001 { return m }
+    /// The fake's area in card space, `fx` and `fy` in from the sides and ends (fractions).
+    private func region(fx: Double, fy: Double) -> CIImage {
+        // (quantized, so a card changing size doesn't rebuild it every frame)
+        let qx = (fx * 2000).rounded() / 2000, qy = (fy * 2000).rounded() / 2000
+        if let m = regionMask, abs(regionInset - qx) < 1e-6, abs(regionInsetY - qy) < 1e-6 { return m }
         let W = Compositor.cardSize.width, H = Compositor.cardSize.height
-        let p = Compositor.paintInset(insetScale)
-        let ix = W * CGFloat(p.x), iy = H * CGFloat(p.y)
+        let ix = W * CGFloat(qx), iy = H * CGFloat(qy)
         let gen = CIFilter.roundedRectangleGenerator()
         gen.extent = Compositor.cardRect.insetBy(dx: ix, dy: iy)
         gen.radius = Float(W * 0.035)
@@ -353,7 +356,8 @@ final class Compositor {
             .applyingGaussianBlur(sigma: Double(W) * Compositor.edgeSoftness)
             .cropped(to: Compositor.cardRect)
         regionMask = m
-        regionInset = insetScale
+        regionInset = qx
+        regionInsetY = qy
         return m
     }
 
@@ -421,8 +425,15 @@ final class Compositor {
         }
 
         // Alpha = inside-the-border region x finger cut-outs (x opacity for fades).
+        // (the fake stops a fraction of the card's size short of its edge, but never more than a few
+        // pixels on screen: held close to the camera the card is huge, and a fixed fraction left a
+        // wide strip of the real card's edge showing round the fake, like a cut-out)
+        let p = Compositor.paintInset(cfg.insetScale)
+        let maxInsetPx = 5.0
+        let fx = min(p.x, maxInsetPx / max(Double(quad.width), 1))
+        let fy = min(p.y, maxInsetPx / max(Double(quad.height), 1))
         let mm = CIFilter.multiplyCompositing()
-        mm.inputImage = region(insetScale: cfg.insetScale)
+        mm.inputImage = region(fx: fx, fy: fy)
         mm.backgroundImage = fingerKeep(frame: frame, quad: quad, analysis: a)
         var alpha = (mm.outputImage ?? a.keep).cropped(to: Compositor.cardRect)
         if opacity < 0.999 {

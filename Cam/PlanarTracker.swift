@@ -421,6 +421,8 @@ enum PlanarTracker {
         let paper: Float = ring.count >= 12 ? ring[Int(Double(ring.count - 1) * 0.8)] : 0
         // (in a dim picture the check is skipped rather than throwing every edge away)
         let insideMin: Float = paper > 0.3 ? 0.8 * paper : -1
+        // (how far in a soft edge may be checked: 1.2% of the card, well short of its printing)
+        let deep = max(3.0, 0.012 * size)
         let samples = 28
         let steps = Int(2 * rad) + 1
         var seed: UInt64 = 12345
@@ -460,7 +462,11 @@ enum PlanarTracker {
                     mags[i] = m
                     guard m > best else { continue }
                     // paper on the inner side (3 px in), or it isn't the card's edge
-                    if insideMin > 0, g.sample(Float(x - 3 * nrm.0), Float(y - 3 * nrm.1)) < insideMin { continue }
+                    // (or a little further in for a big card: held close it is out of focus, its edge
+                    // a soft ramp, and 3 px in from the middle of the ramp isn't full paper yet; that
+                    // pulled the edge inside the real one)
+                    if insideMin > 0, g.sample(Float(x - 3 * nrm.0), Float(y - 3 * nrm.1)) < insideMin,
+                       deep <= 3 || g.sample(Float(x - deep * nrm.0), Float(y - deep * nrm.1)) < insideMin { continue }
                     best = m; bestOff = off; bestI = i
                 }
                 // Sub-pixel: the top of a parabola through the strongest step and its neighbours
