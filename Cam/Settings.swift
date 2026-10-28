@@ -32,6 +32,10 @@ final class AppSettings: ObservableObject {
     @Published var noiseScale: Double { didSet { d.set(noiseScale, forKey: "noiseScale") } }   // 0...2
     @Published var insetScale: Double { didSet { d.set(insetScale, forKey: "insetScale") } }   // 0.5...1.5
 
+    // Speed: while waiting for the card, how many frames the picture runs behind the camera, so the
+    // fake is already in place the moment the card appears (0 = off, 4 = about 0.13 s)
+    @Published var headStart: Int { didSet { d.set(headStart, forKey: "headStart2") } }
+
     private init() {
         d.register(defaults: [
             "rank": 9, "suit": 1,
@@ -39,7 +43,8 @@ final class AppSettings: ObservableObject {
             "buttonsEnabled": true, "tapEnabled": false,
             "mirror": true, "showGrid": true, "haptics": true, "autoRearm": true,
             "facesOnly": true, "debug": false,
-            "brightness": 0.0, "blurScale": 1.0, "noiseScale": 1.0, "insetScale": 1.0
+            "brightness": 0.0, "blurScale": 1.0, "noiseScale": 1.0, "insetScale": 1.0,
+            "headStart2": 4
         ])
         rank = d.integer(forKey: "rank")
         suit = d.integer(forKey: "suit")
@@ -58,12 +63,13 @@ final class AppSettings: ObservableObject {
         blurScale = d.double(forKey: "blurScale")
         noiseScale = d.double(forKey: "noiseScale")
         insetScale = d.double(forKey: "insetScale")
+        headStart = d.integer(forKey: "headStart2")
     }
 
     var renderConfig: RenderConfig {
         RenderConfig(mirror: mirror, facesOnly: facesOnly, debug: debug,
                      brightness: brightness, blurScale: blurScale,
-                     noiseScale: noiseScale, insetScale: insetScale)
+                     noiseScale: noiseScale, insetScale: insetScale, headStartFrames: headStart)
     }
 
     static let rankNames = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -80,4 +86,7 @@ struct RenderConfig {
     var blurScale = 1.0
     var noiseScale = 1.0
     var insetScale = 1.0
+    var headStartFrames = 4
+    /// Run live while the fake is on the card; only fall behind while waiting for the card.
+    var adaptiveHeadStart = true
 }

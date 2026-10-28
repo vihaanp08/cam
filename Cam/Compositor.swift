@@ -353,7 +353,7 @@ final class Compositor {
     }
 
     func overlay(frame: CIImage, quad: Quad, albedo: CIImage, analysis a: Analysis,
-                 cfg: RenderConfig, opacity: Double = 1) -> CIImage {
+                 cfg: RenderConfig, opacity: Double = 1, advance: Bool = true) -> CIImage {
         // Relight the fake face with the real card's measured light.
         let gain = 1 + cfg.brightness
         var lighting = a.lighting
@@ -470,7 +470,7 @@ final class Compositor {
                 }
             }
         }
-        prevCenter = c
+        if advance { prevCenter = c }
 
         var out = warped.composited(over: frame)
         if cfg.debug { out = debugCorners(out, quad: quad) }

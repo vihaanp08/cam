@@ -44,7 +44,8 @@ final class E2ETest {
             let h = r.image.extent.height
             let q = r.quad.map { $0.points.map { String(format: "%.1f,%.1f", $0.x, $0.y) }.joined(separator: ",") } ?? ",,,,,,,"
             let reason = r.status.reason.replacingOccurrences(of: ",", with: ";")
-            self.log += "\(index),\(r.drewOverlay ? 1 : 0),\(armed ? 1 : 0),\(r.status.tracking),\(r.status.source),\(reason),"
+            _ = index
+            self.log += "\(r.frameIndex),\(r.drewOverlay ? 1 : 0),\(armed ? 1 : 0),\(r.status.tracking),\(r.status.source),\(reason),"
                 + String(format: "%.2f", r.status.cardness) + ",\(Int(h)),\(q)\n"
         }
 

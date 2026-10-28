@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreMotion
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import Metal
@@ -36,8 +37,21 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     /// Rotation that makes this camera's frames upright with the phone held in portrait.
     /// 90 for sensors mounted sideways (most), 0 for the newer portrait-mounted square selfie sensor.
     private var _portraitAngle: CGFloat = 90
-    private var _learnedAngles: [Int: CGFloat] = [:]     // by camera position
-    private var _deviceIsPortrait = true
+    private var _learnedAngles: [Int: CGFloat] = CameraEngine.loadLearnedAngles()   // by camera position
+    /// Phone clearly held upright (from the motion sensor). Only then is the system's rotation
+    /// trustworthy: lying down, face up or face down it can be anything.
+    private var _deviceIsPortrait = false
+    private let motion = CMMotionManager()
+
+    /// The camera's mounting never changes, so a rotation learned once (phone upright) is kept for
+    /// good, even across launches.
+    private static func loadLearnedAngles() -> [Int: CGFloat] {
+        var out: [Int: CGFloat] = [:]
+        for pos in [AVCaptureDevice.Position.front, .back] {
+            if let v = UserDefaults.standard.object(forKey: "rotationAngle\(pos.rawValue)") as? Double { out[pos.rawValue] = CGFloat(v) }
+        }
+        return out
+    }
 
     // Session-queue-only state
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
@@ -145,20 +159,20 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     // MARK: - Session
 
     func start() {
-        if orientationObserver == nil {
-            // Remember whether the phone is held upright, so the camera rotation is only learned
-            // from the system while the phone is in portrait (the app's only orientation).
-            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-            let update = { [weak self] in
-                guard let self = self else { return }
-                let o = UIDevice.current.orientation
-                guard o.isValidInterfaceOrientation else { return }   // ignore face up / down
-                self.lock.lock(); self._deviceIsPortrait = (o == .portrait); self.lock.unlock()
-                if o == .portrait { self.sessionQueue.async { self.learnPortraitAngle() } }
+        if !motion.isDeviceMotionActive && motion.isDeviceMotionAvailable {
+            // Learn the camera rotation only while the phone is clearly upright in portrait (gravity
+            // pointing down the phone). Lying down or flat, the system's angle is unreliable, and
+            // following it is what turned the picture sideways and kept resetting the tracker.
+            motion.deviceMotionUpdateInterval = 0.1
+            motion.startDeviceMotionUpdates(to: OperationQueue()) { [weak self] m, _ in
+                guard let self = self, let g = m?.gravity else { return }
+                let upright = g.y < -0.8 && abs(g.x) < 0.45 && abs(g.z) < 0.6
+                self.lock.lock()
+                let was = self._deviceIsPortrait
+                self._deviceIsPortrait = upright
+                self.lock.unlock()
+                if upright && !was { self.sessionQueue.async { self.learnPortraitAngle() } }
             }
-            update()
-            orientationObserver = NotificationCenter.default.addObserver(
-                forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { _ in update() }
         }
         sessionQueue.async {
             if self.session.inputs.isEmpty { self.configure(position: self.position) }
@@ -273,6 +287,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             // Held upright: the system's horizon-level angle is the one we need.
             _portraitAngle = angle
             _learnedAngles[position.rawValue] = angle
+            UserDefaults.standard.set(Double(angle), forKey: "rotationAngle\(position.rawValue)")
         } else if let known = _learnedAngles[position.rawValue] {
             _portraitAngle = known
         } else {
@@ -332,6 +347,7 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         if portrait {
             _portraitAngle = c.videoRotationAngleForHorizonLevelCapture
             _learnedAngles[_position.rawValue] = _portraitAngle
+            UserDefaults.standard.set(Double(_portraitAngle), forKey: "rotationAngle\(_position.rawValue)")
         }
         lock.unlock()
         if changed {
