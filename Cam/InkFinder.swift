@@ -38,7 +38,8 @@ enum InkFinder {
         for i in 0..<n {
             let rf = ref[i]
             isPaper[i] = lum[i] > 0.75 * rf && sat[i] < 0.25 && lum[i] > 100
-            isInk[i] = rf > 120 && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || redish[i])
+            // (very dark marks may keep some of a coloured light's tint: black ink under a warm lamp)
+            isInk[i] = rf > 120 && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i])
         }
 
         // Connected marks.

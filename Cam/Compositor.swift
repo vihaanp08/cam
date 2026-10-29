@@ -118,10 +118,26 @@ final class Compositor {
         let sortedL = samples.map(\.l).sorted()
         let p75 = sortedL[Int(Double(sortedL.count - 1) * 0.75)]
         guard p75 > 0.002 else { return nil }
+        // The paper's colour: the middle of the bright border samples' colours. A lamp can light
+        // the card orange (or shade bluish) while the room looks white, so the border is judged
+        // against its own colour, as long as that is a colour white paper takes under some light
+        // (not skin, not a coloured surface). Under white light this is the test it always was.
+        var ref = (1.0, 1.0, 1.0)          // the paper's r, g, b over its luminance
+        let bright = samples.filter { $0.l > 0.6 * p75 && $0.l < 1.6 * p75 }
+        if Tuning.cardWhiteBalance, bright.count >= 8 {
+            func med(_ v: [Double]) -> Double { let s = v.sorted(); return s[s.count / 2] }
+            let c = (med(bright.map { $0.r / max($0.l, 1e-5) }), med(bright.map { $0.g / max($0.l, 1e-5) }),
+                     med(bright.map { $0.b / max($0.l, 1e-5) }))
+            // (these are linear; a light's colour is judged gamma-encoded, as the camera gives it)
+            let enc = (100 * pow(max(c.0, 0), 1 / 2.2), 100 * pow(max(c.1, 0), 1 / 2.2), 100 * pow(max(c.2, 0), 1 / 2.2))
+            if c.0 > 1e-3, c.1 > 1e-3, c.2 > 1e-3, CardTracker.isLightColor(enc) { ref = c }
+        }
         let accepted = samples.filter { s in
-            let mx = max(s.r, s.g, s.b), mn = min(s.r, s.g, s.b)
-            let sat = (mx - mn) / max(mx, 1e-4)
-            return s.l > 0.6 * p75 && s.l < 1.6 * p75 && sat < 0.32
+            guard s.l > 0.6 * p75 && s.l < 1.6 * p75 else { return false }
+            let l = max(s.l, 1e-5)
+            let r = s.r / l / ref.0, g = s.g / l / ref.1, b = s.b / l / ref.2
+            let mx = max(r, g, b), mn = min(r, g, b)
+            return (mx - mn) / max(mx, 1e-4) < 0.32
         }
         let cardness = Double(accepted.count) / Double(samples.count)
 

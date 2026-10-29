@@ -101,6 +101,7 @@ jobs:
           .venv/bin/python harness/gen_synthetic.py /tmp/syn3 300 court
           .venv/bin/python harness/gen_synthetic.py /tmp/syn4 300 entries
           .venv/bin/python harness/gen_synthetic.py /tmp/syn5 300 closecourt
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn6 300 warm
           .venv/bin/python harness/render_face.py 9_hearts /tmp/fake_9h.png
 
       - name: Build harness
@@ -145,6 +146,12 @@ jobs:
           /tmp/harness synth /tmp/syn5 /tmp/fake_9h.png results/synth5 0.75 2>&1 | tee results/synth5_log.txt || true
           .venv/bin/python harness/trace_eval.py /tmp/syn5/gt.json results/synth5_trace.csv results/synth5.json results/eval_synth5.json closecourt 2>&1 | tee results/eval_synth5.txt || true
 
+      - name: Warm lamp test
+        continue-on-error: true
+        run: |
+          /tmp/harness synth /tmp/syn6 /tmp/fake_9h.png results/synth6 0.75 2>&1 | tee results/synth6_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn6/gt.json results/synth6_trace.csv results/synth6.json results/eval_synth6.json main 2>&1 | tee results/eval_synth6.txt || true
+
       - name: Variants
         continue-on-error: true
         run: |
@@ -157,6 +164,7 @@ jobs:
                 syn3) dir=/tmp/syn3; seg=court; p=v3 ;;
                 syn4) dir=/tmp/syn4; seg=entries; p=v4 ;;
                 syn5) dir=/tmp/syn5; seg=closecourt; p=v5 ;;
+                syn6) dir=/tmp/syn6; seg=main; p=v6 ;;
                 *) continue ;;
               esac
               /tmp/harness synth "$dir" /tmp/fake_9h.png "results/${p}_$1" 0.75 "$2" > "results/${p}_$1_log.txt" 2>&1 || true

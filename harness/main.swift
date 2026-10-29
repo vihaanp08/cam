@@ -165,6 +165,7 @@ if args.count > 6 {
         case "corner": Tuning.cornerSearch = v != 0
         case "carry": Tuning.exitCarryOn = v != 0
         case "search": Tuning.pictureSearch = v != 0
+        case "wb": Tuning.cardWhiteBalance = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }

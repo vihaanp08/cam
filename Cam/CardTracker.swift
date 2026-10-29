@@ -51,6 +51,12 @@ final class CardTracker {
     private var cardPictureFrame = 0
     /// The last frame the followed outline matched the card's picture.
     private var pictureSeenFrame = 0
+    /// The card's paper as the camera saw it on the last frames the card was followed clearly, and
+    /// when: the light falling on the card (see `PaperReader.gain`).
+    private var whiteRef: (Double, Double, Double)?
+    private var whiteRefFrame = -1000
+    /// The light used for this frame's colour checks when it isn't white (for the debug view).
+    private(set) var lastWhite: (Double, Double, Double)?
     /// How well this frame's outline lines up with the card's picture (-1 when not checked).
     private(set) var lastPictureMatch: Float = -1
     /// Frames in a row the followed outline had all four (at least three) sides on the card's
@@ -232,8 +238,14 @@ final class CardTracker {
         let buffer = analysisBuffer(fullBuffer)
         let gray = useFlowTracker ? renderGray(buffer) : nil
         // CPU view of the analysis frame's colours, for the "is this paper?" checks.
-        let paper = PaperReader(buffer, topDown: rowsTopDown ?? true)
+        var paper = PaperReader(buffer, topDown: rowsTopDown ?? true)
         defer { paper?.unlock() }
+        // (read under the light last measured on the card: see PaperReader.gain)
+        lastWhite = nil
+        if Tuning.cardWhiteBalance, let w = whiteRef, frameIndex - whiteRefFrame < 450 {
+            paper = paper?.withGain(CardTracker.lightGains(w))
+            lastWhite = w
+        }
         let pyramid = gray?.pyramid(levels: 4)
         let gw = CGFloat(gray?.w ?? 1), gh = CGFloat(gray?.h ?? 1)
         let topDown = rowsTopDown ?? true
@@ -336,6 +348,32 @@ final class CardTracker {
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
+                // No card followed, and its light not measured lately: measure it on the most
+                // card-like outline Vision found (judged by its edges and shape alone, with printing
+                // inside and an even border of a colour white paper takes under some light). Under a
+                // lamp the card is orange where the room looks white, and nothing on it passed for
+                // paper. (Only a clear cast changes anything: under white light all stays as it was.)
+                if Tuning.cardWhiteBalance, grayQuad == nil, frameIndex - whiteRefFrame > 45, let pr = paper {
+                    var bestShape = 0.0
+                    var light: (Double, Double, Double)?
+                    for (q, _) in cands.prefix(4) {
+                        let gq = q.points.map(toGray)
+                        let shape = PlanarTracker.cardScore(g, quad: gq)
+                        guard shape > bestShape, let c = paperColor(pr, gq),
+                              lastView.map({ CardTracker.hasPrinting($0, quadCI(gq)) }) ?? false else { continue }
+                        bestShape = shape
+                        light = c
+                    }
+                    if let c = light {
+                        if CardTracker.lightCast(c) > 0.25 {
+                            paper = pr.withGain(CardTracker.lightGains(c))
+                            lastWhite = c
+                        } else {
+                            paper = pr.withGain((1, 1, 1))
+                            lastWhite = nil
+                        }
+                    }
+                }
                 // Snap every candidate to the real edges, score it, keep the most card-like.
                 var best: (quad: [CGPoint], how: String, score: Double)?
                 var bestMatch: Float = -2
@@ -715,6 +753,9 @@ final class CardTracker {
             entryLock = false
         }
         if !runDetect { lastDebug = ""; lastCandidates = [] }
+        if let w = lastWhite, !lastDebug.isEmpty {
+            lastDebug += String(format: " light %.2f/%.2f", w.0 / max(w.1, 1), w.2 / max(w.1, 1))
+        }
         lastEntering = entering && grayQuad == nil
         // (only from a lock that has held for a few frames, and that matches the card's picture once
         // that is known: a wrong lock must not become the size and picture the card is searched for by)
@@ -724,6 +765,19 @@ final class CardTracker {
            FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.9 {
             lastGood = (gq, quadSize(gq), frameIndex)
             lastGoodPyramid = pyramid
+        }
+        // The light on the card, from a lock that is clearly the card (it lines up with the card's
+        // picture, or shows both its corner indices): what the next frames' colours are read under.
+        if Tuning.cardWhiteBalance, let gq = grayQuad, let pr = paper, stableFrames >= 2,
+           verified || (trackedScore >= 0.35 && (indexPattern(pr, gq)?.cardLike ?? false)),
+           FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.6,
+           let c = paperColor(pr, gq) {
+            if let w = whiteRef, frameIndex - whiteRefFrame < 90 {
+                whiteRef = (0.8 * w.0 + 0.2 * c.0, 0.8 * w.1 + 0.2 * c.1, 0.8 * w.2 + 0.2 * c.2)
+            } else {
+                whiteRef = c
+            }
+            whiteRefFrame = frameIndex
         }
         // Take the card's picture once it is clearly the whole card (both corner indices where they
         // belong), all of it in view, hardly moving, and its outline exact: all four sides on the
@@ -1283,14 +1337,32 @@ final class CardTracker {
 
         func unlock() { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
 
-        /// Bright and close to neutral: white card paper (even under warm or cool light), not skin.
-        /// (x, y) in gray-image coordinates.
+        /// White balance at the card: per-channel gains that make the card's paper neutral under
+        /// the light falling on it, applied to every colour read here. A lamp close to the card can
+        /// light it orange while the camera's own white balance is set by the rest of the room, and
+        /// every "white paper" and "red ink" check then failed on the card (see `lightGains`).
+        /// (1, 1, 1): the colours as the camera saw them.
+        var gain: (Double, Double, Double) = (1, 1, 1)
+
+        /// The same picture read with other gains.
+        func withGain(_ g: (Double, Double, Double)) -> PaperReader {
+            var c = self
+            c.gain = g
+            return c
+        }
+
+        @inline(__always) private func apply(_ o: Int) -> (Double, Double, Double) {
+            (min(255, Double(base[o + 2]) * gain.0), min(255, Double(base[o + 1]) * gain.1), min(255, Double(base[o]) * gain.2))
+        }
+
         /// (r, g, b) 0...255 at integer gray-image coordinates (no bounds surprises), or nil outside.
         func colorAt(_ x: Int, _ y: Int) -> (UInt8, UInt8, UInt8)? {
             let yy = topDown ? y : h - 1 - y
             guard x >= 0, x < w, yy >= 0, yy < h else { return nil }
             let o = yy * rb + x * 4
-            return (base[o + 2], base[o + 1], base[o])
+            if gain == (1, 1, 1) { return (base[o + 2], base[o + 1], base[o]) }
+            let c = apply(o)
+            return (UInt8(c.0), UInt8(c.1), UInt8(c.2))
         }
 
         /// (r, g, b) 0...255 at gray-image coordinates, or nil outside the picture.
@@ -1300,21 +1372,78 @@ final class CardTracker {
             var yi = Int(y.rounded())
             if !topDown { yi = h - 1 - yi }
             guard xi >= 0, xi < w, yi >= 0, yi < h else { return nil }
-            let o = yi * rb + xi * 4
-            return (Double(base[o + 2]), Double(base[o + 1]), Double(base[o]))
+            return apply(yi * rb + xi * 4)
         }
 
+        /// Bright and close to neutral: white card paper (under the light measured at the card,
+        /// see `gain`), not skin. (x, y) in gray-image coordinates.
         func isPaper(_ x: CGFloat, _ y: CGFloat) -> Bool {
-            guard x.isFinite, y.isFinite, abs(x) < 1e6, abs(y) < 1e6 else { return false }
-            let xi = Int(x.rounded())
-            var yi = Int(y.rounded())
-            if !topDown { yi = h - 1 - yi }
-            guard xi >= 0, xi < w, yi >= 0, yi < h else { return false }
-            let o = yi * rb + xi * 4
-            let bb = Double(base[o]), gg = Double(base[o + 1]), rr = Double(base[o + 2])
-            let mx = max(rr, gg, bb), mn = min(rr, gg, bb)
+            guard let c = color(x, y) else { return false }
+            let mx = max(c.0, c.1, c.2), mn = min(c.0, c.1, c.2)
             return mx > 64 && (mx - mn) / mx < 0.3
         }
+    }
+
+    /// Gains that turn `paper` (the card's paper as the camera saw it, r g b 0...255) neutral at the
+    /// same brightness.
+    static func lightGains(_ paper: (Double, Double, Double)) -> (Double, Double, Double) {
+        let l = 0.299 * paper.0 + 0.587 * paper.1 + 0.114 * paper.2
+        func k(_ c: Double) -> Double { min(3, max(0.33, l / max(c, 1))) }
+        return (k(paper.0), k(paper.1), k(paper.2))
+    }
+
+    /// Could this colour (r g b, gamma-encoded as the camera gives them) be white paper under some
+    /// light: anything from a warm lamp (orange) through daylight to shade (bluish), and not skin,
+    /// a coloured surface, green or magenta? Light colours lie along one curve: the warmer, the
+    /// more red and the less blue together.
+    static func isLightColor(_ c: (Double, Double, Double)) -> Bool {
+        guard c.1 > 1, c.0 > 1, c.2 > 1 else { return false }
+        let lr = log(c.0 / c.1), lb = log(c.2 / c.1)
+        guard lb > -1.0, lb < 0.45 else { return false }
+        let expected = lb <= 0 ? -0.8 * lb : -0.6 * lb
+        return abs(lr - expected) < 0.08 + 0.3 * abs(lb)
+    }
+
+    /// How far a light colour is from neutral (0 = white light).
+    static func lightCast(_ c: (Double, Double, Double)) -> Double {
+        guard c.1 > 1, c.0 > 1, c.2 > 1 else { return 0 }
+        return abs(log(c.2 / c.1)) + abs(log(c.0 / c.1))
+    }
+
+    /// The card's paper as the camera sees it (r g b 0...255, read without gains): the bright end
+    /// of a ring just inside the outline along the middle of each side (the plain white border,
+    /// clear of the corner indices). nil when too little of it is in view, when it isn't even (a
+    /// finger, the background, printing) or when it isn't a colour white paper takes under any light
+    /// (see `isLightColor`).
+    private func paperColor(_ reader: PaperReader, _ quad: [CGPoint]) -> (Double, Double, Double)? {
+        guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
+        let raw = reader.withGain((1, 1, 1))
+        let unit = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]
+        guard let H = PlanarTracker.fitHomography(unit, quad) else { return nil }
+        var s: [(Double, Double, Double, Double)] = []
+        for i in 0..<12 {
+            let t = 0.25 + 0.5 * CGFloat(i) / 11
+            let spots: [CGPoint] = [CGPoint(x: 0.035, y: t), CGPoint(x: 0.965, y: t), CGPoint(x: t, y: 0.03), CGPoint(x: t, y: 0.97)]
+            for spot in spots {
+                let p = H.apply(spot)
+                if let c = raw.color(p.x, p.y) { s.append((c.0, c.1, c.2, 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2)) }
+            }
+        }
+        guard s.count >= 16 else { return nil }
+        s.sort { $0.3 < $1.3 }
+        // the bright half, short of the brightest few (glare)
+        let lo = s.count / 2, hi = max(lo + 1, s.count - max(1, s.count / 10))
+        let top = Array(s[lo..<hi])
+        let n = Double(top.count)
+        let c = (top.map { $0.0 }.reduce(0, +) / n, top.map { $0.1 }.reduce(0, +) / n, top.map { $0.2 }.reduce(0, +) / n)
+        guard 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2 > 50, CardTracker.isLightColor(c) else { return nil }
+        // even: one paper under one light, its colour hardly varying along the border
+        var spread = 0.0
+        for e in top {
+            spread += abs(log(max(e.0, 1) / max(e.1, 1)) - log(c.0 / c.1)) + abs(log(max(e.2, 1) / max(e.1, 1)) - log(c.2 / c.1))
+        }
+        guard spread / n < 0.12 else { return nil }
+        return c
     }
 
     /// PlanarTracker.cardScore (edges, even border, shape) times how much the border looks like

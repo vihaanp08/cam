@@ -1,4 +1,4 @@
-noentry entry=0 syn4,syn5
-noprint print=0 syn5
-nocarry carry=0 syn,syn5
+noentry entry=0 syn4
+nocarry carry=0 syn5
 nosearch search=0 syn5
+nowb wb=0 syn6,syn

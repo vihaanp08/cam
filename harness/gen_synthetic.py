@@ -378,6 +378,19 @@ def pose_closecourt(i, n):
     return x, y, size, math.radians(rot), tx, ty
 
 
+WARM_LAMP = (0.88, 0.58, 0.36)
+
+
+def lamp(layer, tint):
+    """An RGBA layer under a coloured light (r, g, b multipliers)."""
+    if tint == (1.0, 1.0, 1.0):
+        return layer
+    a = np.asarray(layer).astype(np.float32)
+    for k in range(3):
+        a[..., k] *= tint[k]
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+
+
 def hand_layer(quad, behind):
     """Skin-coloured palm behind the card, or fingers/thumb in front of it."""
     layer = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
@@ -412,6 +425,10 @@ def main():
         n = close_schedule()[2]
     os.makedirs(out, exist_ok=True)
     face = court_card() if kind in ("court", "closecourt") else real_card()
+    # Sixth script: the main one with the card and the hand under a warm lamp (orange: the paper
+    # comes out about R 200, G 130, B 75, as measured on a real card under a desk lamp) while the
+    # room behind stays white.
+    tint = WARM_LAMP if kind == "warm" else (1.0, 1.0, 1.0)
     still = {"court": (0.30, 0.40), "entries": (2.0, 2.0), "closecourt": (2.0, 2.0)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
@@ -421,18 +438,18 @@ def main():
         cx, cy, size, rot, tx, ty = script(i, n)
         quad = quad_for(cx, cy, size, rot, tx, ty)
         frame = (wall(t) if kind == "court" else background(t)).convert("RGBA")
-        frame.alpha_composite(hand_layer(quad, behind=True))
+        frame.alpha_composite(lamp(hand_layer(quad, behind=True), tint))
         # lighting across the card: brighter at one corner, warm cast, slow global drift
         gain = 0.92 + 0.06 * math.sin(t * 0.7)
         lit = np.asarray(face).astype(np.float32)
         yy, xx = np.mgrid[0:lit.shape[0], 0:lit.shape[1]]
         grad = 0.85 + 0.15 * (xx / lit.shape[1]) * (1 - yy / lit.shape[0] * 0.5)
-        lit[..., 0] *= grad * gain * 1.0
-        lit[..., 1] *= grad * gain * 0.97
-        lit[..., 2] *= grad * gain * 0.9
+        lit[..., 0] *= grad * gain * 1.0 * tint[0]
+        lit[..., 1] *= grad * gain * 0.97 * tint[1]
+        lit[..., 2] *= grad * gain * 0.9 * tint[2]
         lit_img = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8), "RGBA")
         frame.alpha_composite(pil_perspective(lit_img, quad))
-        frame.alpha_composite(hand_layer(quad, behind=False))
+        frame.alpha_composite(lamp(hand_layer(quad, behind=False), tint))
         frame = frame.convert("RGB")
         speed = 0 if prev is None else math.hypot(cx - prev[0], cy - prev[1])
         # (out of view, the card's jumps from where it left to where it comes in next blur nothing)

@@ -33,4 +33,8 @@ enum Tuning {
     /// With the card's picture known and nothing found matching it, the picture itself is looked for
     /// anywhere in the frame, at any size (CardTracker `pictureSearch`).
     static var pictureSearch = true
+    /// Colours on and round the card are read under the light measured on the card itself (a lamp
+    /// can light it orange while the room looks white), and its border is judged against its own
+    /// colour (CardTracker `PaperReader.gain`, Compositor).
+    static var cardWhiteBalance = true
 }
