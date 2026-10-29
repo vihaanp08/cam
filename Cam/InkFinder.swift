@@ -10,6 +10,14 @@ enum InkFinder {
 
     /// Rough card outlines (tl, tr, br, bl), one per group of printed marks.
     static func candidates(_ paper: CardTracker.PaperReader) -> [[CGPoint]] {
+        var light: (Double, Double, Double)?
+        return candidates(paper, paperLight: &light)
+    }
+
+    /// The same, and `paperLight`: the paper round the printing found, as the camera saw it (without
+    /// the reader's gains), which is the light falling on that card. nil when nothing was found.
+    static func candidates(_ paper: CardTracker.PaperReader, paperLight: inout (Double, Double, Double)?) -> [[CGPoint]] {
+        paperLight = nil
         let step = 2
         let w = paper.w / step, h = paper.h / step
         guard w > 32, h > 32 else { return [] }
@@ -73,6 +81,9 @@ enum InkFinder {
         // Keep pip-like marks: modest size, fairly solid, surrounded by paper.
         let area = Double(n)
         var keep: [Int] = []
+        // (the paper round the kept marks, as the camera saw it: the light on the card)
+        let raw = paper.gain == (1, 1, 1) ? paper : paper.withGain((1, 1, 1))
+        var ringColors: [(Double, Double, Double)] = []
         for (i, c) in comps.enumerated() {
             let bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1
             guard Double(c.count) >= 0.00012 * area, Double(c.count) <= 0.025 * area else { continue }
@@ -81,14 +92,21 @@ enum InkFinder {
             guard Double(max(bw, bh)) <= 3.5 * Double(min(bw, bh)) else { continue }     // not a thin line or shadow
             let m = max(3, Int(0.5 * Double(max(bw, bh))))
             var ring = 0, ringPaper = 0
+            var paperAt: [Int] = []
             for y in max(0, c.y0 - m)...min(h - 1, c.y1 + m) {
                 for x in max(0, c.x0 - m)...min(w - 1, c.x1 + m) where x < c.x0 || x > c.x1 || y < c.y0 || y > c.y1 {
                     ring += 1
-                    if isPaper[y * w + x] { ringPaper += 1 }
+                    if isPaper[y * w + x] {
+                        ringPaper += 1
+                        if (x + y) % 3 == 0 { paperAt.append(y * w + x) }
+                    }
                 }
             }
             guard ring > 0, Double(ringPaper) / Double(ring) >= 0.6 else { continue }
             keep.append(i)
+            for p in paperAt where ringColors.count < 3000 {
+                if let o = raw.colorAt((p % w) * step, (p / w) * step) { ringColors.append((Double(o.0), Double(o.1), Double(o.2))) }
+            }
         }
         guard !keep.isEmpty else { return [] }
 
@@ -164,6 +182,10 @@ enum InkFinder {
             }
             out.append([corner(bx.u0 - gu, bx.v0 - gv), corner(bx.u1 + gu, bx.v0 - gv),
                         corner(bx.u1 + gu, bx.v1 + gv), corner(bx.u0 - gu, bx.v1 + gv)])
+        }
+        if !out.isEmpty, ringColors.count >= 20 {
+            func med(_ v: [Double]) -> Double { let s = v.sorted(); return s[s.count / 2] }
+            paperLight = (med(ringColors.map { $0.0 }), med(ringColors.map { $0.1 }), med(ringColors.map { $0.2 }))
         }
         return out
     }

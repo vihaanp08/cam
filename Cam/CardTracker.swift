@@ -55,10 +55,19 @@ final class CardTracker {
     /// when: the light falling on the card (see `PaperReader.gain`).
     private var whiteRef: (Double, Double, Double)?
     private var whiteRefFrame = -1000
+    /// The light measured at detection on the card found (see the detection step), and when: read
+    /// under for the next few frames, until the lock it started is sure enough to measure the light
+    /// itself (`whiteRef`). Without it the new lock was judged under the colours as they are on the
+    /// very next frame, scored as no card at all, and was dropped or kept unchecked.
+    private var seenWhite: (Double, Double, Double)?
+    private var seenWhiteFrame = -1000
     /// The light used for this frame's colour checks when it isn't white (for the debug view).
     private(set) var lastWhite: (Double, Double, Double)?
     /// How well this frame's outline lines up with the card's picture (-1 when not checked).
     private(set) var lastPictureMatch: Float = -1
+    /// How well the followed outline itself matches the card's picture, on a frame the printing could
+    /// not be lined up with it, or only by moving it far (-1 when not checked; see `pictureLost`).
+    private var flowMatchHere: Float = -1
     /// Frames in a row the followed outline had all four (at least three) sides on the card's
     /// edges, and how far it moved since the frame before (gray pixels): the picture is only taken
     /// from an outline that is exact, and every later outline is lined up with it.
@@ -243,7 +252,9 @@ final class CardTracker {
         // (read under the light last measured on the card: see PaperReader.gain; only a clear cast
         // changes anything, under white light every check stays as it was)
         lastWhite = nil
-        if Tuning.cardWhiteBalance, let w = whiteRef, frameIndex - whiteRefFrame < 450, CardTracker.lightCast(w) > 0.25 {
+        let freshWhite = whiteRef.flatMap { frameIndex - whiteRefFrame < 450 ? $0 : nil }
+        let newerSeen = seenWhite.flatMap { frameIndex - seenWhiteFrame <= 15 && seenWhiteFrame > whiteRefFrame ? $0 : nil }
+        if Tuning.cardWhiteBalance, let w = newerSeen ?? freshWhite, CardTracker.lightCast(w) > 0.25 {
             paper = paper?.withGain(CardTracker.lightGains(w))
             lastWhite = w
         }
@@ -265,6 +276,7 @@ final class CardTracker {
         var entering = false
         let previousMatch = lastPictureMatch
         lastPictureMatch = -1
+        flowMatchHere = -1
         lastWasCorrection = false
 
         // 1. Follow the card's texture with optical flow.
@@ -272,6 +284,8 @@ final class CardTracker {
         // The followed outline lines up with the card's picture: it is the card, whatever the
         // card-likeness score says (held very close, steeply tilted, a court card's busy face).
         var verified = false
+        // (the lock was dropped because its printing stopped matching the card's picture)
+        var slidOff = false
         lockPrinting = false
         if let gq = grayQuad, let prev = prevPyramid, let cur = pyramid, let g = gray {
             if let step = flowStep(prev: prev, cur: cur, quad: gq), plausible(quadCI(step.quad), w: W, h: H) {
@@ -310,7 +324,13 @@ final class CardTracker {
                 // it is in view to score, but the flow is still following it)
                 // (and once the card's picture is known: its printing stopped matching from one frame
                 // to the next, the outline has lost the card; a fast exit, or the flow slid off)
-                let pictureLost = cardPicture != nil && lastPictureMatch >= 0 && lastPictureMatch < 0.7 && previousMatch >= 0.9
+                // (or the printing can't be lined up with it at all, and the outline where the flow
+                // left it doesn't match the picture either: the card left fast, the flow stayed behind
+                // on the fingers above it, and with most of that outline out of the picture nothing
+                // else dropped it; the fake hung there on the fingers)
+                let pictureLost = cardPicture != nil && previousMatch >= 0.9
+                    && ((lastPictureMatch >= 0 && lastPictureMatch < 0.7)
+                        || (lastPictureMatch < 0 && flowMatchHere > -1 && flowMatchHere < 0.5))
                 let collapsed = (!verified && trackedScore < 0.03 && lastScore >= 0.2 && inView > 0.8) || pictureLost
                 if !insideCard && !collapsed && (weakFrames < 10 || trackedScore >= minScore * 0.5) {
                     grayQuad = next.quad
@@ -321,6 +341,7 @@ final class CardTracker {
                     grayQuad = nil
                     trackedScore = -1
                     verified = false
+                    slidOff = pictureLost
                 }
             } else {
                 grayQuad = nil
@@ -346,6 +367,8 @@ final class CardTracker {
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
             || stableFrames < 5 || lockMisScaled || ((lockIndex ?? 1) < 0.06 && frameIndex % 3 == 0) || comingIn
             || (lockPrinting && grayQuad != nil)
+        // (the light measured at detection this frame, on a card found with a clear cast)
+        var detectedLight: (Double, Double, Double)?
         if runDetect {
             let cands = detectCandidates(buffer, w: W, h: H)
             if let g = gray {
@@ -369,9 +392,36 @@ final class CardTracker {
                         if CardTracker.lightCast(c) > 0.25 {
                             paper = pr.withGain(CardTracker.lightGains(c))
                             lastWhite = c
+                            detectedLight = c
                         } else {
                             paper = pr.withGain((1, 1, 1))
                             lastWhite = nil
+                        }
+                    }
+                }
+                // Still no light on a card, and no card's printing shows under the colours as they are:
+                // a card coming into view under a lamp is rarely one of Vision's outlines, and its
+                // orange paper doesn't pass for paper, so it was only found once all of it was in view
+                // and the real card showed as it came in. Look for printing under the light last
+                // measured on a card, and under the commonest lamp-coloured light in the picture; where
+                // a card's printing shows on its paper, that paper gives the light, and the frame is
+                // read under it. (Only with a strong cast in the picture: under white light, or the
+                // mild cast of a beige wall, nothing changes and nothing more is done.)
+                var inkQuads: [[CGPoint]]?
+                if Tuning.cardWhiteBalance, grayQuad == nil, lastWhite == nil, let pr = paper {
+                    let plain = InkFinder.candidates(pr)
+                    inkQuads = plain
+                    if plain.isEmpty {
+                        for guess in CardTracker.lampGuesses(pr, prior: whiteRef) {
+                            var light: (Double, Double, Double)?
+                            let inkHere = InkFinder.candidates(pr.withGain(CardTracker.lightGains(guess)), paperLight: &light)
+                            guard !inkHere.isEmpty, let c = light, CardTracker.isLightColor(c),
+                                  CardTracker.lightCast(c) > CardTracker.lampCast else { continue }
+                            paper = pr.withGain(CardTracker.lightGains(c))
+                            lastWhite = c
+                            detectedLight = c
+                            inkQuads = nil          // (found again below, under the light just measured)
+                            break
                         }
                     }
                 }
@@ -508,7 +558,7 @@ final class CardTracker {
                 // Cards found by their printing (works when the outline is hard to see).
                 var sawPrinting = false
                 if let pr = paper {
-                    for q in InkFinder.candidates(pr) {
+                    for q in inkQuads ?? InkFinder.candidates(pr) {
                         sawPrinting = true
                         // (printing on paper right at the edge of the picture, with no card being
                         // followed: a card may be coming into view, see `lastEntering`)
@@ -742,6 +792,11 @@ final class CardTracker {
                     snapStreak4 = 0
                     snapStreak3 = 0
                     lastPictureMatch = cardPicture == nil ? -1 : bestMatch
+                    // (the light measured on it at detection is what it is read under next frame)
+                    if let c = detectedLight {
+                        seenWhite = c
+                        seenWhiteFrame = frameIndex
+                    }
                 }
             } else if measured == nil, let first = cands.first {
                 measured = first.0
@@ -754,6 +809,14 @@ final class CardTracker {
             entryLock = false
         }
         if !runDetect { lastDebug = ""; lastCandidates = [] }
+        // (on frames with no detection, what the flow saw: its card-likeness, how much of it is in
+        // view, and how well the outline itself matched the card's picture when that was checked)
+        if !runDetect, let gq = grayQuad {
+            let v = FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H))
+            lastDebug = String(format: "flow s%.2f v%.2f", trackedScore, v)
+                + (flowMatchHere > -1 ? String(format: " here %.2f", flowMatchHere) : "")
+        }
+        if slidOff { lastDebug += String(format: " slid off %.2f/%.2f", lastPictureMatch, flowMatchHere) }
         if let w = lastWhite, !lastDebug.isEmpty {
             lastDebug += String(format: " light %.2f/%.2f", w.0 / max(w.1, 1), w.2 / max(w.1, 1))
         }
@@ -1254,6 +1317,10 @@ final class CardTracker {
                 if en > 0 { nq = es }
             }
         }
+        // Not lined up with the printing: how well the outline itself still matches the picture.
+        if lastPictureMatch < 0, let pic = cardPicture {
+            flowMatchHere = CardTracker.bestPictureMatch(pic, cur, nq).0
+        }
         let kept = zip(b, inliers).filter { $0.1 }.map { $0.0 }.filter { PlanarTracker.inside(nq, $0) }
         return FlowResult(quad: nq, points: kept, snapped: snapped)
     }
@@ -1409,6 +1476,64 @@ final class CardTracker {
     static func lightCast(_ c: (Double, Double, Double)) -> Double {
         guard c.1 > 1, c.0 > 1, c.2 > 1 else { return 0 }
         return abs(log(c.2 / c.1)) + abs(log(c.0 / c.1))
+    }
+
+    /// How strong a cast a lamp's light has to have for the picture to be searched under it (see
+    /// `lampGuesses`). (a beige wall under ordinary room light comes out at about 0.3: left alone;
+    /// the orange desk lamp the card stopped working under is about 0.95)
+    static let lampCast = 0.35
+
+    /// Lights to look for a card's printing under when none shows under the colours as they are (see
+    /// the detection step): the light last measured on a card (`prior`), then the commonest strongly
+    /// coloured light colour among the picture's bright pixels (a lamp's light on paper, or on
+    /// anything else pale). At most two; none when nothing bright in the picture has a strong cast.
+    static func lampGuesses(_ pr: PaperReader, prior: (Double, Double, Double)?) -> [(Double, Double, Double)] {
+        var out: [(Double, Double, Double)] = []
+        if let p = prior, lightCast(p) > lampCast { out.append(p) }
+        let raw = pr.gain == (1, 1, 1) ? pr : pr.withGain((1, 1, 1))
+        // (a coarse grid is plenty: the card's paper is a good part of the picture when it matters)
+        let step = max(4, min(pr.w, pr.h) / 60)
+        var found: [(l: Double, c: (Double, Double, Double))] = []
+        var total = 0
+        var y = step / 2
+        while y < pr.h {
+            var x = step / 2
+            while x < pr.w {
+                if let c8 = raw.colorAt(x, y) {
+                    total += 1
+                    let c = (Double(c8.0), Double(c8.1), Double(c8.2))
+                    let l = 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2
+                    if l > 70, isLightColor(c), lightCast(c) > lampCast { found.append((l: l, c: c)) }
+                }
+                x += step
+            }
+            y += step
+        }
+        guard found.count >= max(12, total / 200) else { return out }
+        // Only the brighter half: under the lamp the paper is the brightest thing it lights (a palm
+        // in the same light comes out a colour much like it, but darker, and there is more of it).
+        let lMid = found.map { $0.l }.sorted()[found.count / 2]
+        var bins = [[(Double, Double, Double)]](repeating: [], count: 19)
+        for f in found where f.l >= lMid {
+            // (along the curve light colours lie on, by how blue they are)
+            let k = min(18, max(0, Int((log(f.c.2 / f.c.1) + 1.0) / 0.08)))
+            bins[k].append(f.c)
+        }
+        var best = -1, bestCount = 0
+        for k in bins.indices {
+            let n = (k > 0 ? bins[k - 1].count : 0) + bins[k].count + (k + 1 < bins.count ? bins[k + 1].count : 0)
+            if n > bestCount { bestCount = n; best = k }
+        }
+        guard best >= 0, bestCount >= 6 else { return out }
+        let pool = (max(0, best - 1)...min(bins.count - 1, best + 1)).flatMap { bins[$0] }
+        func med(_ v: [Double]) -> Double { let s = v.sorted(); return s[s.count / 2] }
+        let g = (med(pool.map { $0.0 }), med(pool.map { $0.1 }), med(pool.map { $0.2 }))
+        // (unless it is the light already in the list)
+        if let p = out.first, abs(log(p.0 / p.1) - log(g.0 / max(g.1, 1))) + abs(log(p.2 / p.1) - log(g.2 / max(g.1, 1))) < 0.12 {
+            return out
+        }
+        out.append(g)
+        return out
     }
 
     /// The card's paper as the camera sees it (r g b 0...255, read without gains): the bright end
