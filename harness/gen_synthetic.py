@@ -429,6 +429,9 @@ def main():
     # comes out about R 200, G 130, B 75, as measured on a real card under a desk lamp) while the
     # room behind stays white.
     tint = WARM_LAMP if kind == "warm" else (1.0, 1.0, 1.0)
+    # (the hand in the lamp's light too, darker than the paper by as much as on the real one: the palm
+    # came out at about half the card's brightness)
+    hand_tint = tuple(0.7 * c for c in tint) if kind == "warm" else tint
     still = {"court": (0.30, 0.40), "entries": (2.0, 2.0), "closecourt": (2.0, 2.0)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
@@ -438,7 +441,7 @@ def main():
         cx, cy, size, rot, tx, ty = script(i, n)
         quad = quad_for(cx, cy, size, rot, tx, ty)
         frame = (wall(t) if kind == "court" else background(t)).convert("RGBA")
-        frame.alpha_composite(lamp(hand_layer(quad, behind=True), tint))
+        frame.alpha_composite(lamp(hand_layer(quad, behind=True), hand_tint))
         # lighting across the card: brighter at one corner, warm cast, slow global drift
         gain = 0.92 + 0.06 * math.sin(t * 0.7)
         lit = np.asarray(face).astype(np.float32)
@@ -449,7 +452,7 @@ def main():
         lit[..., 2] *= grad * gain * 0.9 * tint[2]
         lit_img = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8), "RGBA")
         frame.alpha_composite(pil_perspective(lit_img, quad))
-        frame.alpha_composite(lamp(hand_layer(quad, behind=False), tint))
+        frame.alpha_composite(lamp(hand_layer(quad, behind=False), hand_tint))
         frame = frame.convert("RGB")
         speed = 0 if prev is None else math.hypot(cx - prev[0], cy - prev[1])
         # (out of view, the card's jumps from where it left to where it comes in next blur nothing)

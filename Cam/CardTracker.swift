@@ -240,9 +240,10 @@ final class CardTracker {
         // CPU view of the analysis frame's colours, for the "is this paper?" checks.
         var paper = PaperReader(buffer, topDown: rowsTopDown ?? true)
         defer { paper?.unlock() }
-        // (read under the light last measured on the card: see PaperReader.gain)
+        // (read under the light last measured on the card: see PaperReader.gain; only a clear cast
+        // changes anything, under white light every check stays as it was)
         lastWhite = nil
-        if Tuning.cardWhiteBalance, let w = whiteRef, frameIndex - whiteRefFrame < 450 {
+        if Tuning.cardWhiteBalance, let w = whiteRef, frameIndex - whiteRefFrame < 450, CardTracker.lightCast(w) > 0.25 {
             paper = paper?.withGain(CardTracker.lightGains(w))
             lastWhite = w
         }

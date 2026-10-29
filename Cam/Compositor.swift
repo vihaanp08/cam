@@ -130,7 +130,8 @@ final class Compositor {
                      med(bright.map { $0.b / max($0.l, 1e-5) }))
             // (these are linear; a light's colour is judged gamma-encoded, as the camera gives it)
             let enc = (100 * pow(max(c.0, 0), 1 / 2.2), 100 * pow(max(c.1, 0), 1 / 2.2), 100 * pow(max(c.2, 0), 1 / 2.2))
-            if c.0 > 1e-3, c.1 > 1e-3, c.2 > 1e-3, CardTracker.isLightColor(enc) { ref = c }
+            // (only a clear cast changes anything: under white light the test stays as it was)
+            if c.0 > 1e-3, c.1 > 1e-3, c.2 > 1e-3, CardTracker.isLightColor(enc), CardTracker.lightCast(enc) > 0.25 { ref = c }
         }
         let accepted = samples.filter { s in
             guard s.l > 0.6 * p75 && s.l < 1.6 * p75 else { return false }
