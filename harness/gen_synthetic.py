@@ -379,6 +379,204 @@ def pose_closecourt(i, n):
 
 
 WARM_LAMP = (0.88, 0.58, 0.36)
+COOL_LED = (0.78, 0.90, 1.0)
+
+
+# Seventh script: the light changing while the card is shown. (frame range, name)
+LIGHT_SEGS = [(0, 20, "enter"), (20, 36, "drift"), (36, 60, "lights off"), (60, 84, "dim hold"),
+              (84, 106, "lights on"), (106, 112, "drift2"), (112, 150, "shadow in"), (150, 172, "shadow held"),
+              (172, 192, "shadow out"), (192, 214, "to blue"), (214, 236, "to warm"), (236, 258, "flicker"),
+              (258, 276, "leave"), (276, 292, "away dark"), (292, 312, "enter dark"), (312, 330, "held dark")]
+LIGHT_N = 330
+
+
+def pose_light(i, n):
+    """Seventh script: an ordinary drift while the light changes (see `light_at`); at the end the card
+    goes out of view, the room goes dark, and it comes back in the dark."""
+    t = i / FPS
+    cx = FW / 2 + 90 * math.sin(t * 0.8)
+    cy = FH * 0.47 + 100 * math.sin(t * 0.6 + 1)
+    rot = math.radians(10 * math.sin(t * 0.7))
+    tx = math.radians(10 * math.sin(t * 0.5))
+    ty = math.radians(10 * math.sin(t * 0.6 + 0.5))
+    if i < 20:
+        k = 1 - i / 20
+        cy += 900 * k * k
+    elif 258 <= i < 276:
+        k = (i - 258) / 18
+        cy += 1100 * k * k
+    elif 276 <= i < 292:
+        cy += 1400
+    elif 292 <= i < 312:
+        k = 1 - (i - 292) / 20
+        cy += 900 * k * k
+    return cx, cy, 300.0, rot, tx, ty
+
+
+def _ae_track():
+    """The room's light level (1 = normal) frame by frame, and the camera's exposure gain following
+    it a moment later, not quite all the way (as auto exposure does)."""
+    rng = np.random.default_rng(5)
+    illum, gain = [], []
+    g = 1.0
+    for i in range(LIGHT_N):
+        if 36 <= i < 84:
+            I = 0.42                                  # lamp switched off
+        elif i >= 270:
+            I = 0.28                                  # the room goes dark
+        else:
+            I = 1.0
+        if 236 <= i < 258:                            # flicker (a TV, a failing tube)
+            I *= 1 + 0.16 * (rng.random() - 0.5) * 2
+        illum.append(I)
+    for i in range(LIGHT_N):
+        target = (1 / illum[max(0, i - 3)]) ** 0.75   # AE reacts after a few frames, and not fully
+        g += (target - g) * 0.14
+        gain.append(g)
+    return illum, gain
+
+
+def light_at(i):
+    """Lighting for frame i of the light script: (exposure for the whole frame, the room light's colour,
+    a shadow across the card or None, sensor noise)."""
+    illum, gain = _ae_track()
+    E = illum[i] * gain[i]
+    def mix(a, b, k):
+        return tuple(x + (y - x) * k for x, y in zip(a, b))
+    white = (1.0, 1.0, 1.0)
+    if i < 192:
+        tint = white
+    elif i < 214:
+        tint = mix(white, COOL_LED, (i - 192) / 22)
+    elif i < 236:
+        tint = mix(COOL_LED, WARM_LAMP, (i - 214) / 22)
+    elif i < 258:
+        tint = WARM_LAMP
+    elif i < 276:
+        tint = mix(WARM_LAMP, white, (i - 258) / 18)
+    else:
+        tint = white
+    shadow = None
+    if 112 <= i < 192:
+        if i < 150:
+            s = -0.1 + 0.8 * (i - 112) / 38
+        elif i < 172:
+            s = 0.7
+        else:
+            s = 0.7 - 0.8 * (i - 172) / 20
+        shadow = (math.radians(35), s, 0.45, 0.05)   # direction, where its edge is, how dark, how soft
+    noise = 3.0 * math.sqrt(max(1.0, gain[i]))
+    return E, tint, shadow, noise
+
+
+def shadow_factor(u, v, shadow):
+    """Light left by a shadow at card point (u, v) (0..1 from the top-left), 1 = no shadow."""
+    if shadow is None:
+        return np.ones_like(u) if isinstance(u, np.ndarray) else 1.0
+    a, s, depth, soft = shadow
+    p = u * math.cos(a) + v * math.sin(a)
+    k = np.clip((p - s) / soft * 0.5 + 0.5, 0, 1)    # 0 inside the shadow, 1 outside
+    k = k * k * (3 - 2 * k)
+    return depth + (1 - depth) * k
+
+
+# Eighth script: steep angles held for a while, the phone held tilted, the card coming in at an angle.
+TILT_SEGS = [(0, 22, "enter tipped"), (22, 70, "tipped back"), (70, 110, "to the side"), (110, 150, "diagonal"),
+             (150, 170, "flatten fast"), (170, 200, "phone rolled"), (200, 222, "leave tipped"),
+             (222, 242, "away"), (242, 264, "enter sideways"), (264, 300, "held sideways")]
+
+
+def pose_tilt(i, n):
+    t = i / FPS
+    cx = FW / 2 + 50 * math.sin(t * 0.8)
+    cy = FH * 0.48 + 60 * math.sin(t * 0.6 + 1)
+    rot = math.radians(15 + 6 * math.sin(t * 0.7))
+    size = 320.0
+    def ease(k):
+        k = min(1.0, max(0.0, k))
+        return k * k * (3 - 2 * k)
+    if i < 70:
+        tx, ty = math.radians(40 + 15 * ease((i - 22) / 40)), math.radians(15)
+        if i < 22:
+            k = 1 - i / 22
+            cy += 900 * k * k
+    elif i < 110:
+        k = ease((i - 70) / 20)
+        tx = math.radians(55 + (20 - 55) * k)
+        ty = math.radians(15 + (-52 - 15) * k)
+    elif i < 150:
+        k = ease((i - 110) / 20)
+        tx = math.radians(20 + (45 - 20) * k)
+        ty = math.radians(-52 + (45 + 52) * k)
+        rot = math.radians(15 + 15 * k)
+    elif i < 170:
+        k = ease((i - 150) / 20)
+        tx, ty = math.radians(45 * (1 - k) + 5 * k), math.radians(45 * (1 - k) + 5 * k)
+        rot = math.radians(30 * (1 - k) + 15 * k)
+    elif i < 222:
+        # the phone held rolled over and pointed off to one side: the card off-centre in the picture,
+        # seen at an angle, turned well round
+        k = ease((i - 170) / 15)
+        cx += -130 * k
+        cy += -150 * k
+        tx, ty = math.radians(30 * k + 5 * (1 - k)), math.radians(-25 * k + 5 * (1 - k))
+        rot = math.radians(15 + 30 * k)
+        if i >= 200:
+            k2 = (i - 200) / 22
+            cx += 900 * k2 * k2
+            tx, ty = math.radians(45), math.radians(-25)
+    elif i < 242:
+        cx, cy = FW + 900, FH / 2
+        tx, ty = math.radians(10), math.radians(50)
+        rot = math.radians(80)
+    else:
+        k = 1 - min(1.0, (i - 242) / 22)
+        cy = FH * 0.5 + 40 * math.sin(t * 0.6)
+        cx = FW / 2 - 40 + 50 * math.sin(t * 0.8) - 1000 * k * k
+        tx, ty = math.radians(10), math.radians(50)
+        rot = math.radians(80)
+    return cx, cy, size, rot, tx, ty
+
+
+# Ninth script: the trick done start to finish: shown, revealed (snap at REVEAL_AT), the real card
+# kept in view, taken out of view briefly and brought back (must stay the real card), then taken
+# away for longer than the re-arm time and brought back (must be the fake again, from its very first
+# frame).
+REARM_SEGS = [(0, 18, "enter"), (18, 75, "fake shown"), (75, 115, "revealed"), (115, 130, "leave short"),
+              (130, 150, "away short"), (150, 168, "back"), (168, 200, "revealed held"), (200, 215, "leave long"),
+              (215, 300, "away long"), (300, 318, "enter rearmed"), (318, 345, "fake again")]
+REARM_AT = 75
+REARM_FAKE_FROM = 300
+REARM_N = 345
+
+
+def pose_rearm(i, n):
+    t = i / FPS
+    cx = FW / 2 + 70 * math.sin(t * 0.8)
+    cy = FH * 0.5 + 80 * math.sin(t * 0.6 + 1)
+    rot = math.radians(8 * math.sin(t * 0.7))
+    tx = math.radians(8 * math.sin(t * 0.5))
+    ty = math.radians(8 * math.sin(t * 0.6 + 0.5))
+    def came(i0, i1):
+        k = 1 - (i - i0) / (i1 - i0)
+        return 900 * k * k
+    if i < 18:
+        cy += came(0, 18)
+    elif 115 <= i < 130:
+        k = (i - 115) / 15
+        cy += 1200 * k * k
+    elif 130 <= i < 150:
+        cy += 1400
+    elif 150 <= i < 168:
+        cy += came(150, 168)
+    elif 200 <= i < 215:
+        k = (i - 200) / 15
+        cy += 1200 * k * k
+    elif 215 <= i < 300:
+        cy += 1400
+    elif 300 <= i < 318:
+        cy += came(300, 318)
+    return cx, cy, 300.0, rot, tx, ty
 
 
 def lamp(layer, tint):
@@ -414,15 +612,32 @@ def hand_layer(quad, behind):
     return layer.filter(ImageFilter.GaussianBlur(1.5))
 
 
+PAPER = (246, 246, 243)
+CARD_COL = (1.0, 0.97, 0.9)
+# Points on the card (u across, v down, 0..1 from its top-left corner) where the paper's colour is
+# written down for every frame, so the test can check that the fake comes out the same colour as
+# the real card's paper under the same light.
+GRID_U, GRID_V = 9, 13
+
+
+def card_grad(u, v):
+    return 0.85 + 0.15 * u * (1 - v * 0.5)
+
+
 def main():
     out = sys.argv[1]
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
     kind = sys.argv[3] if len(sys.argv) > 3 else "main"
-    script = {"close": pose_close, "court": pose_court, "entries": pose_entries, "closecourt": pose_closecourt}.get(kind, pose)
+    script = {"close": pose_close, "court": pose_court, "entries": pose_entries, "closecourt": pose_closecourt,
+              "light": pose_light, "tilt": pose_tilt, "rearm": pose_rearm}.get(kind, pose)
     if kind == "entries":
         n = entries_schedule()[2]
     if kind == "closecourt":
         n = close_schedule()[2]
+    if kind == "light":
+        n = LIGHT_N
+    if kind == "rearm":
+        n = REARM_N
     os.makedirs(out, exist_ok=True)
     face = court_card() if kind in ("court", "closecourt") else real_card()
     # Sixth script: the main one with the card and the hand under a warm lamp (orange: the paper
@@ -432,44 +647,75 @@ def main():
     # (the hand in the lamp's light too, darker than the paper by as much as on the real one: the palm
     # came out at about half the card's brightness)
     hand_tint = tuple(0.7 * c for c in tint) if kind == "warm" else tint
-    still = {"court": (0.30, 0.40), "entries": (2.0, 2.0), "closecourt": (2.0, 2.0)}.get(kind, (0.30, 0.42))
+    still = {"court": (0.30, 0.40), "entries": (2.0, 2.0), "closecourt": (2.0, 2.0), "light": (2.0, 2.0),
+             "tilt": (2.0, 2.0), "rearm": (2.0, 2.0)}.get(kind, (0.30, 0.42))
     rng = np.random.default_rng(1)
     gts = []
     prev = None
+    face_a = np.asarray(face).astype(np.float32)
+    yy, xx = np.mgrid[0:face_a.shape[0], 0:face_a.shape[1]]
+    U, V = xx / face_a.shape[1], yy / face_a.shape[0]
+    gu = np.array([[j / (GRID_U - 1) for j in range(GRID_U)] for _ in range(GRID_V)])
+    gv = np.array([[k / (GRID_V - 1) for _ in range(GRID_U)] for k in range(GRID_V)])
     for i in range(n):
         t = i / FPS
         cx, cy, size, rot, tx, ty = script(i, n)
         quad = quad_for(cx, cy, size, rot, tx, ty)
+        if kind == "light":
+            E, room, shadow, noise = light_at(i)
+        else:
+            E, room, shadow, noise = 1.0, (1.0, 1.0, 1.0), None, 3.0
         frame = (wall(t) if kind == "court" else background(t)).convert("RGBA")
         frame.alpha_composite(lamp(hand_layer(quad, behind=True), hand_tint))
         # lighting across the card: brighter at one corner, warm cast, slow global drift
         gain = 0.92 + 0.06 * math.sin(t * 0.7)
-        lit = np.asarray(face).astype(np.float32)
-        yy, xx = np.mgrid[0:lit.shape[0], 0:lit.shape[1]]
-        grad = 0.85 + 0.15 * (xx / lit.shape[1]) * (1 - yy / lit.shape[0] * 0.5)
-        lit[..., 0] *= grad * gain * 1.0 * tint[0]
-        lit[..., 1] *= grad * gain * 0.97 * tint[1]
-        lit[..., 2] *= grad * gain * 0.9 * tint[2]
+        lit = face_a.copy()
+        m = card_grad(U, V) * gain * shadow_factor(U, V, shadow)
+        for c in range(3):
+            lit[..., c] *= m * CARD_COL[c] * tint[c]
         lit_img = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8), "RGBA")
         frame.alpha_composite(pil_perspective(lit_img, quad))
         frame.alpha_composite(lamp(hand_layer(quad, behind=False), hand_tint))
         frame = frame.convert("RGB")
+        if kind == "light":
+            # the room's light (its colour and level, after the camera's exposure) on everything
+            a = np.asarray(frame).astype(np.float32)
+            for c in range(3):
+                a[..., c] *= E * room[c]
+            frame = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
         speed = 0 if prev is None else math.hypot(cx - prev[0], cy - prev[1])
         # (out of view, the card's jumps from where it left to where it comes in next blur nothing)
-        if kind in ("entries", "closecourt") and inframe_fraction(quad) == 0:
+        if kind in ("entries", "closecourt", "light", "tilt", "rearm") and inframe_fraction(quad) == 0:
             speed = 0
         prev = (cx, cy)
         frame = frame.filter(ImageFilter.GaussianBlur(0.7 + min(3.0, speed / 25)))
-        arr = np.asarray(frame).astype(np.float32) + rng.normal(0, 3.0, (FH, FW, 3))
+        arr = np.asarray(frame).astype(np.float32) + rng.normal(0, noise, (FH, FW, 3))
         Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(os.path.join(out, f"frame_{i:05d}.jpg"), quality=90)
         inside = all(0 <= x < FW and 0 <= y < FH for x, y in quad)
-        gts.append({"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
-                    "still": still[0] <= i / n < still[1], "inframe": round(inframe_fraction(quad), 3)})
-    meta = {"width": FW, "height": FH, "fps": FPS, "frames": gts}
+        # the real card's paper colour (sRGB) at the grid points, as the camera saw it
+        pm = card_grad(gu, gv) * gain * shadow_factor(gu, gv, shadow)
+        paper = []
+        for k in range(GRID_V):
+            for j in range(GRID_U):
+                c = [min(255.0, PAPER[ch] * pm[k, j] * CARD_COL[ch] * tint[ch]) for ch in range(3)]
+                paper.append([round(min(255.0, c[ch] * E * room[ch]), 1) for ch in range(3)])
+        g = {"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
+             "still": still[0] <= i / n < still[1], "inframe": round(inframe_fraction(quad), 3), "paper": paper}
+        if kind == "rearm":
+            g["expect"] = "real" if REARM_AT <= i < REARM_FAKE_FROM else "fake"
+        gts.append(g)
+    meta = {"width": FW, "height": FH, "fps": FPS, "frames": gts, "paper_grid": [GRID_U, GRID_V]}
     if kind == "entries":
         meta["segments"] = entries_schedule()[1]
     if kind == "closecourt":
         meta["segments"] = close_schedule()[1]
+    if kind == "light":
+        meta["segments"] = LIGHT_SEGS
+    if kind == "tilt":
+        meta["segments"] = TILT_SEGS
+    if kind == "rearm":
+        meta["segments"] = REARM_SEGS
+        meta["reveal_at"] = REARM_AT
     json.dump(meta, open(os.path.join(out, "gt.json"), "w"))
     print("wrote", n, "frames to", out)
 

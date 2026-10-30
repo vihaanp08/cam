@@ -102,6 +102,9 @@ jobs:
           .venv/bin/python harness/gen_synthetic.py /tmp/syn4 300 entries
           .venv/bin/python harness/gen_synthetic.py /tmp/syn5 300 closecourt
           .venv/bin/python harness/gen_synthetic.py /tmp/syn6 300 warm
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn7 330 light
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn8 300 tilt
+          .venv/bin/python harness/gen_synthetic.py /tmp/syn9 345 rearm
           .venv/bin/python harness/render_face.py 9_hearts /tmp/fake_9h.png
 
       - name: Build harness
@@ -152,6 +155,24 @@ jobs:
           /tmp/harness synth /tmp/syn6 /tmp/fake_9h.png results/synth6 0.75 2>&1 | tee results/synth6_log.txt || true
           .venv/bin/python harness/trace_eval.py /tmp/syn6/gt.json results/synth6_trace.csv results/synth6.json results/eval_synth6.json main 2>&1 | tee results/eval_synth6.txt || true
 
+      - name: Changing light test
+        continue-on-error: true
+        run: |
+          /tmp/harness synth /tmp/syn7 /tmp/fake_9h.png results/synth7 0.75 2>&1 | tee results/synth7_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn7/gt.json results/synth7_trace.csv results/synth7.json results/eval_synth7.json light 2>&1 | tee results/eval_synth7.txt || true
+
+      - name: Steep angles test
+        continue-on-error: true
+        run: |
+          /tmp/harness synth /tmp/syn8 /tmp/fake_9h.png results/synth8 0.75 2>&1 | tee results/synth8_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn8/gt.json results/synth8_trace.csv results/synth8.json results/eval_synth8.json tilt 2>&1 | tee results/eval_synth8.txt || true
+
+      - name: Reveal and re-arm test
+        continue-on-error: true
+        run: |
+          /tmp/harness synth /tmp/syn9 /tmp/fake_9h.png results/synth9 0.75 2>&1 | tee results/synth9_log.txt || true
+          .venv/bin/python harness/trace_eval.py /tmp/syn9/gt.json results/synth9_trace.csv results/synth9.json results/eval_synth9.json rearm 2>&1 | tee results/eval_synth9.txt || true
+
       - name: Variants
         continue-on-error: true
         run: |
@@ -165,6 +186,9 @@ jobs:
                 syn4) dir=/tmp/syn4; seg=entries; p=v4 ;;
                 syn5) dir=/tmp/syn5; seg=closecourt; p=v5 ;;
                 syn6) dir=/tmp/syn6; seg=main; p=v6 ;;
+                syn7) dir=/tmp/syn7; seg=light; p=v7 ;;
+                syn8) dir=/tmp/syn8; seg=tilt; p=v8 ;;
+                syn9) dir=/tmp/syn9; seg=rearm; p=v9 ;;
                 *) continue ;;
               esac
               /tmp/harness synth "$dir" /tmp/fake_9h.png "results/${p}_$1" 0.75 "$2" > "results/${p}_$1_log.txt" 2>&1 || true

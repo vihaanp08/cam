@@ -70,7 +70,6 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     private var fps: Double = 30
     /// How long each frame takes to analyse and paint (milliseconds, smoothed; debug view).
     private var processMs: Double = 0
-    private var rearmFiredFor: Double = -2
 
     /// Main-thread callback with tracking info for the debug view.
     var onStatus: ((EngineStatus) -> Void)?
@@ -524,10 +523,9 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             gateFade -= 1
         }
 
-        // Auto re-arm once the card has been out of view for a second.
-        if !armed, let cb = autoRearm, pipeline.lastCardSeen > 0, t - pipeline.lastCardSeen > 1.0,
-           rearmFiredFor != pipeline.lastCardSeen {
-            rearmFiredFor = pipeline.lastCardSeen
+        // Auto re-arm once the real card has been out of view for two seconds (FramePipeline).
+        let armedAfter = isArmed
+        if pipeline.autoRearmDue(armed: armedAfter, now: t), let cb = autoRearm {
             DispatchQueue.main.async { cb() }
         }
 

@@ -64,7 +64,10 @@ for r in rows:
     t = [tuple(c) for c in f["corners"]]
     inf = f.get("inframe", 1.0 if f["visible"] else 0.0)
     drew = r["drew"] == "1"
-    d = {"drew": drew, "inframe": inf, "reason": r.get("reason", "")}
+    d = {"drew": drew, "inframe": inf, "reason": r.get("reason", ""), "want_real": f.get("expect") == "real"}
+    tb = metrics.get("tone_by_frame", {})
+    if str(i) in tb:
+        d["tone"] = tb[str(i)]
     q = quad_from(r, "")
     raw = quad_from(r, "r")
     if drew and q and inf > 0.02:
@@ -94,9 +97,11 @@ def stats(v):
 
 def summary(idx):
     ds = [per[i] for i in idx if i in per]
-    exposed = [i for i in idx if i in per and per[i]["inframe"] >= 0.2 and not per[i]["drew"]]
+    exposed = [i for i in idx if i in per and per[i]["inframe"] >= 0.2 and not per[i]["drew"] and not per[i]["want_real"]]
+    wrong_fake = [i for i in idx if i in per and per[i]["want_real"] and per[i]["drew"]]
     ghost = [i for i in idx if i in per and per[i]["inframe"] < 0.05 and per[i]["drew"]]
-    s = {"exposed": len(exposed), "ghost": len(ghost),
+    s = {"exposed": len(exposed), "ghost": len(ghost), "fake_while_revealed": len(wrong_fake),
+         "tone": stats([d["tone"] for d in ds if "tone" in d]),
          "err": stats([d["err"] for d in ds if "err" in d]),
          "raw_err": stats([d["raw_err"] for d in ds if "raw_err" in d]),
          "bleed_pct": stats([100 * d["bleed"] for d in ds if "bleed" in d]),
@@ -122,8 +127,8 @@ def short(s):
     return f"{s['mean']:.2f}/{s['p95']:.2f}/{s['max']:.2f}"
 
 
-print(f"{'segment':12s} exposed ghost  err(mean/p95/max)   raw_err            bleed%             spill%")
+print(f"{'segment':14s} exposed ghost wrongfake  err(mean/p95/max)   raw_err            bleed%             spill%             tone")
 for name, s in [("ALL", res["all"])] + list(res["segments"].items()):
-    print(f"{name:12s} {s['exposed']:7d} {s['ghost']:5d}  {short(s['err']):18s} {short(s['raw_err']):18s} "
-          f"{short(s['bleed_pct']):18s} {short(s['spill_pct'])}")
+    print(f"{name:14s} {s['exposed']:7d} {s['ghost']:5d} {s['fake_while_revealed']:9d}  {short(s['err']):18s} {short(s['raw_err']):18s} "
+          f"{short(s['bleed_pct']):18s} {short(s['spill_pct']):18s} {short(s['tone'])}")
 print("worst bleed:", res["worst_bleed"])

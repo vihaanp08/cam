@@ -37,4 +37,10 @@ enum Tuning {
     /// can light it orange while the room looks white), and its border is judged against its own
     /// colour (CardTracker `PaperReader.gain`, Compositor).
     static var cardWhiteBalance = true
+    /// The fake's light follows a sudden change in the real light (switched on or off, exposure, colour)
+    /// on the same frame, instead of fading over to it (Compositor).
+    static var fastLight = true
+    /// The light across the card is read along its four edges and carried across between them, so a
+    /// shadow falling across the card falls across the fake too (Compositor).
+    static var edgeLight = true
 }

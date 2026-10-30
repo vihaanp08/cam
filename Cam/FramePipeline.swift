@@ -64,8 +64,13 @@ final class FramePipeline {
     private(set) var overlayOn = false
     private var badStreak = 0
     private var lastAnalysis: Compositor.Analysis?
-    /// Time of the last frame where the card was seen, or -1.
+    /// Time of the last frame where the card was seen, or -1. (the fake on it, or about to be, or
+    /// its back: anything that says the real card is still in front of the camera)
     private(set) var lastCardSeen: Double = -1
+    /// Auto re-arm: seconds the card must have been out of view (and since the reveal) first.
+    var rearmAfter = 2.0
+    private var revealedAt: Double = -1
+    private var wasArmed = true
 
     /// A frame waiting to be shown, with what was decided about it.
     private struct Slot {
@@ -217,6 +222,19 @@ final class FramePipeline {
         return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
     }
 
+    /// Auto re-arm, asked once a frame with whether the trick is armed: true when it should re-arm
+    /// now. Only once the real card has been out of view for `rearmAfter` seconds, and that long
+    /// since the reveal (a reveal with no card in view isn't undone straight away). A card taken out
+    /// of view for a moment and brought back stays the real card.
+    func autoRearmDue(armed: Bool, now: Double) -> Bool {
+        defer { wasArmed = armed }
+        guard !armed else { return false }
+        if wasArmed { revealedAt = now }
+        guard now - max(lastCardSeen, revealedAt) > rearmAfter else { return false }
+        revealedAt = now        // (asked again before the re-arm lands: not again for a while)
+        return true
+    }
+
     /// The frame due next has a card coming in that isn't covered (yet), and the picture may still
     /// hold for it (see `entryHoldMax`).
     private func holdForEntry(armed: Bool, maxDelay: Int) -> Bool {
@@ -282,7 +300,6 @@ final class FramePipeline {
         case .locked(let q):
             slot.status.tracking = "locked"
             slot.quad = q
-            lastCardSeen = time
             var a = compositor.analyze(frame: frame, quad: q)
             // Held so close that hardly any of the card's border is in the picture: nothing to
             // measure the light from, so keep the last good measurement rather than giving up.
@@ -315,6 +332,8 @@ final class FramePipeline {
                 // Locked onto something that isn't a card face for a while: search again.
                 if isFace && badStreak % 10 == 0 { tracker.forceRedetect() }
             }
+            // (the card turned round after the reveal is still the real card in view: no re-arm)
+            if let a = a, !isFace, a.cardness > 0.3 { lastCardSeen = time }
             if a == nil { slot.status.reason = "analysis failed" }
             else if !isFace { slot.status.reason = "card back" }
             else if !good { slot.status.reason = String(format: "low paper %.2f", slot.status.cardness) }
@@ -397,6 +416,7 @@ final class FramePipeline {
             }
         }
         if slot.status.reason != "followed" && slot.status.reason != "carried on" { followStreak = 0 }
+        if slot.draw || slot.status.reason == "confirming" { lastCardSeen = time }
         beforeLastDecided = lastDecided
         lastDecided = slot
         return slot

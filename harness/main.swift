@@ -79,6 +79,57 @@ func quadError(_ q: [CGPoint], _ g: [CGPoint]) -> Double {
     return best
 }
 
+/// Homography taking the unit square's corners (0,0), (1,0), (1,1), (0,1) to q[0...3].
+func unitHomography(_ q: [CGPoint]) -> [Double]? {
+    let src: [(Double, Double)] = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    var A = [[Double]](repeating: [Double](repeating: 0, count: 9), count: 8)
+    for k in 0..<4 {
+        let (x, y) = src[k]; let u = Double(q[k].x), v = Double(q[k].y)
+        A[2 * k] = [x, y, 1, 0, 0, 0, -u * x, -u * y, u]
+        A[2 * k + 1] = [0, 0, 0, x, y, 1, -v * x, -v * y, v]
+    }
+    for c in 0..<8 {
+        var piv = c
+        for r in c..<8 where abs(A[r][c]) > abs(A[piv][c]) { piv = r }
+        guard abs(A[piv][c]) > 1e-12 else { return nil }
+        A.swapAt(c, piv)
+        for r in 0..<8 where r != c {
+            let f = A[r][c] / A[c][c]
+            if f != 0 { for k in c..<9 { A[r][k] -= f * A[c][k] } }
+        }
+    }
+    var h = (0..<8).map { A[$0][8] / A[$0][$0] }
+    h.append(1)
+    return h
+}
+
+func applyH(_ h: [Double], _ x: Double, _ y: Double) -> (Double, Double) {
+    let w = h[6] * x + h[7] * y + h[8]
+    return ((h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w)
+}
+
+func invertH(_ h: [Double]) -> [Double]? {
+    let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], i = h[7], j = h[8]
+    let det = a * (e * j - f * i) - b * (d * j - f * g) + c * (d * i - e * g)
+    guard abs(det) > 1e-15 else { return nil }
+    return [(e * j - f * i) / det, (c * i - b * j) / det, (b * f - c * e) / det,
+            (f * g - d * j) / det, (a * j - c * g) / det, (c * d - a * f) / det,
+            (d * i - e * g) / det, (b * g - a * i) / det, (a * e - b * d) / det]
+}
+
+/// An image's RGBA8 pixels, top row first.
+func pixels(_ img: CGImage) -> [UInt8] {
+    let w = img.width, h = img.height
+    var buf = [UInt8](repeating: 0, count: w * h * 4)
+    buf.withUnsafeMutableBytes { raw in
+        if let ctx = CGContext(data: raw.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                               space: sRGB, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) {
+            ctx.draw(img, in: CGRect(x: 0, y: 0, width: w, height: h))
+        }
+    }
+    return buf
+}
+
 func percentile(_ v: [Double], _ p: Double) -> Double {
     guard !v.isEmpty else { return 0 }
     let s = v.sorted()
@@ -166,6 +217,9 @@ if args.count > 6 {
         case "carry": Tuning.exitCarryOn = v != 0
         case "search": Tuning.pictureSearch = v != 0
         case "wb": Tuning.cardWhiteBalance = v != 0
+        case "fastlight": Tuning.fastLight = v != 0
+        case "edgelight": Tuning.edgeLight = v != 0
+        case "rearm": pipe.rearmAfter = v
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
@@ -208,8 +262,14 @@ func record(_ i: Int, _ out: FramePipeline.Output, _ h: CGFloat, ms: Double) {
 }
 
 if mode == "synth" {
-    struct GTFrame: Decodable { let i: Int; let visible: Bool; let corners: [[Double]]; let still: Bool; let inframe: Double? }
-    struct GT: Decodable { let width: Int; let height: Int; let fps: Double; let frames: [GTFrame] }
+    struct GTFrame: Decodable {
+        let i: Int; let visible: Bool; let corners: [[Double]]; let still: Bool; let inframe: Double?
+        let paper: [[Double]]?; let expect: String?
+    }
+    struct GT: Decodable {
+        let width: Int; let height: Int; let fps: Double; let frames: [GTFrame]
+        let reveal_at: Int?; let paper_grid: [Int]?
+    }
     let gtData = try! Data(contentsOf: URL(fileURLWithPath: input + "/gt.json"))
     let gt = try! JSONDecoder().decode(GT.self, from: gtData)
     frameSize = CGSize(width: gt.width, height: gt.height)
@@ -219,6 +279,73 @@ if mode == "synth" {
     var errorByFrame: [Int: Double] = [:]
     var outputs: [Int: CIImage] = [:]
 
+    // Places on the fake face where it is plain paper (well inside it, clear of the printing): there
+    // the fake must come out the colour of the real card's paper under the same light.
+    var paperNodes: [(Double, Double)] = []
+    do {
+        let face = loadCGImage(facePath)
+        let fw = face.width, fh = face.height
+        let fp = pixels(face)
+        for jv in 0..<25 {
+            for ju in 0..<17 {
+                let u = 0.12 + 0.76 * Double(ju) / 16, v = 0.09 + 0.82 * Double(jv) / 24
+                let cx = Int(u * Double(fw)), cy = Int(v * Double(fh))
+                var minL = 255.0
+                for dy in -6...6 {
+                    for dx in -6...6 {
+                        let x = min(fw - 1, max(0, cx + dx)), y = min(fh - 1, max(0, cy + dy))
+                        let k = (y * fw + x) * 4
+                        minL = min(minL, 0.3 * Double(fp[k]) + 0.59 * Double(fp[k + 1]) + 0.11 * Double(fp[k + 2]))
+                    }
+                }
+                if minL > 235 { paperNodes.append((u, v)) }
+            }
+        }
+    }
+    var toneErrs: [Double] = []
+    var toneLumErrs: [Double] = []
+    var toneByFrame: [Int: Double] = [:]
+    /// Mean difference (sRGB levels, all three colours) between the fake's paper as shown and the
+    /// real card's paper under the same light, over the plain-paper places of the fake in view.
+    func tone(_ out: FramePipeline.Output, _ f: GTFrame) -> (Double, Double)? {
+        guard out.drewOverlay, let paper = f.paper, let grid = gt.paper_grid, grid.count == 2,
+              let q = quads.last!, q.count == 4, let hT = unitHomography(q),
+              let hG = unitHomography(f.corners.map { CGPoint(x: $0[0], y: $0[1]) }), let hGi = invertH(hG),
+              let cg = render(out.image) else { return nil }
+        let px = pixels(cg)
+        let W = cg.width, H = cg.height
+        let gu = grid[0], gv = grid[1]
+        var sum = 0.0, lsum = 0.0, n = 0
+        for (u, v) in paperNodes {
+            let (x, y) = applyH(hT, u, v)
+            let xi = Int(x.rounded()), yi = Int(y.rounded())
+            guard xi >= 2, yi >= 2, xi < W - 2, yi < H - 2 else { continue }
+            let (ru, rv) = applyH(hGi, x, y)            // where that is on the real card
+            guard ru > 0.05, ru < 0.95, rv > 0.05, rv < 0.95 else { continue }
+            var o = [0.0, 0.0, 0.0]
+            for dy in -1...1 { for dx in -1...1 { let k = ((yi + dy) * W + xi + dx) * 4; for c in 0..<3 { o[c] += Double(px[k + c]) / 9 } } }
+            let fx = ru * Double(gu - 1), fy = rv * Double(gv - 1)
+            let x0 = min(gu - 2, Int(fx)), y0 = min(gv - 2, Int(fy))
+            let ax = fx - Double(x0), ay = fy - Double(y0)
+            var e = [0.0, 0.0, 0.0]
+            for c in 0..<3 {
+                let p00 = paper[y0 * gu + x0][c], p10 = paper[y0 * gu + x0 + 1][c]
+                let p01 = paper[(y0 + 1) * gu + x0][c], p11 = paper[(y0 + 1) * gu + x0 + 1][c]
+                e[c] = (1 - ay) * ((1 - ax) * p00 + ax * p10) + ay * ((1 - ax) * p01 + ax * p11)
+            }
+            sum += (abs(o[0] - e[0]) + abs(o[1] - e[1]) + abs(o[2] - e[2])) / 3
+            let lo = 0.3 * o[0] + 0.59 * o[1] + 0.11 * o[2], le = 0.3 * e[0] + 0.59 * e[1] + 0.11 * e[2]
+            lsum += abs(lo - le)
+            n += 1
+        }
+        return n >= 4 ? (sum / Double(n), lsum / Double(n)) : nil
+    }
+
+    // The trick's state, as the app runs it: armed, revealed at `reveal_at` (if the clip has one),
+    // and re-armed by the pipeline's own rule.
+    var armed = true
+    var armedShown: [Int: Bool] = [:]
+
     // The pipeline shows each frame a few frames late (head start): score every frame as it is
     // shown, by its own index.
     var shownUpTo = -1
@@ -227,6 +354,8 @@ if mode == "synth" {
         shownUpTo = out.frameIndex
         let f = gt.frames[out.frameIndex]
         record(f.i, out, CGFloat(gt.height), ms: ms)
+        armedShown[f.i] = armed
+        if let (te, tl) = tone(out, f) { toneErrs.append(te); toneLumErrs.append(tl); toneByFrame[f.i] = te }
         let truth = f.corners.map { CGPoint(x: $0[0], y: $0[1]) }
         if out.drewOverlay, f.visible, let q = quads.last!, q.count == 4 {
             let e = quadError(q, truth)
@@ -241,13 +370,16 @@ if mode == "synth" {
         let cg = loadCGImage(String(format: "%@/frame_%05d.jpg", input, f.i))
         ciContext.render(CIImage(cgImage: cg), to: pb)
         let t0 = Date()
-        let out = pipe.process(pb, time: Double(f.i) / gt.fps, cfg: cfg, armed: true, albedo: albedo)
+        if let r = gt.reveal_at, f.i == r { armed = false }
+        let tf = Double(f.i) / gt.fps
+        let out = pipe.process(pb, time: tf, cfg: cfg, armed: armed, albedo: albedo)
         dumpCandidates(f.i, CGFloat(gt.height))
         handle(out, ms: Date().timeIntervalSince(t0) * 1000)
         // (frames kept back while the picture held for a card coming in)
-        if let extra = pipe.catchUp(cfg: cfg, armed: true, albedo: albedo) { handle(extra, ms: 0) }
+        if let extra = pipe.catchUp(cfg: cfg, armed: armed, albedo: albedo) { handle(extra, ms: 0) }
+        if pipe.autoRearmDue(armed: armed, now: tf) { armed = true }
     }
-    for out in pipe.drain(cfg: cfg, armed: true, albedo: albedo) { handle(out, ms: 0) }
+    for out in pipe.drain(cfg: cfg, armed: armed, albedo: albedo) { handle(out, ms: 0) }
 
     // Metrics
     let firstLock = drew.firstIndex(of: true) ?? gt.frames.count
@@ -266,10 +398,14 @@ if mode == "synth" {
     // the real card while a good part of it is in view (from the very first frame it enters), and
     // a fake card painted where there is (almost) no card.
     var entryExposed: [Int] = [], ghost: [Int] = []
+    // (and, in a clip with a reveal, the fake while it should be the real card)
+    var fakeWhileRevealed: [Int] = []
     for f in gt.frames {
         let inf = f.inframe ?? (f.visible ? 1 : 0)
-        if inf >= 0.2 && !drew[f.i] { entryExposed.append(f.i) }
+        let wantReal = f.expect == "real"
+        if inf >= 0.2 && !drew[f.i] && !wantReal { entryExposed.append(f.i) }
         if inf < 0.05 && drew[f.i] { ghost.append(f.i) }
+        if wantReal && drew[f.i] { fakeWhileRevealed.append(f.i) }
     }
     // Jitter during the still hold: spread of each tracked corner around its mean.
     var stillCorners: [[CGPoint]] = []
@@ -309,6 +445,17 @@ if mode == "synth" {
         "real_card_shown_list": Array(entryExposed.prefix(40)),
         "ghost_frames": ghost.count,
         "ghost_list": Array(ghost.prefix(40)),
+        "fake_while_revealed_frames": fakeWhileRevealed.count,
+        "fake_while_revealed_list": Array(fakeWhileRevealed.prefix(40)),
+        "rearmed_at_frame": gt.reveal_at.map { r in (r..<gt.frames.count).first { armedShown[$0] == true } ?? -1 } ?? -1,
+        "tone_err_mean": r2(toneErrs.isEmpty ? -1 : toneErrs.reduce(0, +) / Double(toneErrs.count)),
+        "tone_err_p95": r2(percentile(toneErrs, 0.95)),
+        "tone_err_max": r2(toneErrs.max() ?? -1),
+        "tone_lum_err_mean": r2(toneLumErrs.isEmpty ? -1 : toneLumErrs.reduce(0, +) / Double(toneLumErrs.count)),
+        "tone_frames_over_8": toneErrs.filter { $0 > 8 }.count,
+        "tone_worst": toneByFrame.sorted { $0.value > $1.value }.prefix(6).map { "#\($0.key): \(r2($0.value))" },
+        "paper_nodes": paperNodes.count,
+        "tone_by_frame": Dictionary(uniqueKeysWithValues: toneByFrame.map { (String($0.key), r2($0.value)) }),
         "corner_err_mean_px": r2(errors.isEmpty ? -1 : errors.reduce(0, +) / Double(errors.count)),
         "corner_err_p95_px": r2(percentile(errors, 0.95)),
         "corner_err_max_px": r2(errors.max() ?? -1),

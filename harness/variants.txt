@@ -2,3 +2,5 @@ noentry entry=0 syn4
 nocarry carry=0 syn5
 nosearch search=0 syn5
 nowb wb=0 syn6,syn
+oldlight fastlight=0,edgelight=0 syn7,syn
+noedge edgelight=0 syn7

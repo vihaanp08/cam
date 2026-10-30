@@ -31,6 +31,9 @@ final class Compositor {
     private var regionInset: Double = -1
     private var regionInsetY: Double = -1
     private var prevCenter: CGPoint?
+    /// The paper's colour measured along each of the card's four edges (left, right, first row, last
+    /// row), smoothed over time (Tuning.edgeLight).
+    private var edgePrev: [[(Double, Double, Double)]]?
 
     struct Analysis {
         var lighting: CIImage      // card space, predicted paper colour under the real light
@@ -47,6 +50,7 @@ final class Compositor {
 
     func resetTemporalState() {
         coeffs = nil
+        edgePrev = nil
         fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
         prevCenter = nil
     }
@@ -95,7 +99,7 @@ final class Compositor {
         }
 
         // 1. Sample the paper border (skip the rounded corners).
-        struct S { var u, v, r, g, b, l: Double }
+        struct S { var u, v, r, g, b, l: Double; var x = 0, y = 0 }
         var samples: [S] = []
         samples.reserveCapacity(400)
         let cornerX = 6, cornerY = 7
@@ -110,7 +114,7 @@ final class Compositor {
                 guard seen(x, y) else { continue }
                 let c = rgb(x, y)
                 samples.append(S(u: Double(x) / Double(gw - 1), v: Double(y) / Double(gh - 1),
-                                 r: c.0, g: c.1, b: c.2, l: lum(c)))
+                                 r: c.0, g: c.1, b: c.2, l: lum(c), x: x, y: y))
             }
         }
         guard samples.count > 20 else { return nil }
@@ -158,8 +162,24 @@ final class Compositor {
         } else {
             return nil
         }
+        // How much of the fresh measurement to take: a little each frame normally (it is noisy), but
+        // most of it at once when the light has clearly changed (a lamp switched on or off, the camera
+        // changing its exposure, a different coloured light): the fake must change with the real card
+        // on the very same frame, not fade over to it.
+        var w = 0.45
+        if let prev = coeffs, Tuning.fastLight {
+            func at(_ c: [Double], _ u: Double, _ v: Double) -> Double { c[0] + c[1] * u + c[2] * v + c[3] * u * v }
+            var d = 0.0
+            for (u, v) in [(0.5, 0.5), (0.15, 0.15), (0.85, 0.15), (0.15, 0.85), (0.85, 0.85)] {
+                for ch in 0..<3 {
+                    let a = at(prev[ch], u, v), b = at(fresh[ch], u, v)
+                    d = max(d, abs(b - a) / max(a, 1e-4))
+                }
+            }
+            w = min(0.95, max(0.45, 0.45 + (d - 0.03) * 9))
+        }
         if let prev = coeffs {
-            coeffs = zip(prev, fresh).map { p, f in zip(p, f).map { 0.55 * $0 + 0.45 * $1 } }
+            coeffs = zip(prev, fresh).map { p, f in zip(p, f).map { (1 - w) * $0 + w * $1 } }
         } else {
             coeffs = fresh
         }
@@ -168,6 +188,88 @@ final class Compositor {
         @inline(__always) func predict(_ u: Double, _ v: Double) -> (Double, Double, Double) {
             func e(_ c: [Double]) -> Double { max(0, c[0] + c[1] * u + c[2] * v + c[3] * u * v) }
             return (e(k[0]), e(k[1]), e(k[2]))
+        }
+
+        // The light across the card from its four edges (Tuning.edgeLight): the paper's colour read
+        // along each edge, and filled in between them (a Coons patch). A smooth fit over the whole
+        // border can't follow a shadow falling across the card (a hand, the phone): its edge cuts
+        // the card's border on two sides, and is carried straight across between them.
+        var edges: [[(Double, Double, Double)]]?
+        if Tuning.edgeLight {
+            // (paper in shadow counts: as dark as a fifth of the lit paper, same colour as it)
+            let paperish = samples.filter { s in
+                guard s.l > 0.18 * p75 && s.l < 1.7 * p75 else { return false }
+                let l = max(s.l, 1e-5)
+                let r = s.r / l / ref.0, g = s.g / l / ref.1, b = s.b / l / ref.2
+                let mx = max(r, g, b), mn = min(r, g, b)
+                return (mx - mn) / max(mx, 1e-4) < 0.32
+            }
+            func profile(_ count: Int, _ pick: (S) -> Int?, _ along: (Int) -> (Double, Double)) -> [(Double, Double, Double)] {
+                var bins = [[S]](repeating: [], count: count)
+                for s in paperish { if let p = pick(s), p >= 0, p < count { bins[p].append(s) } }
+                var known: [(Double, Double, Double)?] = Array(repeating: nil, count: count)
+                func med(_ v: [Double]) -> Double { let s = v.sorted(); return s[s.count / 2] }
+                for p in 0..<count {
+                    var win: [S] = []
+                    for q in max(0, p - 4)...min(count - 1, p + 4) { win += bins[q] }
+                    if win.count >= 4 { known[p] = (med(win.map(\.r)), med(win.map(\.g)), med(win.map(\.b))) }
+                }
+                let idx = known.indices.filter { known[$0] != nil }
+                // (an edge hardly seen, out of the picture or under fingers: the smooth fit there)
+                guard idx.count * 4 >= count, let first = idx.first, let last = idx.last else {
+                    return (0..<count).map { let (u, v) = along($0); return predict(u, v) }
+                }
+                var out = [(Double, Double, Double)](repeating: (0, 0, 0), count: count)
+                var prevK = first
+                for p in 0..<count {
+                    if p <= first { out[p] = known[first]!; continue }
+                    if p >= last { out[p] = known[last]!; continue }
+                    if let c = known[p] { out[p] = c; prevK = p; continue }
+                    var nextK = p + 1
+                    while known[nextK] == nil { nextK += 1 }
+                    let a = known[prevK]!, b = known[nextK]!, f = Double(p - prevK) / Double(nextK - prevK)
+                    out[p] = (a.0 + (b.0 - a.0) * f, a.1 + (b.1 - a.1) * f, a.2 + (b.2 - a.2) * f)
+                }
+                return out
+            }
+            let gwD = Double(gw - 1), ghD = Double(gh - 1)
+            var fe = [
+                // (the outermost cells only at the sides: the next ones in can catch the edge of the
+                // index, which would read as a shadow)
+                profile(gh, { $0.x == 1 ? $0.y : nil }, { (0, Double($0) / ghD) }),
+                profile(gh, { $0.x == gw - 2 ? $0.y : nil }, { (1, Double($0) / ghD) }),
+                profile(gw, { $0.y <= 3 ? $0.x : nil }, { (Double($0) / gwD, 0) }),
+                profile(gw, { $0.y >= gh - 4 ? $0.x : nil }, { (Double($0) / gwD, 1) })
+            ]
+            if let prev = edgePrev, prev.count == 4 {
+                for e in 0..<4 where prev[e].count == fe[e].count {
+                    for p in fe[e].indices {
+                        let a = prev[e][p], b = fe[e][p]
+                        fe[e][p] = ((1 - w) * a.0 + w * b.0, (1 - w) * a.1 + w * b.1, (1 - w) * a.2 + w * b.2)
+                    }
+                }
+            }
+            edgePrev = fe
+            edges = fe
+        }
+        /// The paper's colour under the real light at grid cell (x, y).
+        func lightAt(_ x: Int, _ y: Int) -> (Double, Double, Double) {
+            let u = Double(x) / Double(gw - 1), v = Double(y) / Double(gh - 1)
+            guard let e = edges else { return predict(u, v) }
+            let L = e[0][y], R = e[1][y], T = e[2][x], B = e[3][x]
+            func avg(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> (Double, Double, Double) {
+                ((a.0 + b.0) / 2, (a.1 + b.1) / 2, (a.2 + b.2) / 2)
+            }
+            let c00 = avg(e[0][0], e[2][0]), c10 = avg(e[1][0], e[2][gw - 1])
+            let c01 = avg(e[0][gh - 1], e[3][0]), c11 = avg(e[1][gh - 1], e[3][gw - 1])
+            func ch(_ l: Double, _ r: Double, _ t: Double, _ b: Double, _ a: Double, _ bb: Double, _ c: Double, _ d: Double) -> Double {
+                let val = (1 - u) * l + u * r + (1 - v) * t + v * b
+                    - ((1 - u) * (1 - v) * a + u * (1 - v) * bb + (1 - u) * v * c + u * v * d)
+                return max(0, val)
+            }
+            return (ch(L.0, R.0, T.0, B.0, c00.0, c10.0, c01.0, c11.0),
+                    ch(L.1, R.1, T.1, B.1, c00.1, c10.1, c01.1, c11.1),
+                    ch(L.2, R.2, T.2, B.2, c00.2, c10.2, c01.2, c11.2))
         }
 
         // Noise estimate from the border residual (scaled back up to camera-pixel size).
@@ -204,7 +306,7 @@ final class Compositor {
         func isSkin(_ x: Int, _ y: Int) -> Bool {
             guard seen(x, y) else { return false }
             let c = rgb(x, y)
-            let p = predict(Double(x) / Double(gw - 1), Double(y) / Double(gh - 1))
+            let p = lightAt(x, y)
             let lc = lum(c), lp = max(lum(p), 1e-4)
             let mx = max(c.0, c.1, c.2), mn = min(c.0, c.1, c.2)
             let sat = (mx - mn) / max(mx, 1e-4)
@@ -277,7 +379,7 @@ final class Compositor {
         var keepPx = [Float](repeating: 1, count: gw * gh * 4)
         for y in 0..<gh {
             for x in 0..<gw {
-                let p = predict(Double(x) / Double(gw - 1), Double(y) / Double(gh - 1))
+                let p = lightAt(x, y)
                 let i = (y * gw + x) * 4
                 lightPx[i] = Float(p.0); lightPx[i + 1] = Float(p.1); lightPx[i + 2] = Float(p.2); lightPx[i + 3] = 1
                 let keep = 1 - min(1, dilated[y * gw + x] * 1.25)
@@ -288,7 +390,7 @@ final class Compositor {
         return Analysis(lighting: gridImage(lightPx, colorSpace: linear),
                         keep: gridImage(keepPx, colorSpace: nil),
                         cardness: cardness, faceUp: faceUp, noise: noise,
-                        paper: predict(0.5, 0.5))
+                        paper: lightAt(gw / 2, gh / 2))
     }
 
     /// Turns a gw x gh float grid into a smooth card-sized image.

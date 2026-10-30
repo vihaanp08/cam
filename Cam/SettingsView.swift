@@ -83,7 +83,7 @@ struct SettingsView: View {
                     Toggle("Volume / Camera Control buttons", isOn: $s.buttonsEnabled)
                     Toggle("Tap on the screen", isOn: $s.tapEnabled)
                     Toggle("Haptic tick on trigger", isOn: $s.haptics)
-                    Toggle("Auto re-arm when card leaves view", isOn: $s.autoRearm)
+                    Toggle("Auto re-arm when card is out of view 2 s", isOn: $s.autoRearm)
                 }
 
                 Section {
