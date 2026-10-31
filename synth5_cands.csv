@@ -1,0 +1,900 @@
+i,how,score,x0,y0,x1,y1,x2,y2,x3,y3,note
+11,ink,0.012,674.6,669.3,786.8,921.2,666.5,965.0,548.8,700.7,edge/shape 0.07 paper 0.81 ink 0.33 seen 0.74 size 1.00 ev-1 past1
+11,ink entry,0.124,749.8,650.5,861.2,894.1,666.5,965.0,548.8,700.7,edge/shape 0.22 paper 0.84 ink 0.32 seen 0.54 size 1.00 ev2
+11,rect ref,0.000,593.5,739.4,605.3,1270.8,455.6,1215.8,453.0,919.8,edge/shape 0.14 paper 0.38 ink 0.00 seen 1.00 size 1.00 idx 0.00 notcard ev0
+11,rectx2,0.007,664.5,712.2,771.9,1291.2,495.3,1251.4,415.9,893.4,edge/shape 0.19 paper 0.36 ink 0.05 seen 0.90 size 1.00 ev-1 past3
+11,rectx2,0.000,540.2,802.8,633.6,1271.3,357.0,1231.6,291.6,984.0,edge/shape 0 size 1.00 idx 0.00 notcard ev0
+11,rectx2,0.000,446.8,334.3,633.6,1271.3,357.0,1231.6,226.2,736.5,edge/shape 0 size 1.00 idx 0.00 notcard ev0
+11,rect,0.000,84.3,1099.1,139.5,1185.7,54.2,1270.9,7.3,1132.7,edge/shape 0 size 1.00 idx 0.00 notcard ev0
+11,rectx2,0.000,29.1,1012.6,139.5,1185.7,54.2,1270.9,-39.6,994.6,edge/shape 0 size 1.00 ev0
+14,ink entry,0.005,476.1,717.8,922.1,812.6,976.4,1073.0,521.5,1041.1,edge/shape 0.02 paper 0.56 ink 0.16 seen 0.49 size 1.00 ev2
+14,doc,0.041,380.0,580.0,670.0,695.0,640.0,1050.0,385.0,1025.0,edge/shape 0.25 paper 0.74 ink 0.24 seen 1.00 size 1.00 idx 0.02 notcard ev2
+14,doc fit,0.071,452.5,709.3,657.2,790.5,635.3,1049.5,456.1,1032.0,edge/shape 0.37 paper 0.80 ink 0.30 seen 1.00 size 1.00 idx 0.12 ev-1 past0
+15,ink,0.002,459.2,688.2,667.3,839.4,561.0,1023.6,361.2,888.9,edge/shape 0.07 paper 0.61 ink 0.29 seen 1.00 size 1.00 idx -0.13 notcard part ev-1 past0
+15,doc,0.026,324.0,585.1,629.8,579.9,591.9,1049.7,322.3,1023.3,edge/shape 0.24 paper 0.60 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard ev2
+15,doc fit,0.046,392.8,720.3,617.6,736.3,591.4,1049.6,399.9,1030.9,edge/shape 0.20 paper 0.86 ink 0.29 seen 1.00 size 1.00 idx -0.05 notcard ev-1
+15,doc ref,0.024,367.2,578.7,630.7,574.2,591.6,1049.7,330.6,1024.1,edge/shape 0.13 paper 0.78 ink 0.21 seen 1.00 size 1.00 idx 0.00 notcard ev2
+15,rect,0.003,333.1,905.4,604.3,896.8,602.4,1062.2,325.9,1030.4,edge/shape 0.01 paper 0.91 ink 0.18 seen 1.00 size 1.00 idx 0.00 notcard ev0
+15,rectx2,0.000,333.1,905.4,604.3,896.8,600.4,1227.6,318.6,1155.4,edge/shape 0 size 1.00 idx 0.00 notcard ev0
+16,doc,0.017,286.3,585.0,585.0,585.0,555.0,1050.0,288.4,1023.9,edge/shape 0.15 paper 0.62 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard ev2
+16,doc fit,0.070,351.2,720.1,578.1,735.6,553.4,1049.8,354.7,1030.4,edge/shape 0.31 paper 0.86 ink 0.28 seen 1.00 size 1.00 idx -0.08 notcard ev-1
+16,doc ref,0.017,324.6,573.7,597.4,573.7,550.0,1049.5,298.2,1024.8,edge/shape 0.10 paper 0.76 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard ev2
+16,rect,0.014,301.7,887.4,563.1,929.9,552.7,1056.1,292.4,1026.3,edge/shape 0.06 paper 0.88 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard part ev-1
+17,doc,0.017,262.4,579.0,552.9,689.2,524.9,1050.0,252.5,1023.3,edge/shape 0.14 paper 0.64 ink 0.24 seen 1.00 size 1.00 idx 0.03 notcard ev2
+17,doc fit,0.040,332.4,699.0,545.9,780.0,524.8,1050.0,336.2,1031.5,edge/shape 0.60 paper 0.86 ink 0.28 seen 1.00 size 1.00 idx -0.03 notcard ev-1 past0
+17,doc ref,0.215,292.5,669.4,553.4,688.4,523.9,1049.9,271.7,1025.2,edge/shape 0.75 paper 0.97 ink 0.28 seen 1.00 size 1.00 idx 0.08 notcard ev2
+17,rect,0.668,301.6,670.0,553.3,688.5,524.1,1048.6,271.9,1018.5,edge/shape 0.67 paper 1.00 ink 0.27 seen 1.00 size 1.00 idx 0.12 ev2
+17,rect fit,0.083,289.2,718.0,549.3,735.4,524.8,1054.6,263.2,1023.4,edge/shape 0.32 paper 0.93 ink 0.29 seen 1.00 size 1.00 idx 0.07 notcard ev2
+17,rect ref,0.075,291.3,717.7,549.3,735.5,525.1,1048.7,265.8,1017.8,edge/shape 0.28 paper 0.94 ink 0.28 seen 1.00 size 1.00 idx 0.07 notcard ev2
+18,flow x2,0.037,32.5,651.3,534.3,688.5,506.1,1052.5,1.0,991.6,edge/shape 0.14 paper 0.93 ink 0.14 seen 1.00 size 1.00 idx 0.00 notcard ev0
+18,flow fit,0.679,274.9,669.4,534.4,688.4,506.0,1052.5,245.3,1021.0,edge/shape 0.73 paper 0.96 ink 0.32 seen 1.00 size 1.00 idx 0.15 ev2
+18,ink,0.005,410.3,655.9,527.4,977.6,376.8,1015.1,254.6,712.6,edge/shape 0.03 paper 0.76 ink 0.29 seen 1.00 size 1.00 idx 0.03 notcard ev0
+18,doc,0.012,240.8,579.8,542.9,585.0,505.7,1052.5,243.5,1020.7,edge/shape 0.12 paper 0.59 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard ev2
+18,doc fit,0.042,315.3,720.9,530.8,735.0,505.6,1052.5,318.8,1029.9,edge/shape 0.20 paper 0.84 ink 0.29 seen 1.00 size 1.00 idx -0.05 notcard ev-1
+18,doc ref,0.021,275.8,579.4,548.2,581.7,501.4,1051.9,249.9,1021.6,edge/shape 0.13 paper 0.74 ink 0.22 seen 1.00 size 1.00 idx 0.03 notcard ev2
+18,rect,0.001,250.9,902.0,516.1,925.0,505.7,1059.9,243.5,1029.1,edge/shape 0.01 paper 0.85 ink 0.17 seen 1.00 size 1.00 idx 0.00 notcard ev0
+18,rectx2,0.000,250.9,902.0,516.8,925.0,493.6,1194.6,236.0,1156.2,edge/shape 0 size 1.00 idx 0.00 notcard part ev-1
+19,flow fit,0.679,266.6,669.2,525.9,688.6,497.7,1052.2,237.3,1021.3,edge/shape 0.73 paper 0.96 ink 0.34 seen 1.00 size 1.00 idx 0.18 ev2
+19,doc,0.014,232.6,585.0,525.0,585.0,494.9,1052.0,232.3,1020.5,edge/shape 0.13 paper 0.60 ink 0.22 seen 1.00 size 1.00 idx 0.00 notcard ev1
+19,doc fit,0.056,293.3,720.0,522.1,734.6,498.2,1052.4,303.8,1029.0,edge/shape 0.26 paper 0.84 ink 0.29 seen 1.00 size 1.00 idx -0.20 notcard ev-1
+19,doc ref,0.027,272.1,574.8,532.1,574.8,532.6,1056.3,240.4,1021.7,edge/shape 0.21 paper 0.65 ink 0.20 seen 1.00 size 1.00 idx 0.00 notcard ev0
+19,rect,0.019,255.9,882.4,508.9,909.8,497.8,1052.2,246.3,1022.3,edge/shape 0.28 paper 0.86 ink 0.23 seen 1.00 size 1.00 idx 0.00 notcard part ev-1 past0
+19,rect ref,0.025,256.3,866.5,509.4,902.9,497.9,1052.2,240.2,1021.7,edge/shape 0.32 paper 0.94 ink 0.23 seen 1.00 size 1.00 idx -0.02 notcard ev2 past0
+19,rectx2,0.011,168.2,857.9,572.0,803.4,757.4,1708.2,85.6,1693.6,edge/shape 0.07 paper 0.45 ink 0.05 seen 0.50 size 1.00 ev0
+20,flow fit,0.650,266.0,681.0,525.3,700.7,497.3,1064.1,236.8,1032.4,edge/shape 0.72 paper 0.95 ink 0.34 seen 1.00 size 1.00 idx 0.17 ev2
+20,ink,0.026,473.8,742.4,513.2,1022.9,326.4,993.0,280.5,732.5,edge/shape 0.49 paper 0.76 ink 0.36 seen 1.00 size 1.00 idx -0.20 notcard ev-1 past13
+20,rect,0.634,266.6,681.0,525.4,700.7,496.9,1064.0,249.4,1034.0,edge/shape 0.63 paper 1.00 ink 0.34 seen 1.00 size 1.00 idx 0.20 ev2
+20,rect fit,0.121,260.1,729.1,521.9,747.1,497.0,1064.1,245.3,1033.2,edge/shape 0.46 paper 0.94 ink 0.28 seen 1.00 size 1.00 idx 0.02 notcard ev2
+20,rect ref,0.110,258.0,729.2,521.6,747.0,497.6,1064.2,243.2,1033.1,edge/shape 0.42 paper 0.94 ink 0.27 seen 1.00 size 1.00 idx 0.00 notcard ev2
+20,doc,0.022,232.7,599.2,525.2,700.1,497.5,1064.2,233.3,1031.7,edge/shape 0.17 paper 0.65 ink 0.27 seen 1.00 size 1.00 idx 0.02 notcard ev2
+20,doc fit,0.036,294.2,711.7,518.4,789.0,497.4,1064.2,305.5,1040.6,edge/shape 0.61 paper 0.81 ink 0.29 seen 1.00 size 1.00 idx -0.10 notcard ev-1 past0
+20,doc ref,0.690,267.0,681.0,525.6,700.8,496.6,1064.1,242.3,1032.7,edge/shape 0.73 paper 0.97 ink 0.33 seen 1.00 size 1.00 idx 0.13 ev2
+20,rect,0.012,242.3,912.5,507.3,936.2,497.3,1064.1,235.3,1032.0,edge/shape 0.06 paper 0.85 ink 0.19 seen 1.00 size 1.00 idx 0.00 notcard ev0
+20,rectx2,0.000,242.3,912.5,507.7,936.3,485.0,1206.6,227.2,1167.6,edge/shape 0 size 1.00 idx 0.00 notcard part ev-1
+21,flow fit,0.724,270.8,682.1,529.4,701.9,500.9,1065.1,246.0,1033.9,edge/shape 0.76 paper 0.97 ink 0.33 seen 1.00 size 1.00 idx 0.20 ev2
+21,doc,0.031,236.8,598.8,528.7,709.5,500.8,1065.1,236.8,1032.7,edge/shape 0.25 paper 0.65 ink 0.28 seen 1.00 size 1.00 idx 0.02 notcard ev2
+21,doc fit,0.030,298.3,692.7,523.3,778.0,501.1,1065.2,306.4,1041.2,edge/shape 0.54 paper 0.79 ink 0.33 seen 1.00 size 1.00 idx -0.12 notcard ev-1 past03
+21,doc ref,0.702,261.9,681.4,529.6,702.0,500.3,1065.1,245.4,1033.6,edge/shape 0.76 paper 0.96 ink 0.35 seen 1.00 size 1.00 idx 0.18 ev2
+29,flow fit,0.685,283.7,677.6,543.9,697.2,514.0,1059.5,259.9,1027.0,edge/shape 0.74 paper 0.96 ink 0.32 seen 1.00 size 1.00 idx 0.17 ev2
+29,doc,0.021,249.3,587.8,543.7,699.5,514.0,1059.5,249.8,1025.7,edge/shape 0.19 paper 0.65 ink 0.24 seen 1.00 size 0.91 idx 0.05 notcard ev2
+29,doc fit,0.098,328.2,717.7,535.5,796.4,514.4,1059.6,335.4,1036.5,edge/shape 0.53 paper 0.80 ink 0.29 seen 1.00 size 0.95 idx 0.00 notcard part ev-1 past0
+29,doc ref,0.669,276.8,677.1,543.7,697.2,514.3,1059.6,260.3,1026.9,edge/shape 0.72 paper 0.96 ink 0.34 seen 1.00 size 1.00 idx 0.13 ev2
+29,rect,0.023,265.8,899.2,525.1,927.3,514.2,1059.5,258.1,1026.8,edge/shape 0.13 paper 0.89 ink 0.24 seen 1.00 size 0.74 idx 0.00 notcard part ev-1
+29,rect fit,0.013,265.4,905.8,524.5,933.8,514.3,1059.5,258.1,1026.8,edge/shape 0.08 paper 0.86 ink 0.22 seen 1.00 size 0.74 idx 0.00 notcard ev0
+29,rect ref,0.006,266.7,883.8,524.1,939.3,514.2,1059.5,258.1,1026.8,edge/shape 0.04 paper 0.82 ink 0.22 seen 1.00 size 0.75 idx 0.00 notcard part ev-1
+39,flow fit,0.045,249.6,707.0,509.1,722.1,483.4,1037.8,231.1,1005.2,edge/shape 0.36 paper 0.93 ink 0.27 seen 1.00 size 0.95 m 0.20 idx 0.02 notcard ev2
+39,rect,0.580,254.5,658.8,513.4,678.3,484.2,1039.2,232.4,1006.7,edge/shape 0.58 paper 1.00 ink 0.30 seen 1.00 size 1.00 m 0.97 idx 0.22 ev2
+39,rect fit,0.039,246.9,703.7,508.9,724.0,483.2,1037.8,226.3,1004.5,edge/shape 0.32 paper 0.93 ink 0.27 seen 1.00 size 0.95 m 0.22 idx 0.07 notcard ev2
+39,rect ref,0.668,252.2,657.1,513.1,676.5,482.7,1037.7,228.3,1004.8,edge/shape 0.74 paper 0.95 ink 0.31 seen 1.00 size 1.00 m 0.98 idx 0.17 ev2
+39,doc,0.011,220.0,570.0,512.5,679.1,483.4,1037.9,235.0,1005.6,edge/shape 0.19 paper 0.72 ink 0.23 seen 1.00 size 0.91 m 0.61 idx -0.02 notcard ev2
+39,doc fit,0.007,225.5,1004.2,213.1,645.4,506.5,754.7,483.3,1037.9,edge/shape 0.07 paper 0.78 ink 0.30 seen 1.00 size 1.00 m 0.22 idx 0.00 notcard ev2
+39,doc ref,0.665,252.7,656.8,512.9,676.4,482.8,1037.5,231.1,1005.2,edge/shape 0.72 paper 0.96 ink 0.32 seen 1.00 size 1.00 m 0.99 idx 0.12 ev2
+39,rectx2,0.000,230.5,885.0,493.4,929.4,470.5,1161.3,217.4,1138.3,edge/shape 0 size 0.77 m -0.01 idx -0.03 notcard part ev-1
+39,rect,0.001,595.4,874.0,603.6,1228.4,7.0,1316.5,177.6,845.4,edge/shape 0.18 paper 0.48 ink 0.05 seen 0.99 size 0.49 m 0.08 idx 0.00 notcard part ev-1
+39,rect fit,0.000,7.0,1316.5,134.7,964.0,487.3,988.1,493.2,1244.7,edge/shape 0.01 paper 0.57 ink 0.00 seen 0.94 size 0.77 m 0.03 idx 0.00 notcard ev2
+39,rect ref,0.002,629.1,852.4,585.8,1222.9,-15.0,1377.2,180.5,837.4,edge/shape 0.22 paper 0.44 ink 0.04 seen 0.85 size 0.45 m 0.05 ev-1
+49,flow fit,0.041,255.2,711.1,519.6,732.3,493.4,1044.2,237.4,1010.2,edge/shape 0.34 paper 0.93 ink 0.30 seen 1.00 size 0.94 m 0.21 idx 0.05 notcard ev2
+49,ink,0.086,509.4,1046.2,245.7,1011.4,257.8,664.6,471.0,680.7,edge/shape 0.73 paper 0.89 ink 0.36 seen 1.00 size 1.00 m 0.23 idx -0.02 notcard ev2
+49,rect,0.661,262.1,665.0,523.9,684.5,492.8,1044.1,247.8,1011.5,edge/shape 0.70 paper 0.97 ink 0.29 seen 1.00 size 1.00 m 0.97 idx 0.17 ev2
+49,rect fit,0.678,257.9,664.6,523.7,684.7,493.1,1044.1,243.7,1011.0,edge/shape 0.73 paper 0.96 ink 0.31 seen 1.00 size 1.00 m 0.97 idx 0.18 ev2
+49,rect ref,0.695,259.0,664.9,523.6,684.5,493.5,1044.2,244.7,1011.2,edge/shape 0.73 paper 0.97 ink 0.30 seen 1.00 size 1.00 m 0.97 idx 0.17 ev2
+49,doc,0.011,230.0,575.0,523.0,691.2,493.3,1044.1,245.0,1011.2,edge/shape 0.22 paper 0.72 ink 0.23 seen 1.00 size 0.91 m 0.58 idx 0.00 notcard ev2
+49,doc fit,0.012,285.9,695.8,514.8,786.6,493.3,1044.1,297.0,1018.1,edge/shape 0.45 paper 0.78 ink 0.30 seen 1.00 size 0.97 m 0.07 idx -0.15 notcard ev-1 past03
+49,doc ref,0.673,258.8,664.7,523.7,684.5,493.3,1044.2,240.0,1010.5,edge/shape 0.73 paper 0.96 ink 0.32 seen 1.00 size 1.00 m 0.98 idx 0.20 ev2
+49,rect,0.001,240.7,891.4,503.6,922.0,493.4,1044.2,234.3,1009.8,edge/shape 0.05 paper 0.85 ink 0.18 seen 1.00 size 0.76 m 0.08 idx 0.00 notcard ev0
+49,rectx2,0.000,240.7,891.4,504.0,922.0,480.6,1181.0,227.2,1143.1,edge/shape 0 size 0.77 m 0.01 idx -0.03 notcard part ev-1
+54,last,0.004,245.1,1079.2,265.6,737.6,532.4,760.8,501.1,1116.5,edge/shape 0.06 paper 0.66 ink 0.23 seen 1.00 size 1.00 m 0.13 idx -0.02 notcard ev0
+54,last fit,0.035,500.6,1122.7,249.0,1086.3,266.7,790.3,527.5,815.3,edge/shape 0.28 paper 0.94 ink 0.26 seen 1.00 size 0.94 m 0.22 idx 0.02 notcard ev2
+54,match,0.649,265.6,790.3,527.5,815.2,496.4,1169.2,245.1,1132.5,edge/shape 0.68 paper 0.97 ink 0.27 seen 1.00 size 1.00 m 0.98 idx 0.10 ev2
+54,match fit,0.039,523.2,862.8,496.8,1169.2,240.9,1131.9,258.4,838.0,edge/shape 0.33 paper 0.91 ink 0.26 seen 1.00 size 0.94 m 0.19 idx 0.03 notcard ev2
+54,ink,0.001,569.5,1077.4,395.7,1127.2,199.2,835.9,364.1,794.7,edge/shape 0.05 paper 0.61 ink 0.27 seen 1.00 size 1.00 m 0.10 idx 0.03 notcard ev1
+54,doc,0.003,538.5,700.0,496.0,1165.1,229.2,1127.0,230.1,700.0,edge/shape 0.22 paper 0.56 ink 0.16 seen 1.00 size 0.82 m 0.22 idx 0.00 notcard ev2
+54,doc fit,0.005,304.6,1137.8,294.2,841.2,523.5,863.1,496.5,1165.2,edge/shape 0.18 paper 0.84 ink 0.29 seen 1.00 size 0.93 m 0.08 idx -0.17 notcard ev-1
+54,doc ref,0.002,248.6,1129.8,264.0,688.8,539.0,688.8,496.5,1165.2,edge/shape 0.10 paper 0.78 ink 0.16 seen 1.00 size 0.79 m 0.16 idx -0.02 notcard ev0
+54,rect,0.647,267.2,790.3,527.5,815.3,496.2,1170.2,242.5,1131.0,edge/shape 0.68 paper 0.97 ink 0.27 seen 1.00 size 1.00 m 0.99 idx 0.12 ev2
+54,rect fit,0.640,262.9,789.8,527.6,815.4,496.1,1170.2,238.2,1130.4,edge/shape 0.69 paper 0.96 ink 0.28 seen 1.00 size 1.00 m 0.95 idx 0.15 ev2
+54,rect ref,0.642,265.5,790.0,527.8,815.3,496.3,1168.0,245.0,1129.8,edge/shape 0.69 paper 0.96 ink 0.26 seen 1.00 size 1.00 m 0.99 idx 0.10 ev2
+55,last,0.002,245.1,1132.5,265.6,790.3,533.3,815.8,501.6,1169.9,edge/shape 0.03 paper 0.65 ink 0.19 seen 1.00 size 1.00 m 0.14 idx -0.03 notcard ev0
+55,last fit,0.035,499.6,1182.1,248.8,1143.9,266.3,850.7,528.2,878.2,edge/shape 0.29 paper 0.93 ink 0.28 seen 1.00 size 0.94 m 0.23 idx 0.02 notcard ev2
+55,match,0.645,265.5,850.9,527.7,878.1,496.5,1227.9,245.1,1191.2,edge/shape 0.68 paper 0.97 ink 0.29 seen 1.00 size 1.00 m 0.97 idx 0.08 notcard ev2
+55,match fit,0.030,524.1,915.1,496.9,1227.9,240.9,1190.6,258.0,904.0,edge/shape 0.28 paper 0.86 ink 0.24 seen 1.00 size 0.96 m 0.19 idx 0.02 notcard ev2
+55,ink,0.039,317.2,1215.1,244.5,923.7,381.2,851.1,511.7,1144.3,edge/shape 0.40 paper 0.82 ink 0.30 seen 1.00 size 0.97 m 0.11 idx 0.00 notcard part ev-1
+55,doc,0.002,538.2,760.0,496.5,1224.5,229.7,1187.2,229.5,760.0,edge/shape 0.20 paper 0.55 ink 0.17 seen 1.00 size 0.81 m 0.23 idx 0.00 notcard ev2
+55,doc fit,0.004,305.0,1197.7,294.7,901.6,523.4,925.9,496.7,1224.5,edge/shape 0.15 paper 0.84 ink 0.28 seen 1.00 size 0.92 m 0.08 idx -0.13 notcard ev-1
+55,doc ref,0.002,248.7,1189.8,264.1,748.8,539.1,748.8,497.0,1224.6,edge/shape 0.09 paper 0.78 ink 0.17 seen 1.00 size 0.78 m 0.17 idx -0.02 notcard ev0
+55,rect,0.629,264.9,850.9,528.2,878.1,495.2,1229.9,243.2,1189.0,edge/shape 0.68 paper 0.96 ink 0.28 seen 1.00 size 1.00 m 0.97 idx 0.12 ev2
+55,rect fit,0.031,524.3,914.3,496.5,1230.1,243.2,1189.0,261.4,905.5,edge/shape 0.28 paper 0.88 ink 0.26 seen 1.00 size 0.96 m 0.19 idx 0.02 notcard ev2
+55,rect ref,0.630,264.9,850.6,527.7,878.1,496.1,1230.0,243.2,1189.0,edge/shape 0.68 paper 0.96 ink 0.28 seen 1.00 size 1.00 m 0.98 idx 0.08 notcard ev2
+56,last,0.000,245.1,1191.2,265.5,850.9,533.2,878.6,501.9,1228.6,edge/shape 0 size 1.00 m 0.13 idx -0.02 notcard ev0
+56,match,0.636,265.4,910.5,527.8,941.3,496.2,1286.5,245.1,1249.8,edge/shape 0.67 paper 0.97 ink 0.28 seen 1.00 size 1.00 m 0.97 idx 0.12 ev2
+56,match fit,0.000,500.1,1242.6,243.8,1200.5,257.6,968.4,524.7,975.3,edge/shape 0.02 paper 0.81 ink 0.33 seen 1.00 size 0.82 m 0.34 idx -0.03 notcard part ev-1 past2
+56,ink,0.634,266.9,910.9,528.1,941.3,496.0,1281.6,243.5,1246.1,edge/shape 0.67 paper 0.97 ink 0.25 seen 1.00 size 1.00 m 0.96 idx 0.13 ev2
+56,ink part,0.570,265.4,910.5,528.0,940.9,496.2,1287.5,245.1,1244.4,edge/shape 0.53 paper 0.89 ink 0.27 seen 1.00 size 1.00 m 0.99 idx 0.12 ev2
+56,doc,0.002,539.1,820.0,496.9,1279.6,230.4,1242.3,229.3,820.0,edge/shape 0.20 paper 0.56 ink 0.18 seen 1.00 size 0.81 m 0.23 idx 0.00 notcard ev0
+56,doc fit,0.002,295.0,968.1,524.6,976.2,500.0,1242.9,303.5,1209.8,edge/shape 0.28 paper 0.82 ink 0.34 seen 1.00 size 0.82 m 0.10 idx -0.27 notcard part ev-1 past0
+56,doc ref,0.002,540.0,808.9,496.3,1279.5,228.0,1241.9,230.6,808.9,edge/shape 0.17 paper 0.59 ink 0.21 seen 1.00 size 0.78 m 0.22 idx 0.00 notcard ev0
+57,last,0.000,245.1,1249.8,265.4,910.5,533.3,941.9,502.1,1287.3,edge/shape 0 size 1.00 m 0.13 idx -0.02 notcard ev0
+57,last fit,0.004,249.2,1181.1,262.0,967.7,528.6,999.0,507.6,1218.8,edge/shape 0.15 paper 0.84 ink 0.27 seen 1.00 size 0.83 m 0.18 idx -0.03 notcard ev1
+57,match,0.561,265.3,970.9,528.0,1004.2,495.9,1345.1,245.1,1308.5,edge/shape 0.68 paper 0.97 ink 0.30 seen 0.72 size 1.00 m 0.96 ev2
+57,match fit,0.003,262.5,1017.5,523.3,1051.4,508.0,1219.7,252.7,1182.4,edge/shape 0.36 paper 0.81 ink 0.30 seen 1.00 size 0.81 m 0.22 idx -0.22 notcard ev-1 past0
+57,doc,0.010,229.7,1274.6,229.5,880.0,539.8,880.0,501.9,1279.9,edge/shape 0.33 paper 0.46 ink 0.16 seen 1.00 size 0.94 m 0.18 idx 0.00 notcard ev0
+57,doc part,0.002,230.2,1291.8,229.2,880.0,539.2,880.0,501.4,1291.2,edge/shape 0.27 paper 0.47 ink 0.16 seen 1.00 size 0.92 m 0.22 idx 0.00 notcard ev0
+57,doc fit,0.000,296.0,1163.1,304.6,1023.2,523.6,1051.2,512.4,1167.3,edge/shape 0.04 paper 0.75 ink 0.35 seen 1.00 size 0.57 m 0.04 idx 0.07 notcard ev-1 past3
+57,doc ref,0.001,280.7,1273.5,251.2,870.0,541.1,870.0,502.4,1270.2,edge/shape 0.02 paper 0.56 ink 0.19 seen 1.00 size 0.94 m 0.08 idx 0.00 notcard part ev-1
+58,last,0.017,265.4,910.5,539.6,942.7,507.1,1288.1,245.1,1249.8,edge/shape 0.25 paper 0.68 ink 0.16 seen 1.00 size 1.00 m 0.21 idx -0.05 notcard ev0
+58,last fit,0.001,282.2,1209.0,292.6,1034.8,528.2,1067.1,511.2,1242.4,edge/shape 0.22 paper 0.81 ink 0.22 seen 1.00 size 0.67 m 0.16 idx -0.37 notcard ev-1 past3
+58,match,0.569,265.4,1031.3,527.8,1067.0,496.3,1406.9,245.3,1358.9,edge/shape 0.63 paper 0.96 ink 0.30 seen 0.61 size 1.00 m 0.98 ev2
+58,match fit,0.002,258.5,1077.3,523.6,1113.7,507.8,1277.8,248.7,1240.0,edge/shape 0.35 paper 0.78 ink 0.29 seen 1.00 size 0.83 m 0.22 idx -0.23 notcard ev-1 past0
+58,ink,0.001,438.3,1088.7,398.4,1198.4,249.4,1166.7,263.8,1064.2,edge/shape 0.11 paper 0.93 ink 0.27 seen 1.00 size 0.28 m 0.24 idx 0.00 notcard ev0
+59,last,0.000,227.7,1247.3,232.0,906.6,527.8,941.3,496.2,1286.5,edge/shape 0 size 1.00 m 0.08 idx 0.00 notcard ev2
+59,last fit,0.000,294.0,977.2,479.2,998.9,464.4,1160.2,294.0,1131.8,edge/shape 0.13 paper 0.94 ink 0.00 seen 1.00 size 0.34 m 0.16 idx 0.00 notcard ev0 past2
+59,doc,0.001,228.9,1214.8,228.5,995.0,543.6,995.0,512.7,1274.5,edge/shape 0.17 paper 0.36 ink 0.10 seen 1.00 size 0.97 m 0.04 idx 0.00 notcard part ev-1 past3
+59,doc part,0.004,229.3,1399.9,228.5,995.0,539.7,995.0,503.0,1399.8,edge/shape 0.36 paper 0.32 ink 0.15 seen 0.62 size 0.93 m 0.20 ev0
+59,doc fit,0.000,229.1,990.8,471.8,990.8,465.8,1159.2,228.3,1123.5,edge/shape 0.08 paper 0.62 ink 0.00 seen 1.00 size 0.70 m 0.09 idx 0.00 notcard ev0
+59,search,0.569,265.8,1091.9,527.6,1129.8,497.2,1469.3,243.4,1419.0,edge/shape 0.71 paper 0.93 ink 0.27 seen 0.51 size 1.00 m 0.98 ev2
+60,last,0.000,226.8,1247.2,234.6,906.9,527.8,941.3,496.2,1286.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev2
+60,last fit,0.000,293.9,1040.6,482.0,1062.6,467.3,1222.9,293.9,1191.9,edge/shape 0.09 paper 0.93 ink 0.00 seen 1.00 size 0.36 m 0.18 idx 0.00 notcard ev0 past2
+60,rect,0.000,110.8,395.7,128.0,606.3,11.3,707.2,10.2,309.8,edge/shape 0 size 0.95 m 0.04 ev-1
+60,rect fit,0.000,109.2,393.4,130.1,606.6,11.3,705.8,10.2,310.6,edge/shape 0 size 0.95 m 0.04 ev-1
+61,last,0.000,245.1,1249.8,265.4,910.5,527.8,941.3,496.2,1286.5,edge/shape 0.02 paper 0.79 ink 0.00 seen 1.00 size 1.00 m 0.07 idx 0.00 notcard ev0
+62,last,0.000,496.2,1286.5,245.1,1249.8,265.4,910.5,527.8,941.3,edge/shape 0.01 paper 0.72 ink 0.00 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0
+62,last fit,0.000,502.1,938.3,480.8,1170.4,249.9,1169.4,265.4,910.5,edge/shape 0 size 0.79 m 0.01 idx 0.00 notcard ev0
+63,last,0.000,496.2,1286.5,245.1,1249.8,265.4,910.5,527.8,941.3,edge/shape 0 size 1.00 m -0.14 idx 0.00 notcard ev0
+63,last fit,0.000,527.8,941.3,499.8,1246.5,247.5,1209.7,265.4,910.5,edge/shape 0 size 0.96 m -0.01 idx 0.00 notcard ev0
+64,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+65,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+66,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+67,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+68,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+69,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+69,rect,0.000,113.5,402.6,125.6,607.4,11.4,706.6,12.9,302.6,edge/shape 0 size 0.94 m 0.01 ev1
+69,rect fit,0.000,115.9,398.4,123.1,614.8,11.4,703.7,12.9,308.0,edge/shape 0 size 0.95 m 0.02 ev-1
+70,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+70,rect,0.000,117.7,404.8,120.9,611.8,11.4,706.9,12.9,304.4,edge/shape 0 size 0.94 m 0.02 ev-1
+70,rect fit,0.000,123.7,405.9,115.5,619.8,11.4,704.6,12.9,307.4,edge/shape 0 size 0.95 m 0.03 ev-1
+71,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+72,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+73,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+73,rect fit,0.000,116.9,393.9,122.0,614.9,11.7,704.1,10.4,307.2,edge/shape 0 size 0.95 m 0.03 ev0
+74,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+75,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+75,rect part,0.000,72.5,1058.7,122.5,1267.9,-177.7,1255.3,-225.8,1094.5,edge/shape 0 size 0.94 m -1.00 ev0
+75,rectx2,0.000,160.6,1048.1,193.0,1270.8,51.9,1264.9,-15.6,1069.3,edge/shape 0 size 0.60 m 0.12 idx 0.00 notcard ev0
+76,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+77,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+78,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+79,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+79,rect,0.000,119.8,400.0,119.1,613.1,11.2,706.5,11.4,299.8,edge/shape 0 size 0.93 m 0.02 ev0
+79,rect fit,0.000,120.6,396.7,117.6,619.2,11.2,703.6,11.4,302.7,edge/shape 0 size 0.94 m 0.02 ev0
+80,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+81,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+82,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+83,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+84,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+85,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+86,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+87,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+88,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.01 idx 0.00 notcard ev0
+89,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+90,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+90,rect,0.000,106.7,375.6,131.6,593.4,12.7,708.9,10.4,297.1,edge/shape 0 size 0.92 m 0.02 ev0
+90,rect part,0.000,105.9,368.3,132.7,602.8,-21.6,731.6,-43.1,263.5,edge/shape 0.11 paper 0.06 ink 0.00 seen 0.62 size 0.78 m -0.03 ev0
+91,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+92,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+93,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+94,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+95,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+96,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+97,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+98,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+98,rect,0.000,123.2,393.0,115.3,616.5,11.5,704.8,12.3,289.3,edge/shape 0 size 0.91 m 0.02 ev0
+98,rect ref,0.000,130.0,601.5,11.5,705.6,12.3,283.7,110.6,387.6,edge/shape 0 size 0.90 m 0.01 ev-1
+99,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+100,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+101,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+102,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+103,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+104,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+105,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+106,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+107,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+107,rect,0.000,607.7,1149.0,707.7,1103.8,705.1,1224.0,624.1,1225.4,edge/shape 0 size 0.04 m -1.00 idx 0.00 notcard ev0
+107,rect ref,0.000,607.7,1149.0,707.7,1103.8,705.1,1224.0,624.1,1225.4,edge/shape 0 size 0.04 m -1.00 idx 0.00 notcard ev0
+107,rectx2,0.000,591.3,1072.7,710.3,983.5,705.1,1224.0,624.1,1225.4,edge/shape 0 size 0.69 m -1.00 idx 0.00 notcard ev0
+108,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+109,last,0.000,527.8,941.3,496.2,1286.5,245.1,1249.8,265.4,910.5,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+109,last fit,0.000,528.3,935.6,496.2,1286.5,245.1,1249.8,265.8,904.8,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+109,doc,0.008,720.0,5.0,720.0,335.0,210.0,370.0,180.0,5.0,edge/shape 0.42 paper 0.85 ink 0.27 seen 1.00 size 0.58 m 0.13 idx 0.00 notcard ev1
+109,doc part,0.010,725.4,5.0,754.1,332.7,210.0,370.0,180.0,5.0,edge/shape 0.53 paper 0.87 ink 0.26 seen 0.89 size 0.57 m 0.12 idx 0.00 notcard ev1
+109,doc fit,0.001,685.0,63.0,685.0,337.4,201.3,370.6,176.0,63.0,edge/shape 0.12 paper 0.75 ink 0.25 seen 1.00 size 0.66 m 0.08 idx 0.00 notcard part ev-1 past0
+109,doc ref,0.001,738.5,-11.8,689.5,337.1,203.4,370.4,181.8,106.5,edge/shape 0.07 paper 0.80 ink 0.19 seen 1.00 size 0.50 m 0.14 idx 0.00 notcard ev0
+109,corner,0.584,164.0,-485.1,748.5,-556.9,776.9,332.6,200.9,374.2,edge/shape 0.79 paper 1.00 ink 0.34 seen 0.35 size 0.08 m 0.99 ev0
+110,ink part,0.000,114.7,-319.1,450.0,-335.0,509.5,88.4,203.6,99.1,edge/shape 0 size 0.88 m -1.00 ev1
+110,ink part,0.013,203.6,99.1,158.0,-115.3,479.0,-128.7,509.5,88.4,edge/shape 0.25 paper 0.68 ink 0.39 seen 0.46 size 0.98 m 0.15 ev-1
+111,doc,0.001,720.0,5.0,695.0,445.0,140.0,480.0,190.0,5.0,edge/shape 0.07 paper 0.76 ink 0.25 seen 1.00 size 0.54 m 0.12 idx -0.02 notcard part ev-1
+111,doc part,0.003,190.0,5.0,857.1,5.0,805.8,438.0,140.0,480.0,edge/shape 0.19 paper 0.66 ink 0.21 seen 0.70 size 0.30 m -0.02 ev-1
+111,doc fit,0.000,710.1,20.3,685.9,445.6,195.0,476.5,243.0,20.3,edge/shape 0.05 paper 0.78 ink 0.25 seen 1.00 size 0.71 m 0.05 idx 0.03 notcard part ev-1 past2
+111,doc ref,0.007,703.6,444.5,142.1,479.9,101.1,88.6,697.6,-16.6,edge/shape 0.57 paper 0.80 ink 0.22 seen 1.00 size 0.42 m 0.19 idx -0.08 notcard ev1
+111,docx2,0.000,-340.0,5.0,720.0,5.0,695.0,445.0,-415.0,515.0,edge/shape 0.01 paper 0.72 ink 0.22 seen 0.59 size 0.02 m 0.03 ev-1
+111,rect,0.009,105.3,71.0,690.1,71.8,693.9,439.9,141.4,475.4,edge/shape 0.51 paper 0.93 ink 0.25 seen 1.00 size 0.47 m 0.23 idx 0.03 notcard ev1
+111,rect part,0.008,105.3,71.0,695.9,71.8,730.9,437.5,141.4,475.4,edge/shape 0.45 paper 0.91 ink 0.26 seen 1.00 size 0.45 m 0.20 idx 0.03 notcard ev1
+111,rect fit,0.007,94.0,51.6,699.4,52.4,703.4,445.8,132.5,482.4,edge/shape 0.46 paper 0.88 ink 0.23 seen 1.00 size 0.42 m 0.18 idx 0.02 notcard part ev-1
+111,rect ref,0.009,693.9,439.9,134.3,475.8,97.9,68.6,689.2,-13.6,edge/shape 0.61 paper 0.88 ink 0.27 seen 1.00 size 0.44 m 0.15 idx -0.05 notcard ev1
+111,rectx2,0.006,69.1,-333.4,686.3,-296.4,693.9,439.9,141.4,475.4,edge/shape 0.43 paper 0.95 ink 0.33 seen 0.55 size 0.13 m 0.31 ev2
+111,rect,0.001,705.5,72.0,707.5,453.6,127.0,490.1,96.7,128.0,edge/shape 0.22 paper 0.93 ink 0.23 seen 1.00 size 0.41 m 0.16 idx 0.00 notcard ev2 past3
+111,rect ref,0.003,103.0,113.4,698.0,58.6,700.0,449.4,134.0,485.0,edge/shape 0.59 paper 0.93 ink 0.26 seen 1.00 size 0.44 m 0.19 idx 0.00 notcard ev2 past0
+111,rectx2,0.003,703.6,-309.6,707.5,453.6,127.0,490.1,66.5,-234.1,edge/shape 0.18 paper 0.89 ink 0.26 seen 0.57 size 0.18 m 0.22 ev2
+111,rectx2,0.000,703.6,-309.6,707.5,453.6,-453.5,526.6,-570.6,-158.5,edge/shape 0.12 paper 0.88 ink 0.17 seen 0.31 size 0.01 m 0.16 ev0
+112,flow fit,0.003,108.4,-360.7,654.6,-420.1,662.2,501.4,182.4,530.7,edge/shape 0.47 paper 0.88 ink 0.30 seen 0.54 size 0.07 m 0.47 ev-1
+112,ink,0.000,401.2,154.2,281.2,95.7,331.4,-7.2,451.4,41.3,edge/shape 0.13 paper 0.79 ink 0.68 seen 1.00 size 0.08 m 0.22 idx -0.52 notcard part ev-1 past0
+112,doc,0.000,720.0,5.0,660.0,500.0,110.0,530.0,150.0,5.0,edge/shape 0.03 paper 0.70 ink 0.23 seen 1.00 size 0.50 m 0.11 idx 0.05 notcard part ev-1
+112,doc fit,0.001,568.5,90.4,517.9,507.7,166.4,526.9,199.7,90.4,edge/shape 0.15 paper 0.69 ink 0.29 seen 1.00 size 0.86 m 0.13 idx -0.03 notcard ev0 past3
+112,doc ref,0.002,666.7,499.6,101.8,530.4,62.7,135.0,658.2,51.3,edge/shape 0.54 paper 0.84 ink 0.24 seen 1.00 size 0.43 m 0.17 idx -0.07 notcard ev1 past2
+112,docx2,0.000,-420.0,5.0,720.0,5.0,660.0,500.0,-440.0,560.0,edge/shape 0.00 paper 0.62 ink 0.23 seen 0.56 size 0.02 m 0.03 ev-1
+112,rect,0.003,71.6,154.3,653.9,139.4,657.4,496.9,106.1,530.2,edge/shape 0.54 paper 0.94 ink 0.23 seen 1.00 size 0.47 m 0.21 idx 0.03 notcard ev2 past0
+112,rect fit,0.001,68.3,221.7,664.0,206.5,666.9,502.4,97.2,536.9,edge/shape 0.09 paper 0.89 ink 0.21 seen 1.00 size 0.44 m 0.06 idx 0.00 notcard part ev-1
+112,rect ref,0.002,657.4,496.9,99.0,530.6,63.2,140.2,652.9,41.9,edge/shape 0.58 paper 0.85 ink 0.26 seen 1.00 size 0.44 m 0.17 idx -0.15 notcard part ev-1 past2
+112,rect,0.001,669.0,139.5,671.4,510.6,93.8,544.9,60.1,182.4,edge/shape 0.24 paper 0.94 ink 0.22 seen 1.00 size 0.41 m 0.15 idx 0.00 notcard ev2 past3
+112,rect fit,0.003,68.3,163.4,659.0,121.8,661.5,505.1,103.2,538.3,edge/shape 0.58 paper 0.91 ink 0.24 seen 1.00 size 0.45 m 0.20 idx 0.00 notcard ev2 past0
+112,rect ref,0.002,62.2,124.3,653.8,72.5,656.6,506.9,100.8,539.9,edge/shape 0.56 paper 0.84 ink 0.20 seen 1.00 size 0.45 m 0.18 idx -0.03 notcard part ev-1 past0
+112,rectx2,0.003,666.6,-231.7,671.4,510.6,93.8,544.9,26.4,-180.1,edge/shape 0.14 paper 0.86 ink 0.25 seen 0.64 size 0.20 m 0.19 ev2
+113,flow entry,0.003,628.6,556.9,-27.9,594.0,-35.7,-291.1,618.1,-361.4,edge/shape 0.47 paper 0.66 ink 0.26 seen 0.59 size 0.07 m 0.54 ev2
+113,flow fit,0.001,622.1,-14.0,628.6,556.9,70.4,588.4,21.3,50.6,edge/shape 0.09 paper 0.79 ink 0.27 seen 1.00 size 0.42 m 0.17 idx -0.07 notcard ev2
+113,doc,0.000,720.0,5.0,625.0,560.0,70.0,585.0,5.0,5.0,edge/shape 0.05 paper 0.65 ink 0.22 seen 1.00 size 0.23 m 0.23 idx -0.03 notcard ev0
+113,doc part,0.000,720.0,5.0,625.0,560.0,-160.6,595.4,-66.4,5.0,edge/shape 0.04 paper 0.60 ink 0.21 seen 0.71 size 0.16 m 0.07 ev1
+113,doc fit,0.001,70.0,585.0,8.2,33.7,629.2,33.7,538.4,563.9,edge/shape 0.10 paper 0.81 ink 0.29 seen 1.00 size 0.39 m 0.15 idx -0.02 notcard ev0
+113,doc ref,0.001,612.3,-30.1,635.9,559.5,70.0,585.0,10.5,54.5,edge/shape 0.07 paper 0.78 ink 0.29 seen 1.00 size 0.42 m 0.17 idx -0.08 notcard ev2
+113,rect,0.001,628.0,-69.3,637.9,566.3,59.6,598.8,23.9,231.4,edge/shape 0.13 paper 0.81 ink 0.24 seen 0.99 size 0.29 m 0.04 idx -0.31 notcard part ev-1
+113,rect ref,0.005,620.0,-78.3,629.9,560.5,66.8,592.1,32.6,240.1,edge/shape 0.50 paper 0.83 ink 0.24 seen 0.96 size 0.30 m 0.04 idx -0.32 notcard part ev-1
+113,rectx2,0.000,23.9,231.4,628.0,-69.3,647.7,1201.9,95.3,966.2,edge/shape 0.03 paper 0.42 ink 0.10 seen 1.00 size 0.01 m 0.05 idx 0.00 notcard ev0 past0
+119,flow part,0.578,522.0,700.3,-29.0,726.0,-126.3,-138.4,500.8,-192.0,edge/shape 0.88 paper 0.97 ink 0.31 seen 0.45 size 0.08 m 0.99 ev2
+119,flow fit,0.003,-25.9,-135.6,518.1,-183.7,542.3,709.1,64.2,732.4,edge/shape 0.37 paper 0.80 ink 0.32 seen 0.69 size 0.08 m 0.45 ev-1
+119,rect,0.000,646.8,395.8,541.2,416.5,544.4,285.5,630.5,299.6,edge/shape 0.03 paper 0.00 ink 0.00 seen 1.00 size 0.07 m -0.07 idx 0.00 notcard ev0
+119,rect ref,0.000,646.8,395.8,541.2,416.5,544.4,285.5,630.5,299.6,edge/shape 0.03 paper 0.00 ink 0.00 seen 1.00 size 0.07 m -0.07 idx 0.00 notcard ev0
+119,rectx2,0.000,631.8,306.9,663.1,492.1,537.8,547.6,531.2,292.3,edge/shape 0 size 0.77 m 0.02 idx 0.00 notcard ev0
+119,rectx2,0.000,646.8,395.8,435.6,437.1,458.2,271.4,630.5,299.6,edge/shape 0.01 paper 0.40 ink 0.00 seen 1.00 size 0.53 m -0.00 idx 0.00 notcard ev0 past1
+119,rectx2,0.000,537.8,547.6,531.0,283.3,716.7,313.7,788.2,436.7,edge/shape 0 size 0.86 m 0.05 ev0
+119,rectx2,0.000,413.0,602.9,458.2,271.4,630.5,299.6,663.1,492.1,edge/shape 0.01 paper 0.34 ink 0.01 seen 1.00 size 1.00 m -0.02 idx 0.00 notcard ev2
+129,flow part,0.574,536.9,694.6,-20.0,722.6,-112.1,-147.6,516.5,-187.5,edge/shape 0.89 paper 0.97 ink 0.32 seen 0.45 size 0.09 m 0.99 ev2
+129,flow fit,0.001,-1.8,-144.5,532.4,-177.2,556.4,703.4,83.4,728.1,edge/shape 0.36 paper 0.85 ink 0.32 seen 0.69 size 0.09 m 0.41 ev-1 past3
+129,ink,0.000,245.4,368.0,148.7,364.9,181.4,243.3,288.7,286.7,edge/shape 0.43 paper 0.69 ink 0.74 seen 1.00 size 0.06 m 0.13 idx -0.38 notcard ev-1 past3
+129,rect,0.000,660.3,406.7,554.1,414.5,555.0,290.6,645.2,286.2,edge/shape 0.01 paper 0.00 ink 0.00 seen 1.00 size 0.05 m -0.10 idx 0.00 notcard ev0
+129,rect ref,0.000,660.3,406.7,554.1,414.5,555.0,290.6,645.2,286.2,edge/shape 0.01 paper 0.00 ink 0.00 seen 1.00 size 0.05 m -0.10 idx 0.00 notcard ev0
+129,rectx2,0.000,766.5,398.9,554.1,414.5,555.0,290.6,735.3,281.7,edge/shape 0.00 paper 0.02 ink 0.00 seen 0.71 size 0.52 m 0.01 ev0
+129,rectx2,0.000,645.2,286.2,660.3,406.7,447.9,422.3,464.9,295.1,edge/shape 0.01 paper 0.40 ink 0.00 seen 1.00 size 0.52 m 0.03 idx 0.00 notcard ev0 past2
+129,rectx2,0.000,704.2,164.5,766.5,398.9,548.4,414.9,541.8,167.0,edge/shape 0.01 paper 0.30 ink 0.00 seen 0.80 size 0.73 m 0.05 ev0
+129,rectx2,0.000,735.3,281.7,797.6,516.1,551.6,538.5,545.0,291.1,edge/shape 0 size 0.73 m -0.00 ev0
+129,rectx2,0.000,430.8,549.4,464.9,295.1,645.2,286.2,675.3,527.2,edge/shape 0.03 paper 0.34 ink 0.00 seen 1.00 size 0.78 m 0.04 idx 0.00 notcard ev2
+129,doc,0.000,5.0,5.0,720.0,5.0,720.0,1280.0,5.0,1235.0,edge/shape 0 size 0.01 m -0.04 idx 0.02 notcard part ev-1
+129,doc ref,0.000,720.0,-20.0,720.0,1280.0,-222.6,1220.7,121.2,21.9,edge/shape 0.01 paper 0.39 ink 0.10 seen 0.84 size 0.01 m 0.08 ev-1
+139,flow part,0.572,506.4,676.2,-58.5,707.1,-146.2,-170.6,481.7,-191.6,edge/shape 0.89 paper 0.97 ink 0.34 seen 0.44 size 0.09 m 0.99 ev2
+139,flow fit,0.008,-50.2,-150.7,479.8,-213.3,509.1,683.4,53.9,708.8,edge/shape 0.37 paper 0.89 ink 0.35 seen 0.69 size 0.09 m 0.58 ev-1
+139,doc,0.000,5.0,5.0,720.0,5.0,720.0,1275.0,5.0,1235.0,edge/shape 0 size 0.01 m -0.02 idx 0.00 notcard part ev-1
+139,doc ref,0.000,720.0,5.0,720.0,1275.0,-111.3,1228.5,104.5,5.0,edge/shape 0.04 paper 0.45 ink 0.11 seen 0.93 size 0.01 m 0.04 ev-1
+149,flow part,0.663,519.5,689.2,-48.2,719.7,-129.5,-158.5,496.2,-166.6,edge/shape 0.89 paper 0.97 ink 0.29 seen 0.46 size 1.00 m 0.99 ev2
+149,flow fit,0.090,-30.7,-134.1,492.9,-175.6,523.8,696.9,61.8,723.7,edge/shape 0.37 paper 0.91 ink 0.34 seen 0.70 size 1.00 m 0.58 ev-1
+149,doc,0.000,720.0,5.0,720.0,1275.0,5.0,1240.0,5.0,5.0,edge/shape 0 size 1.00 m -0.03 idx 0.00 notcard part ev-1
+149,doc entry,0.000,1727.8,1324.3,5.0,1240.0,5.0,5.0,1729.9,5.0,edge/shape 0 size 1.00 m -0.00 ev2
+149,doc ref,0.001,720.0,-61.1,720.0,1275.0,-108.1,1234.5,61.0,31.6,edge/shape 0.04 paper 0.41 ink 0.11 seen 0.91 size 1.00 m 0.03 ev-1
+159,flow part,0.000,-818.1,424.2,309.6,386.0,350.7,1192.8,-772.3,1303.1,edge/shape 0 size 1.00 m -1.00 ev1
+159,flow part,0.647,333.4,1187.0,-254.1,1241.2,-338.7,397.9,294.3,377.8,edge/shape 0.84 paper 0.98 ink 0.28 seen 0.51 size 1.00 m 0.99 ev2
+159,rect,0.000,190.9,392.5,51.0,396.8,44.4,151.1,187.9,126.6,edge/shape 0.81 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+159,rect part,0.001,6.1,398.1,4.1,152.0,188.0,131.2,190.9,392.5,edge/shape 0.37 paper 0.30 ink 0.06 seen 1.00 size 1.00 m 0.03 idx 0.00 notcard part ev-1
+159,rect fit,0.000,195.7,396.6,50.8,401.0,44.5,145.8,192.8,132.6,edge/shape 0.56 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+159,rect ref,0.000,194.5,395.6,51.1,399.9,44.1,146.0,191.6,132.3,edge/shape 0.59 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+159,rect,0.000,382.3,140.5,383.6,401.1,229.4,396.7,231.7,139.5,edge/shape 0.28 paper 0.34 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+159,rect fit,0.000,382.6,138.8,383.3,396.7,229.4,392.3,231.7,141.1,edge/shape 0.35 paper 0.28 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+159,rect ref,0.000,382.7,141.0,383.2,406.4,229.4,391.3,231.7,138.8,edge/shape 0.41 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+168,rect part,0.000,166.9,715.6,167.2,985.2,-20.7,989.5,-20.5,708.3,edge/shape 0.37 paper 0.30 ink 0.00 seen 0.75 size 1.00 m 0.00 ev0 past3
+168,rect part,0.000,166.8,714.0,167.2,969.7,-24.3,975.7,-23.2,744.3,edge/shape 0.05 paper 0.19 ink 0.00 seen 0.74 size 1.00 m -0.01 ev0
+187,rect,0.000,511.9,119.0,614.7,14.5,711.5,295.6,625.2,303.9,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+187,rect fit,0.000,511.9,119.0,619.3,9.9,717.5,295.0,625.2,303.9,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+187,rect ref,0.000,524.9,105.8,615.9,13.4,713.0,295.5,596.1,306.7,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+187,rectx2,0.000,614.7,14.5,711.5,295.6,538.9,312.2,409.1,223.5,edge/shape 0 size 1.00 m 0.25 idx 0.00 notcard ev0
+204,rect,0.000,524.1,75.0,612.5,10.1,713.0,296.9,627.8,306.1,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+204,rect fit,0.000,524.1,75.0,616.6,7.1,718.0,296.4,627.8,306.1,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+204,rectx2,0.000,435.6,139.9,612.5,10.1,713.0,296.9,542.6,315.3,edge/shape 0 size 1.00 m 0.02 idx 0.00 notcard ev0
+234,rect part,0.000,138.2,414.0,102.3,632.8,-35.0,739.4,-8.9,299.7,edge/shape 0.48 paper 0.10 ink 0.00 seen 0.74 size 1.00 m -0.01 ev0
+281,rect,0.000,180.9,774.9,185.3,910.6,61.3,898.5,62.8,778.4,edge/shape 0.84 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+281,rect ref,0.000,184.4,769.0,184.9,921.8,61.2,909.8,62.9,759.6,edge/shape 0.27 paper 0.51 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+282,rect,0.000,232.3,717.9,232.8,871.8,110.1,859.7,109.3,713.5,edge/shape 0.17 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+282,rect fit,0.000,232.2,718.3,233.0,876.8,110.0,864.6,109.6,712.8,edge/shape 0.22 paper 0.50 ink 0.00 seen 1.00 size 1.00 m -0.13 idx 0.00 notcard ev0
+282,rect ref,0.000,232.0,717.9,233.1,873.7,109.7,861.5,110.1,713.7,edge/shape 0.17 paper 0.28 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+283,rect,0.000,281.9,661.8,281.7,825.3,158.4,811.9,159.4,668.6,edge/shape 0.06 paper 0.26 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+283,rect ref,0.000,280.7,661.5,282.4,827.2,158.1,813.8,159.9,669.0,edge/shape 0.06 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+284,ink part,0.002,-10.1,840.6,254.0,866.0,279.3,1095.1,23.5,1031.3,edge/shape 0.10 paper 0.57 ink 0.29 seen 1.00 size 1.00 m -0.08 idx -0.37 notcard ev-1
+284,rect,0.000,172.2,643.6,171.8,769.4,42.8,755.1,42.8,546.0,edge/shape 0.12 paper 0.40 ink 0.10 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard part ev-1 past3
+284,rect part,0.000,6.7,751.1,40.3,544.1,172.2,643.5,171.8,769.4,edge/shape 0.08 paper 0.39 ink 0.16 seen 1.00 size 1.00 m -0.08 idx 0.00 notcard part ev-1 past1
+284,rect fit,0.000,172.2,643.6,171.7,766.6,42.8,752.3,42.8,546.0,edge/shape 0.14 paper 0.19 ink 0.10 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard part ev-1 past3
+284,rect ref,0.003,175.3,637.6,175.3,767.7,42.8,753.0,42.8,564.1,edge/shape 0.52 paper 0.64 ink 0.08 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard part ev-1 past23
+284,rect,0.000,338.1,635.7,337.0,777.7,205.9,764.0,211.9,580.1,edge/shape 0.25 paper 0.57 ink 0.00 seen 1.00 size 1.00 m -0.02 idx 0.00 notcard ev0
+284,rect fit,0.000,335.7,634.7,334.6,783.1,206.3,769.8,210.6,579.6,edge/shape 0.08 paper 0.64 ink 0.00 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0
+284,rect ref,0.000,334.5,643.7,333.4,783.7,205.8,770.5,212.2,555.5,edge/shape 0.52 paper 0.35 ink 0.00 seen 1.00 size 1.00 m -0.03 idx 0.00 notcard ev0
+284,rect,0.000,318.4,602.3,322.6,770.7,207.8,757.6,207.7,643.8,edge/shape 0.15 paper 0.09 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+284,rect fit,0.000,208.1,632.8,318.2,592.9,322.6,770.7,207.0,757.5,edge/shape 0.43 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+284,rect ref,0.000,326.8,607.7,337.3,783.2,207.4,768.3,208.1,621.3,edge/shape 0.06 paper 0.42 ink 0.00 seen 1.00 size 1.00 m -0.13 idx 0.00 notcard ev0
+284,rect ref,0.001,57.3,596.8,171.1,628.7,172.4,765.9,45.6,752.7,edge/shape 0.56 paper 0.36 ink 0.02 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev-1 past0
+285,rect,0.000,378.3,565.9,380.5,735.1,253.0,722.4,252.4,570.6,edge/shape 0.18 paper 0.53 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+285,rect fit,0.000,382.7,735.5,252.3,722.0,253.9,573.4,380.5,568.6,edge/shape 0.10 paper 0.45 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+285,rect ref,0.000,376.7,572.6,378.9,735.2,252.2,721.9,254.0,568.6,edge/shape 0.48 paper 0.38 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+285,rect,0.000,95.6,573.5,215.5,569.4,216.1,719.9,94.7,707.0,edge/shape 0.20 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev2
+285,rect fit,0.000,91.6,575.0,215.6,567.9,216.0,724.5,90.7,711.3,edge/shape 0.25 paper 0.68 ink 0.00 seen 1.00 size 1.00 m -0.08 idx 0.00 notcard ev2 past03
+285,rect ref,0.000,96.3,569.2,216.1,573.2,215.8,721.6,85.7,707.8,edge/shape 0.08 paper 0.44 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev2 past3
+285,rect,0.000,254.9,577.6,368.3,592.6,368.2,733.9,251.5,722.1,edge/shape 0.63 paper 0.06 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+285,rect ref,0.000,379.6,576.2,379.5,735.2,252.9,722.0,252.5,563.9,edge/shape 0.57 paper 0.50 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+285,search,0.642,-120.6,682.8,394.5,736.9,314.6,1576.5,-279.7,1522.5,edge/shape 0.86 paper 1.00 ink 0.30 seen 0.38 size 1.00 m 0.99 ev0
+286,rect,0.000,252.5,542.2,253.1,677.9,129.5,666.0,133.4,530.3,edge/shape 0.26 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+286,rect fit,0.000,252.8,542.8,252.7,677.9,130.0,666.1,132.4,524.9,edge/shape 0.36 paper 0.26 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+286,rect ref,0.000,252.1,536.0,253.0,687.5,129.9,675.7,132.6,533.2,edge/shape 0.14 paper 0.31 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+286,rect,0.000,125.5,677.6,120.6,479.0,254.6,556.5,259.8,692.8,edge/shape 0.34 paper 0.88 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0 past0
+286,rect fit,0.000,254.6,556.5,259.7,690.0,125.5,674.8,120.6,479.0,edge/shape 0.49 paper 0.62 ink 0.00 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0 past2
+286,rect ref,0.000,115.6,500.4,252.4,550.4,257.8,690.4,95.8,672.2,edge/shape 0.07 paper 0.72 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+286,rectx2,0.000,249.4,420.3,259.8,692.8,125.5,677.6,115.7,280.3,edge/shape 0.12 paper 0.57 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0 past2
+286,rect,0.000,409.2,532.9,411.4,700.3,288.7,687.1,288.6,535.6,edge/shape 0.41 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+286,rect fit,0.000,408.9,537.6,411.6,700.4,288.8,687.0,288.5,530.6,edge/shape 0.70 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+286,rect ref,0.000,409.1,539.5,411.6,700.2,287.9,687.2,290.6,528.6,edge/shape 0.78 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+286,rect,0.000,409.5,526.1,411.5,700.2,297.7,688.2,303.1,561.1,edge/shape 0.71 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0
+286,rect ref,0.000,409.0,529.9,411.6,700.3,288.7,687.0,288.7,538.2,edge/shape 0.20 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+287,ink entry,0.006,-91.4,1007.9,-80.9,714.4,319.7,755.6,309.4,1048.5,edge/shape 0.49 paper 0.56 ink 0.29 seen 0.68 size 1.00 m 0.00 ev-1 past13
+287,rect,0.000,280.8,501.5,281.0,656.4,158.9,644.1,159.5,509.9,edge/shape 0.20 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+287,rect fit,0.000,280.9,500.4,280.9,656.5,158.8,643.9,159.6,510.8,edge/shape 0.31 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+287,rect ref,0.000,159.9,515.7,281.0,492.9,280.8,656.3,158.6,644.0,edge/shape 0.79 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+287,rect,0.000,159.4,522.4,276.2,480.3,282.9,656.8,158.8,643.8,edge/shape 0.26 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+287,rect ref,0.000,280.6,500.6,281.0,656.4,158.9,644.0,159.3,509.9,edge/shape 0.23 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+287,rect,0.000,438.2,503.6,438.6,673.1,316.7,660.7,317.1,508.3,edge/shape 0.47 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+287,rect fit,0.000,438.5,503.5,438.4,673.1,316.7,660.6,317.0,508.2,edge/shape 0.45 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+287,rect ref,0.000,438.4,511.0,438.5,673.1,316.7,660.6,317.0,500.3,edge/shape 0.76 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+287,rect,0.000,439.4,673.3,326.6,661.6,328.5,538.6,437.3,468.3,edge/shape 0.13 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.01 idx 0.00 notcard ev0
+287,rect fit,0.000,439.2,673.3,317.8,660.6,319.6,544.4,437.4,468.3,edge/shape 0.04 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0
+287,rect ref,0.000,317.1,521.5,438.5,475.1,441.2,677.6,309.9,665.0,edge/shape 0.51 paper 0.28 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+288,ink,0.002,201.6,734.1,221.4,1017.5,17.1,996.6,48.1,701.9,edge/shape 0.31 paper 0.72 ink 0.40 seen 1.00 size 1.00 m 0.04 idx -0.25 notcard ev-1 past3
+288,ink part,0.000,12.9,996.2,-5.5,685.0,201.7,735.7,221.4,1017.5,edge/shape 0 size 1.00 m 0.03 idx 0.20 ev-1 past1
+288,rect,0.000,300.3,481.3,300.8,637.5,178.6,624.8,180.4,489.5,edge/shape 0.11 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+288,rect fit,0.000,300.1,485.4,301.0,637.5,179.2,624.6,179.2,485.6,edge/shape 0.04 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+288,rect ref,0.000,300.3,480.4,300.8,637.4,178.7,624.8,180.2,490.7,edge/shape 0.20 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+288,rect,0.000,457.9,486.5,458.5,654.3,336.5,640.9,338.4,488.3,edge/shape 0.64 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+288,rect fit,0.000,457.9,485.9,458.5,654.3,336.8,641.1,337.5,485.7,edge/shape 0.68 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+288,rect ref,0.000,457.2,482.4,458.8,654.2,336.0,641.3,339.1,489.4,edge/shape 0.56 paper 0.17 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+288,rect,0.000,334.1,508.8,455.6,438.4,459.4,654.4,332.1,640.5,edge/shape 0.27 paper 0.26 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+288,rect fit,0.000,337.5,506.8,456.7,437.8,459.0,654.3,337.4,641.1,edge/shape 0.29 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev0
+288,rect ref,0.000,337.1,507.1,456.0,438.2,459.3,654.3,337.0,641.1,edge/shape 0.29 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev0
+288,rectx2,0.000,464.9,203.3,464.9,655.0,332.1,640.5,336.3,369.9,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev0
+289,ink,0.004,276.8,622.4,364.0,1117.3,-54.0,1146.5,42.8,597.9,edge/shape 0.18 paper 0.74 ink 0.30 seen 0.91 size 1.00 m 0.04 ev-1 past1
+289,rect,0.000,191.5,485.5,301.5,487.0,301.5,625.0,191.4,613.6,edge/shape 0.08 paper 0.06 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0
+289,rect ref,0.000,312.5,475.8,312.5,626.2,190.8,613.3,192.5,472.4,edge/shape 0.16 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+289,rect,0.000,317.6,455.2,318.1,633.6,187.1,620.7,184.9,483.7,edge/shape 0.56 paper 0.91 ink 0.00 seen 1.00 size 1.00 m -0.15 idx 0.00 notcard ev0
+289,rect fit,0.000,312.2,469.5,312.6,626.3,191.3,613.4,191.5,477.5,edge/shape 0.11 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+289,rect ref,0.000,312.1,467.7,312.6,626.3,190.8,613.3,192.5,479.3,edge/shape 0.22 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+289,rect,0.000,45.2,483.3,143.1,486.4,147.7,604.9,40.9,593.2,edge/shape 0.08 paper 0.00 ink 0.00 seen 1.00 size 1.00 m 0.02 idx 0.00 notcard ev0
+289,rect,0.000,359.2,487.7,460.2,483.2,462.2,637.5,357.6,626.7,edge/shape 0.86 paper 0.01 ink 0.00 seen 1.00 size 1.00 m -1.00 idx 0.00 notcard ev0
+289,rect fit,0.000,470.3,473.1,470.2,642.8,349.2,629.9,349.2,478.6,edge/shape 0.51 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+289,rect ref,0.000,470.3,474.7,470.2,642.8,349.3,630.1,349.1,473.8,edge/shape 0.71 paper 0.20 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+289,rect,0.000,476.2,455.0,476.2,650.0,344.8,637.2,342.8,483.7,edge/shape 0.03 paper 0.64 ink 0.00 seen 1.00 size 1.00 m -0.13 idx 0.00 notcard ev0
+289,rect fit,0.000,470.3,468.3,470.2,642.8,349.2,630.0,349.2,479.3,edge/shape 0.32 paper 0.20 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+289,rect ref,0.000,470.3,468.3,470.2,642.8,349.2,629.9,349.2,479.6,edge/shape 0.30 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+299,flow part,0.641,-7.1,594.5,506.2,649.8,437.4,1482.5,-148.1,1407.7,edge/shape 0.83 paper 1.00 ink 0.30 seen 0.44 size 1.00 m 0.99 ev0
+299,flow fit,0.158,43.3,602.7,497.0,631.7,425.9,1488.7,-60.9,1402.7,edge/shape 0.49 paper 0.92 ink 0.27 seen 0.66 size 1.00 m 0.63 ev1
+299,ink,0.001,208.0,562.2,534.2,1011.0,255.5,1185.1,-146.9,705.6,edge/shape 0.03 paper 0.78 ink 0.26 seen 0.85 size 1.00 m 0.22 ev-1 past02
+299,rect,0.000,177.5,613.8,59.5,601.8,61.8,488.2,172.4,476.2,edge/shape 0.82 paper 0.09 ink 0.00 seen 1.00 size 1.00 m -0.04 idx -0.05 notcard ev2 past12
+299,rect ref,0.000,182.2,617.7,63.3,607.6,70.2,471.4,179.4,482.4,edge/shape 0.64 paper 0.34 ink 0.01 seen 1.00 size 1.00 m -0.08 idx 0.00 notcard ev2 past2
+299,rect,0.000,176.8,496.1,177.4,613.9,11.8,596.8,9.8,414.6,edge/shape 0.14 paper 0.04 ink 0.33 seen 1.00 size 1.00 m -0.02 idx -0.82 notcard ev-1
+299,rect fit,0.000,177.1,496.2,177.3,613.9,11.8,596.8,9.8,414.6,edge/shape 0.14 paper 0.04 ink 0.33 seen 1.00 size 1.00 m -0.02 idx -0.82 notcard ev-1
+299,rect ref,0.000,177.3,496.3,177.2,613.8,11.8,596.8,9.8,414.6,edge/shape 0.14 paper 0.04 ink 0.33 seen 1.00 size 1.00 m -0.02 idx -0.82 notcard ev-1
+299,rectx2,0.000,11.8,596.6,7.8,225.2,168.9,363.1,178.9,614.1,edge/shape 0 size 1.00 m 0.23 idx -0.38 notcard part ev-1
+299,rect,0.000,373.6,485.1,492.9,472.2,493.2,647.2,371.8,634.2,edge/shape 0.33 paper 0.17 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+299,rect fit,0.000,492.9,475.2,493.2,647.0,372.0,634.4,373.3,483.1,edge/shape 0.55 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+299,rect ref,0.000,493.0,478.5,493.1,647.0,371.9,634.4,373.6,480.3,edge/shape 0.72 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+309,flow part,0.607,-33.2,575.6,479.1,629.4,403.5,1464.7,-171.8,1375.3,edge/shape 0.79 paper 1.00 ink 0.32 seen 0.42 size 1.00 m 0.99 ev0
+309,flow fit,0.001,72.5,1148.7,168.2,596.6,480.4,628.9,429.7,1204.4,edge/shape 0.13 paper 0.71 ink 0.21 seen 1.00 size 1.00 m 0.05 idx -0.17 notcard part ev-1 past3
+309,ink,0.006,303.1,1001.6,-19.9,960.2,33.1,582.7,289.4,609.1,edge/shape 0.36 paper 0.60 ink 0.22 seen 1.00 size 1.00 m 0.10 idx 0.00 notcard ev0
+309,rect,0.000,307.3,474.2,307.4,611.0,185.1,598.4,189.1,445.9,edge/shape 0.43 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+309,rect ref,0.000,307.4,463.1,307.4,611.0,185.7,598.4,188.0,454.6,edge/shape 0.40 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect,0.000,306.9,462.4,307.5,610.9,185.7,598.6,188.2,456.2,edge/shape 0.34 paper 0.20 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect fit,0.000,307.0,463.4,307.5,611.0,185.9,598.3,187.7,454.6,edge/shape 0.40 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect ref,0.000,307.0,465.9,307.4,611.0,185.8,598.3,187.9,451.4,edge/shape 0.57 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.08 idx 0.00 notcard ev0
+309,rect,0.000,150.5,594.9,32.3,582.3,32.6,467.8,147.0,456.1,edge/shape 0.63 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.05 idx -0.08 notcard ev2 past12
+309,rect ref,0.000,148.5,457.9,156.3,598.6,38.2,588.5,35.9,479.7,edge/shape 0.26 paper 0.33 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect,0.000,464.1,461.3,464.1,627.2,344.5,614.8,344.3,457.7,edge/shape 0.77 paper 0.20 ink 0.01 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect fit,0.000,463.7,460.4,464.4,627.3,344.3,614.7,344.6,458.5,edge/shape 0.76 paper 0.20 ink 0.01 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+309,rect ref,0.000,463.2,459.2,464.5,627.3,344.4,614.7,344.4,460.2,edge/shape 0.71 paper 0.19 ink 0.01 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+319,flow part,0.585,-22.2,581.7,490.1,637.1,413.6,1475.5,-156.0,1375.4,edge/shape 0.75 paper 1.00 ink 0.35 seen 0.44 size 1.00 m 0.99 ev0
+319,ink,0.022,318.2,999.3,-59.8,1079.6,62.0,591.4,291.3,615.1,edge/shape 0.32 paper 0.69 ink 0.25 seen 0.90 size 1.00 m 0.15 ev1
+319,rect,0.000,319.5,470.0,319.2,618.3,199.0,605.3,200.6,457.4,edge/shape 0.54 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+319,rect fit,0.000,322.4,473.8,321.3,622.4,197.4,610.0,195.4,441.7,edge/shape 0.27 paper 0.36 ink 0.00 seen 1.00 size 1.00 m -0.08 idx 0.00 notcard ev0
+319,rect ref,0.000,318.9,466.2,319.5,618.2,199.3,605.4,199.9,461.9,edge/shape 0.27 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+319,rect,0.000,199.5,480.0,317.4,439.3,320.3,618.3,199.6,605.5,edge/shape 0.43 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+319,rect ref,0.000,200.8,471.8,317.9,454.4,320.0,618.2,199.0,605.5,edge/shape 0.34 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+319,rect,0.000,52.1,477.3,152.7,473.4,155.2,596.2,49.9,586.7,edge/shape 0.46 paper 0.01 ink 0.00 seen 1.00 size 1.00 m 0.00 idx 0.00 notcard ev0
+319,rect ref,0.000,162.5,601.8,44.4,589.9,44.4,470.8,161.3,464.2,edge/shape 0.74 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev2 past12
+319,rect,0.000,476.8,461.1,477.2,634.4,356.1,621.8,358.7,470.6,edge/shape 0.54 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+319,rect fit,0.000,476.8,460.1,477.3,634.5,357.0,621.8,358.1,469.9,edge/shape 0.49 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+319,rect ref,0.000,476.8,460.7,477.2,634.5,356.3,621.8,359.8,467.7,edge/shape 0.70 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+319,rect,0.000,351.4,488.0,479.3,408.8,481.9,635.0,353.1,621.4,edge/shape 0.15 paper 0.28 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0
+319,rect fit,0.000,353.7,486.5,479.3,408.8,481.9,634.9,355.5,621.9,edge/shape 0.19 paper 0.29 ink 0.01 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0
+319,rect ref,0.000,353.2,489.9,477.5,406.7,480.1,634.8,354.9,621.6,edge/shape 0.11 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.06 idx 0.00 notcard ev0
+319,rectx2,0.000,476.7,176.2,481.9,634.9,353.1,621.5,349.6,346.8,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev0
+329,rect,0.000,203.1,883.4,205.2,1039.4,85.4,1020.8,87.7,890.4,edge/shape 0.79 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+329,rect fit,0.000,204.1,882.3,204.7,1039.2,85.8,1021.0,87.2,891.7,edge/shape 0.77 paper 0.23 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+329,rect ref,0.000,203.7,883.7,204.9,1039.3,85.7,1020.9,87.5,889.8,edge/shape 0.79 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+352,rect,0.000,127.2,406.2,110.5,617.6,11.0,706.3,34.4,288.7,edge/shape 0 size 1.00 m 0.04 ev0
+352,rect fit,0.000,126.9,402.2,110.2,620.8,11.1,704.2,34.2,291.1,edge/shape 0 size 1.00 m 0.04 ev0
+352,rect ref,0.000,121.8,393.5,116.7,607.0,10.8,709.3,34.1,292.9,edge/shape 0 size 1.00 m 0.04 ev-1
+361,search,0.600,595.5,329.1,861.7,327.3,855.0,692.8,583.7,684.0,edge/shape 0.80 paper 0.97 ink 0.30 seen 0.49 size 1.00 m 0.97 ev2
+362,flow entry,0.636,536.1,330.7,810.0,325.8,797.1,695.7,523.3,683.9,edge/shape 0.78 paper 0.98 ink 0.32 seen 0.61 size 1.00 m 0.97 ev2
+363,search,0.661,723.6,693.6,457.6,682.2,469.8,328.9,734.3,325.0,edge/shape 0.71 paper 0.96 ink 0.26 seen 1.00 size 1.00 m 0.98 idx 0.13 ev2
+364,ink part,0.001,502.9,463.5,671.7,427.6,725.2,687.3,553.0,699.3,edge/shape 0.10 paper 0.55 ink 0.27 seen 1.00 size 1.00 m 0.09 idx -0.25 notcard part ev-1
+364,doc,0.109,415.0,345.0,680.8,340.0,670.1,699.8,410.0,690.0,edge/shape 0.62 paper 0.97 ink 0.27 seen 1.00 size 1.00 m 0.70 idx 0.07 notcard ev2
+364,doc part,0.110,415.0,345.0,680.6,340.0,670.2,699.8,410.0,690.0,edge/shape 0.62 paper 0.97 ink 0.27 seen 1.00 size 1.00 m 0.70 idx 0.07 notcard ev2
+364,doc fit,0.012,679.2,379.2,670.5,699.8,405.6,689.8,410.0,382.7,edge/shape 0.33 paper 0.91 ink 0.29 seen 1.00 size 1.00 m 0.20 idx 0.00 notcard ev2
+364,doc ref,0.573,419.1,334.3,680.9,330.9,670.6,700.1,404.6,688.7,edge/shape 0.67 paper 0.99 ink 0.26 seen 1.00 size 1.00 m 0.99 idx 0.10 ev2
+364,rect,0.177,426.3,327.0,680.4,342.0,670.6,694.9,409.7,684.3,edge/shape 0.66 paper 1.00 ink 0.28 seen 1.00 size 1.00 m 0.81 idx 0.05 notcard ev2
+364,rect part,0.573,419.1,334.3,680.9,330.8,670.6,700.1,404.6,688.7,edge/shape 0.66 paper 1.00 ink 0.28 seen 1.00 size 1.00 m 0.99 idx 0.10 ev2
+364,rect fit,0.014,416.0,367.9,679.3,383.5,670.4,700.9,401.1,689.8,edge/shape 0.35 paper 0.94 ink 0.28 seen 1.00 size 1.00 m 0.28 idx 0.08 notcard ev2
+364,rect ref,0.573,419.1,334.2,680.9,330.9,670.6,700.0,404.6,688.7,edge/shape 0.72 paper 1.00 ink 0.28 seen 1.00 size 1.00 m 0.99 idx 0.10 ev2
+364,rect,0.003,674.6,567.6,669.7,709.4,396.8,697.0,399.5,570.5,edge/shape 0.08 paper 0.85 ink 0.15 seen 1.00 size 1.00 m 0.07 idx 0.00 notcard ev0
+365,doc,0.003,337.4,239.1,624.9,340.0,613.1,699.9,338.3,689.4,edge/shape 0.12 paper 0.69 ink 0.26 seen 1.00 size 1.00 m 0.46 idx 0.03 notcard ev2
+365,doc fit,0.000,410.0,371.9,621.5,446.1,614.0,700.0,420.7,692.5,edge/shape 0.05 paper 0.80 ink 0.32 seen 1.00 size 1.00 m 0.07 idx -0.05 notcard part ev-1 past0
+365,rect,0.002,618.2,573.4,613.2,710.2,343.0,699.2,345.6,573.1,edge/shape 0.07 paper 0.88 ink 0.16 seen 1.00 size 1.00 m 0.06 idx 0.00 notcard ev0
+365,rect,0.000,263.9,521.2,749.7,739.5,585.3,952.8,246.9,889.1,edge/shape 0.26 paper 0.30 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev0
+365,rect fit,0.000,744.5,748.7,576.1,961.7,339.8,917.3,355.7,573.9,edge/shape 0.19 paper 0.36 ink 0.00 seen 1.00 size 1.00 m -0.00 idx 0.00 notcard ev0
+365,rect ref,0.000,266.7,883.8,229.6,487.8,759.6,748.6,554.2,969.9,edge/shape 0.21 paper 0.34 ink 0.01 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0
+365,rect,0.000,26.2,687.5,331.6,465.5,723.5,856.3,468.3,976.0,edge/shape 0.01 paper 0.57 ink 0.00 seen 1.00 size 1.00 m -0.04 idx 0.00 notcard ev0 past0
+365,rect fit,0.000,26.2,687.5,345.1,455.7,739.3,848.9,468.3,976.0,edge/shape 0.01 paper 0.60 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev1 past0
+365,rect ref,0.000,832.1,843.4,447.0,962.0,26.2,687.5,330.4,466.4,edge/shape 0.05 paper 0.62 ink 0.01 seen 0.93 size 1.00 m -0.04 ev1 past2
+365,rectx2,0.000,213.2,1095.6,-279.2,909.4,331.6,465.5,723.5,856.3,edge/shape 0 size 1.00 m 0.13 ev0 past1
+365,search,0.696,365.7,336.3,624.7,333.1,613.3,702.2,350.1,690.9,edge/shape 0.71 paper 0.99 ink 0.28 seen 1.00 size 1.00 m 0.99 idx 0.13 ev2
+369,rect,0.702,250.2,340.2,503.0,337.1,490.1,706.7,236.3,695.2,edge/shape 0.72 paper 0.99 ink 0.33 seen 1.00 size 1.00 m 0.98 idx 0.18 ev2
+369,rect fit,0.043,240.1,387.2,501.4,383.6,490.2,706.7,228.0,695.0,edge/shape 0.34 paper 0.94 ink 0.30 seen 1.00 size 0.95 m 0.19 idx 0.05 notcard ev2
+369,rect ref,0.053,245.3,387.0,501.4,383.9,490.0,706.7,233.2,695.1,edge/shape 0.43 paper 0.94 ink 0.30 seen 1.00 size 0.95 m 0.20 idx 0.05 notcard ev2
+369,doc,0.006,490.6,706.7,235.0,695.3,225.0,250.0,505.4,254.9,edge/shape 0.25 paper 0.75 ink 0.20 seen 1.00 size 0.90 m 0.23 idx 0.02 notcard ev2
+369,doc fit,0.048,293.6,697.5,286.6,388.0,501.5,382.8,490.0,706.9,edge/shape 0.50 paper 0.82 ink 0.29 seen 1.00 size 0.95 m 0.08 idx -0.05 notcard ev-1
+369,doc ref,0.004,229.5,694.7,250.4,253.8,510.7,240.2,489.9,706.8,edge/shape 0.16 paper 0.79 ink 0.20 seen 1.00 size 0.86 m 0.14 idx 0.00 notcard ev0
+369,rect,0.001,228.4,571.9,494.5,584.0,490.5,706.9,225.6,694.5,edge/shape 0.04 paper 0.85 ink 0.19 seen 1.00 size 0.74 m 0.06 idx 0.00 notcard ev0
+379,flow fit,0.717,260.0,349.1,516.6,345.8,502.8,716.7,245.7,704.6,edge/shape 0.74 paper 0.99 ink 0.36 seen 1.00 size 1.00 m 0.99 idx 0.18 ev2
+379,ink,0.001,428.0,394.5,370.5,504.6,248.1,483.1,257.4,395.1,edge/shape 0.52 paper 0.91 ink 0.34 seen 1.00 size 0.19 m 0.06 idx 0.00 notcard ev1 past03
+379,rect,0.002,458.9,667.1,278.3,660.6,269.8,397.8,468.9,392.3,edge/shape 0.39 paper 0.66 ink 0.34 seen 1.00 size 0.78 m 0.11 idx -0.13 notcard ev-1 past3
+379,rect fit,0.003,310.4,397.4,454.4,392.5,445.4,669.4,318.7,651.8,edge/shape 0.16 paper 0.75 ink 0.34 seen 1.00 size 0.79 m 0.16 idx 0.22 ev-1 past02
+379,rect ref,0.054,258.5,398.2,514.6,391.6,503.1,716.6,247.1,704.9,edge/shape 0.45 paper 0.91 ink 0.31 seen 1.00 size 0.95 m 0.20 idx 0.03 notcard ev2
+379,doc,0.007,235.0,260.0,516.1,353.7,503.1,716.6,250.0,704.9,edge/shape 0.30 paper 0.78 ink 0.29 seen 1.00 size 0.91 m 0.50 idx -0.07 notcard ev2
+379,doc fit,0.019,293.2,336.4,513.8,409.9,503.4,716.8,305.7,707.4,edge/shape 0.53 paper 0.90 ink 0.28 seen 1.00 size 1.00 m 0.12 idx -0.17 notcard ev-1 past3
+379,doc ref,0.020,227.0,291.3,517.8,345.2,491.9,704.0,246.0,705.3,edge/shape 0.19 paper 0.65 ink 0.22 seen 1.00 size 0.86 m 0.83 idx 0.05 notcard ev2
+379,rect,0.003,508.5,553.8,503.5,716.6,249.5,705.1,254.4,561.7,edge/shape 0.38 paper 0.91 ink 0.22 seen 1.00 size 0.67 m 0.13 idx 0.03 notcard ev1 past3
+379,rect fit,0.003,508.8,551.3,503.5,716.6,241.1,704.7,246.1,559.5,edge/shape 0.33 paper 0.93 ink 0.24 seen 1.00 size 0.72 m 0.17 idx 0.03 notcard ev1 past3
+379,rect ref,0.004,255.0,536.8,508.6,564.4,503.0,716.5,243.3,704.9,edge/shape 0.51 paper 0.95 ink 0.26 seen 1.00 size 0.70 m 0.21 idx 0.03 notcard ev2 past0
+379,rect,0.001,241.8,580.6,507.3,596.4,503.3,716.6,239.2,704.6,edge/shape 0.03 paper 0.84 ink 0.20 seen 1.00 size 0.74 m 0.05 idx 0.00 notcard ev0
+389,flow fit,0.705,228.7,326.2,487.3,323.6,473.8,694.9,215.2,683.8,edge/shape 0.76 paper 0.96 ink 0.34 seen 1.00 size 1.00 m 0.98 idx 0.18 ev2
+389,rect,0.730,232.9,327.8,488.0,325.3,474.4,696.2,219.3,685.8,edge/shape 0.75 paper 0.99 ink 0.33 seen 1.00 size 1.00 m 0.99 idx 0.20 ev2
+389,rect fit,0.041,221.8,373.6,484.3,371.3,472.6,695.0,214.3,683.6,edge/shape 0.35 paper 0.91 ink 0.28 seen 1.00 size 0.95 m 0.18 idx 0.02 notcard ev2
+389,rect ref,0.706,232.9,327.8,488.0,325.3,474.4,696.2,219.3,685.8,edge/shape 0.76 paper 0.96 ink 0.34 seen 1.00 size 1.00 m 0.99 idx 0.20 ev2
+389,doc,0.003,203.7,232.9,490.0,330.0,475.0,694.9,203.9,683.4,edge/shape 0.19 paper 0.66 ink 0.26 seen 1.00 size 0.90 m 0.45 idx 0.05 notcard ev2
+389,doc fit,0.002,268.4,384.0,482.3,456.6,473.5,694.9,275.1,686.4,edge/shape 0.08 paper 0.81 ink 0.32 seen 1.00 size 0.89 m 0.02 idx -0.20 notcard ev-1
+389,doc ref,0.042,232.7,306.4,484.9,392.0,473.5,694.8,214.7,683.9,edge/shape 0.31 paper 0.95 ink 0.29 seen 1.00 size 1.00 m 0.38 idx 0.08 notcard ev-1
+389,rectx2,0.000,214.6,558.4,478.4,581.6,466.9,822.5,208.1,822.6,edge/shape 0 size 0.73 m -0.01 idx -0.05 notcard part ev-1
+399,flow fit,0.728,469.4,695.8,217.8,684.6,227.2,326.1,486.4,323.7,edge/shape 0.79 paper 0.96 ink 0.33 seen 1.00 size 1.00 m 0.98 idx 0.13 ev2
+399,rect,0.012,232.3,339.7,614.3,255.0,467.7,694.6,229.9,684.3,edge/shape 0.14 paper 0.82 ink 0.22 seen 1.00 size 0.88 m 0.18 idx 0.15 ev2
+399,rect fit,0.009,383.7,697.7,224.6,690.8,226.6,403.0,502.4,341.9,edge/shape 0.27 paper 0.86 ink 0.29 seen 1.00 size 1.00 m 0.10 idx -0.13 notcard part ev-1 past2
+399,rect ref,0.726,469.4,695.8,217.8,684.6,227.2,326.1,486.4,323.7,edge/shape 0.78 paper 0.96 ink 0.28 seen 1.00 size 1.00 m 0.98 idx 0.13 ev2
+399,rectx2,0.001,705.5,704.9,229.9,684.3,232.3,339.7,996.3,170.3,edge/shape 0.05 paper 0.69 ink 0.13 seen 0.68 size 0.22 m 0.16 ev0
+399,doc,0.004,504.2,240.0,503.9,700.9,205.3,689.2,205.4,240.0,edge/shape 0.43 paper 0.50 ink 0.16 seen 1.00 size 0.89 m 0.17 idx 0.00 notcard ev0
+399,doc fit,0.038,256.5,335.9,486.7,308.4,470.4,695.2,264.9,687.9,edge/shape 0.31 paper 0.90 ink 0.39 seen 1.00 size 1.00 m 0.65 idx 0.12 ev-1
+399,doc ref,0.003,204.1,689.2,205.8,228.8,503.5,239.2,505.8,701.0,edge/shape 0.38 paper 0.46 ink 0.17 seen 1.00 size 0.88 m 0.17 idx 0.00 notcard ev0
+399,rect,0.000,481.5,582.2,476.1,705.7,215.3,694.6,217.0,562.9,edge/shape 0 size 0.72 m 0.00 idx 0.00 notcard ev0
+399,rectx2,0.000,487.2,582.6,477.7,829.3,-50.5,823.2,-53.2,543.2,edge/shape 0.00 paper 0.37 ink 0.14 seen 0.75 size 0.68 m -0.01 ev1
+405,last,0.000,208.2,771.2,215.1,413.7,511.2,416.2,511.7,786.9,edge/shape 0 size 1.00 m 0.19 idx 0.00 notcard ev0 past3
+405,last fit,0.529,471.9,837.8,224.2,825.3,230.6,467.4,494.0,471.9,edge/shape 0.09 paper 0.71 ink 0.26 seen 1.00 size 0.94 m 0.96 idx 0.07 notcard ev2
+405,match,0.692,241.3,472.6,499.5,474.8,481.4,844.0,230.4,831.0,edge/shape 0.71 paper 0.99 ink 0.26 seen 1.00 size 1.00 m 0.96 idx 0.13 ev2
+405,match fit,0.687,477.2,843.8,226.2,830.8,237.1,472.6,495.3,474.8,edge/shape 0.74 paper 0.96 ink 0.27 seen 1.00 size 1.00 m 0.96 idx 0.13 ev2
+405,doc,0.004,510.7,385.0,513.2,846.7,213.1,829.0,211.4,385.0,edge/shape 0.46 paper 0.49 ink 0.18 seen 1.00 size 0.87 m 0.21 idx 0.00 notcard ev0
+405,doc fit,0.048,261.6,831.9,254.6,523.6,498.8,527.6,485.0,845.0,edge/shape 0.49 paper 0.84 ink 0.23 seen 1.00 size 0.94 m 0.11 idx -0.03 notcard ev2
+405,doc ref,0.000,192.1,373.7,498.7,373.7,478.3,844.6,283.8,833.2,edge/shape 0.02 paper 0.70 ink 0.21 seen 1.00 size 0.85 m 0.48 idx -0.18 notcard ev-1
+405,rect,0.000,496.4,738.3,488.8,854.8,222.4,838.2,222.4,707.4,edge/shape 0.01 paper 0.89 ink 0.16 seen 1.00 size 0.79 m -0.01 idx 0.00 notcard ev0
+405,rectx2,0.000,222.4,707.4,496.4,738.3,481.2,971.3,222.5,968.9,edge/shape 0 size 0.79 m -0.03 idx 0.00 notcard ev0
+405,rectx2,0.000,496.4,738.3,481.2,971.3,-36.3,966.6,-51.6,676.5,edge/shape 0.00 paper 0.45 ink 0.03 seen 0.75 size 0.64 m 0.01 idx -0.02 notcard ev2
+405,rect,0.000,517.3,356.6,521.7,1034.9,216.4,1172.9,49.8,657.1,edge/shape 0.07 paper 0.54 ink 0.07 seen 1.00 size 0.36 m 0.09 idx 0.00 notcard ev0
+405,rect fit,0.000,451.1,447.6,455.1,1065.0,223.2,1169.8,69.2,693.0,edge/shape 0.00 paper 0.57 ink 0.08 seen 1.00 size 0.48 m 0.02 idx 0.00 notcard part ev-1
+405,rect ref,0.001,502.2,440.9,462.7,1064.7,134.7,1136.3,-42.3,647.0,edge/shape 0.05 paper 0.75 ink 0.09 seen 1.00 size 0.46 m 0.04 idx -0.08 notcard part ev-1
+405,rectx2,0.000,49.8,657.1,984.7,56.2,827.0,897.0,216.4,1172.9,edge/shape 0.00 paper 0.56 ink 0.04 seen 0.68 size 0.03 m 0.15 ev0
+405,rectx2,0.000,521.7,1034.9,-88.9,1310.9,-417.6,957.5,517.3,356.6,edge/shape 0.03 paper 0.74 ink 0.06 seen 0.62 size 0.03 m 0.01 ev2
+406,last,0.000,207.5,829.8,215.4,472.4,511.3,474.9,511.7,845.5,edge/shape 0.12 paper 0.30 ink 0.17 seen 1.00 size 1.00 m 0.15 idx 0.00 notcard ev0 past3
+406,last fit,0.039,259.5,853.5,268.8,545.7,500.2,547.6,484.5,867.2,edge/shape 0.41 paper 0.81 ink 0.25 seen 1.00 size 0.94 m 0.17 idx -0.13 notcard part ev-1
+406,match,0.653,240.9,544.7,500.6,551.2,484.3,916.7,230.4,900.0,edge/shape 0.67 paper 0.99 ink 0.26 seen 1.00 size 1.00 m 0.97 idx 0.07 notcard ev2
+406,match fit,0.534,240.9,544.7,500.6,551.2,484.3,916.7,230.4,899.9,edge/shape 0.43 paper 0.88 ink 0.28 seen 1.00 size 1.00 m 0.97 idx 0.07 notcard ev2
+406,ink,0.003,406.8,600.0,388.6,703.2,211.8,690.9,212.1,586.6,edge/shape 0.48 paper 0.69 ink 0.25 seen 1.00 size 0.32 m 0.16 idx 0.00 notcard ev0
+406,doc,0.005,210.5,898.9,212.8,455.0,510.6,455.0,513.4,916.7,edge/shape 0.49 paper 0.50 ink 0.16 seen 1.00 size 0.87 m 0.21 idx 0.00 notcard ev0
+406,doc fit,0.049,261.9,901.9,251.8,602.6,499.3,586.3,485.0,915.0,edge/shape 0.49 paper 0.84 ink 0.26 seen 1.00 size 0.96 m 0.12 idx 0.00 notcard ev0
+406,doc ref,0.004,210.0,898.8,212.8,448.7,511.9,438.2,510.7,916.5,edge/shape 0.39 paper 0.55 ink 0.15 seen 1.00 size 0.83 m 0.24 idx 0.00 notcard ev0
+407,last,0.001,206.3,918.3,215.5,544.0,512.0,551.5,513.3,939.3,edge/shape 0.06 paper 0.34 ink 0.18 seen 1.00 size 0.99 m 0.20 idx 0.00 notcard ev0
+407,last fit,0.001,267.2,670.4,495.8,658.8,483.4,937.0,259.8,922.5,edge/shape 0.11 paper 0.78 ink 0.30 seen 1.00 size 0.81 m 0.22 idx -0.20 notcard ev-1 past2
+407,match,0.665,240.9,614.0,500.6,620.5,484.3,986.0,230.4,969.3,edge/shape 0.68 paper 0.99 ink 0.27 seen 1.00 size 1.00 m 0.97 idx 0.03 notcard ev2
+407,match fit,0.043,264.9,672.1,490.4,656.5,476.0,979.4,256.3,965.0,edge/shape 0.47 paper 0.80 ink 0.29 seen 1.00 size 0.96 m 0.24 idx -0.03 notcard ev2
+407,doc,0.004,208.8,968.8,212.2,519.9,511.6,525.0,514.2,986.7,edge/shape 0.50 paper 0.45 ink 0.18 seen 1.00 size 0.86 m 0.22 idx 0.00 notcard ev0
+407,doc fit,0.071,254.4,620.3,495.0,606.8,480.6,984.8,262.4,966.2,edge/shape 0.12 paper 0.91 ink 0.29 seen 1.00 size 1.00 m 0.75 idx -0.03 notcard ev-1
+407,doc ref,0.002,263.1,971.9,268.9,519.4,512.5,515.1,511.7,986.6,edge/shape 0.13 paper 0.57 ink 0.19 seen 1.00 size 0.84 m 0.05 idx 0.00 notcard ev0
+407,docx2,0.001,511.5,525.0,514.3,986.7,-25.0,955.0,-70.0,515.0,edge/shape 0.16 paper 0.56 ink 0.18 seen 0.74 size 0.55 m 0.05 ev0 past3
+407,rect,0.674,240.8,614.5,500.7,623.2,484.2,986.6,230.5,968.0,edge/shape 0.68 paper 1.00 ink 0.27 seen 1.00 size 0.99 m 0.97 idx 0.07 notcard ev2
+407,rect fit,0.049,267.6,664.0,493.8,671.3,480.6,987.3,258.8,969.0,edge/shape 0.51 paper 0.82 ink 0.26 seen 1.00 size 0.94 m 0.16 idx -0.05 notcard ev2
+407,rect ref,0.030,493.1,659.2,479.5,985.8,274.6,968.8,227.4,646.9,edge/shape 0.23 paper 0.94 ink 0.27 seen 1.00 size 0.97 m 0.16 idx -0.05 notcard ev2
+407,rect,0.001,498.5,858.3,487.5,994.5,222.0,975.2,223.3,832.3,edge/shape 0.04 paper 0.86 ink 0.18 seen 1.00 size 0.80 m 0.01 idx 0.00 notcard part ev-1
+407,rect ref,0.001,230.3,817.1,490.7,869.7,481.3,987.1,228.9,968.7,edge/shape 0.04 paper 0.85 ink 0.21 seen 1.00 size 0.75 m 0.02 idx 0.00 notcard part ev-1
+407,rectx2,0.000,223.3,832.3,498.5,858.3,476.6,1130.8,220.7,1118.1,edge/shape 0 size 0.84 m -0.02 idx 0.00 notcard ev0
+407,rectx2,0.000,498.5,858.3,476.6,1130.8,-35.2,1105.4,-51.8,806.3,edge/shape 0.01 paper 0.47 ink 0.03 seen 0.75 size 0.62 m -0.00 ev-1
+408,last,0.001,240.8,614.5,500.7,623.2,484.2,986.6,230.5,968.0,edge/shape 0.03 paper 0.65 ink 0.22 seen 1.00 size 1.00 m 0.13 idx 0.00 notcard ev0 past2
+408,last fit,0.002,267.1,741.2,495.8,730.2,483.3,1007.0,259.8,990.9,edge/shape 0.11 paper 0.76 ink 0.32 seen 1.00 size 0.81 m 0.22 idx -0.20 notcard ev-1
+408,match,0.665,240.8,683.9,500.7,692.6,484.2,1055.9,230.5,1037.3,edge/shape 0.68 paper 0.99 ink 0.28 seen 1.00 size 1.00 m 0.97 idx 0.07 notcard ev2
+408,match fit,0.051,264.9,740.5,490.4,730.7,475.6,1055.3,256.1,1039.2,edge/shape 0.50 paper 0.84 ink 0.28 seen 1.00 size 0.97 m 0.14 idx 0.03 notcard ev2
+408,ink,0.001,406.9,742.9,392.1,848.4,211.5,823.0,211.1,724.2,edge/shape 0.37 paper 0.65 ink 0.24 seen 1.00 size 0.35 m 0.14 idx 0.00 notcard ev0 past1
+408,ink,0.010,480.7,888.8,480.7,1057.1,287.8,1036.8,279.2,790.5,edge/shape 0.49 paper 0.82 ink 0.25 seen 1.00 size 0.66 m 0.09 idx 0.00 notcard ev0
+408,doc,0.005,210.1,1033.8,211.5,589.9,511.6,595.0,514.2,1051.7,edge/shape 0.50 paper 0.49 ink 0.16 seen 1.00 size 0.87 m 0.22 idx 0.00 notcard ev0
+408,doc fit,0.069,254.4,691.0,495.7,678.7,480.7,1054.8,261.7,1033.9,edge/shape 0.11 paper 0.93 ink 0.31 seen 1.00 size 1.00 m 0.75 idx -0.05 notcard ev-1
+408,doc ref,0.003,254.8,1036.5,276.2,585.3,512.0,589.4,513.5,1051.7,edge/shape 0.19 paper 0.60 ink 0.16 seen 1.00 size 0.85 m 0.02 idx 0.00 notcard ev0
+408,docx2,0.001,514.2,1051.7,-25.0,1020.0,-70.0,585.0,511.6,595.0,edge/shape 0.20 paper 0.58 ink 0.14 seen 0.74 size 0.54 m 0.04 ev0 past2
+408,rect,0.000,495.0,928.2,491.4,1065.2,223.0,1043.0,219.6,919.6,edge/shape 0.00 paper 0.85 ink 0.18 seen 1.00 size 0.81 m 0.08 idx 0.00 notcard ev0
+408,rectx2,0.000,487.8,1202.3,-35.1,1130.8,-55.8,910.9,495.0,928.2,edge/shape 0.00 paper 0.43 ink 0.03 seen 0.75 size 0.62 m -0.02 ev2
+409,last,0.000,206.3,1035.5,215.9,683.0,512.0,692.9,513.3,1058.1,edge/shape 0.01 paper 0.28 ink 0.18 seen 1.00 size 1.00 m 0.15 idx 0.00 notcard ev0 past3
+409,last fit,0.001,267.3,804.0,490.8,815.2,479.0,1075.9,259.8,1059.8,edge/shape 0.18 paper 0.81 ink 0.30 seen 1.00 size 0.74 m 0.19 idx -0.15 notcard ev-1 past0
+409,match,0.666,240.8,753.2,500.7,761.9,484.2,1125.2,230.5,1106.6,edge/shape 0.68 paper 0.99 ink 0.27 seen 1.00 size 1.00 m 0.97 idx 0.05 notcard ev2
+409,match fit,0.014,269.2,811.1,494.5,802.2,480.2,1119.0,260.6,1102.8,edge/shape 0.50 paper 0.80 ink 0.29 seen 1.00 size 0.95 m 0.25 idx -0.03 notcard ev2 past0
+409,ink,0.004,385.5,1087.0,187.7,833.8,455.2,746.9,591.7,1003.7,edge/shape 0.27 paper 0.60 ink 0.23 seen 1.00 size 0.96 m 0.15 idx 0.00 notcard part ev-1
+409,doc,0.005,211.3,1098.5,211.2,659.9,512.2,665.0,512.9,1122.2,edge/shape 0.49 paper 0.49 ink 0.15 seen 1.00 size 0.86 m 0.23 idx 0.00 notcard ev0
+409,doc fit,0.008,275.0,804.6,497.2,815.0,480.4,1119.6,285.3,1104.3,edge/shape 0.27 paper 0.84 ink 0.30 seen 1.00 size 0.92 m 0.10 idx -0.20 notcard ev-1
+409,doc ref,0.003,255.9,1102.0,271.9,655.4,512.0,659.4,513.0,1122.2,edge/shape 0.20 paper 0.59 ink 0.16 seen 1.00 size 0.85 m 0.02 idx 0.00 notcard ev0
+409,rect,0.000,496.1,1024.9,488.8,1135.3,222.7,1110.4,221.9,987.4,edge/shape 0.00 paper 0.86 ink 0.14 seen 1.00 size 0.81 m 0.01 idx 0.00 notcard part ev-1
+409,rectx2,0.000,496.1,1024.9,481.4,1245.7,223.4,1233.4,221.9,987.4,edge/shape 0 size 0.81 m -0.04 idx 0.00 notcard part ev-1
+409,rectx2,0.000,496.1,1024.9,481.4,1245.7,-34.5,1221.2,-52.3,949.9,edge/shape 0.00 paper 0.45 ink 0.02 seen 0.75 size 0.61 m 0.03 idx 0.00 notcard ev2
+410,last,0.001,240.8,753.2,500.7,761.9,484.2,1125.2,230.5,1106.6,edge/shape 0.07 paper 0.64 ink 0.23 seen 1.00 size 1.00 m 0.13 idx 0.00 notcard ev0 past2
+410,last fit,0.001,267.3,874.2,490.7,886.5,478.9,1146.7,259.9,1127.7,edge/shape 0.17 paper 0.81 ink 0.31 seen 1.00 size 0.73 m 0.20 idx -0.22 notcard ev-1 past0
+410,match,0.684,240.8,822.5,500.7,831.2,484.2,1194.6,230.5,1176.0,edge/shape 0.70 paper 0.99 ink 0.27 seen 1.00 size 1.00 m 0.95 idx 0.03 notcard ev2
+410,match fit,0.044,264.8,882.1,494.6,871.3,480.2,1188.3,256.3,1171.9,edge/shape 0.47 paper 0.81 ink 0.27 seen 1.00 size 0.95 m 0.24 idx -0.08 notcard ev2
+410,doc,0.005,210.6,1168.5,211.6,729.9,511.9,735.0,514.1,1192.3,edge/shape 0.51 paper 0.49 ink 0.16 seen 1.00 size 0.86 m 0.23 idx 0.00 notcard ev0
+410,doc fit,0.003,268.8,874.3,497.1,886.9,480.5,1189.6,275.6,1173.6,edge/shape 0.37 paper 0.85 ink 0.29 seen 1.00 size 0.91 m 0.12 idx -0.08 notcard ev2 past03
+410,doc ref,0.003,255.5,1172.0,276.5,727.6,512.4,723.4,512.9,1192.2,edge/shape 0.24 paper 0.60 ink 0.15 seen 1.00 size 0.84 m 0.02 idx 0.00 notcard ev0
+410,docx2,0.003,514.1,1192.3,-25.0,1150.0,-70.0,725.0,511.9,735.0,edge/shape 0.10 paper 0.64 ink 0.10 seen 0.74 size 0.54 m 0.11 ev1
+410,rect,0.000,498.1,1050.3,488.8,1204.1,219.7,1178.6,222.8,1056.6,edge/shape 0 size 0.81 m 0.13 idx 0.00 notcard ev0
+410,rect ref,0.009,253.9,1039.7,477.1,1042.4,489.5,1197.2,269.5,1176.4,edge/shape 0.54 paper 0.85 ink 0.23 seen 1.00 size 0.52 m 0.14 idx 0.00 notcard ev-1
+410,rectx2,0.000,222.8,1056.6,498.1,1050.3,479.6,1357.9,216.6,1300.7,edge/shape 0 size 0.93 m 0.03 ev0
+410,rect,0.000,130.9,423.4,107.5,628.9,10.3,704.7,11.6,303.2,edge/shape 0 size 0.97 m 0.03 ev-1
+410,rect fit,0.000,130.9,414.5,107.7,631.2,10.3,703.1,11.6,309.2,edge/shape 0 size 0.98 m 0.04 ev-1
+411,last,0.001,240.8,822.5,500.7,831.2,484.2,1194.6,230.5,1176.0,edge/shape 0.07 paper 0.62 ink 0.23 seen 1.00 size 1.00 m 0.13 idx 0.00 notcard ev0 past2
+411,last fit,0.001,267.1,950.9,491.1,946.8,478.9,1216.4,259.9,1196.1,edge/shape 0.14 paper 0.80 ink 0.29 seen 1.00 size 0.78 m 0.22 idx -0.17 notcard ev-1 past0
+411,match,0.681,239.2,893.9,499.6,910.3,482.5,1263.6,229.2,1238.5,edge/shape 0.70 paper 0.99 ink 0.26 seen 1.00 size 1.00 m 0.98 idx 0.07 notcard ev2
+411,match fit,0.041,264.8,951.0,498.6,946.2,484.5,1257.9,256.3,1241.2,edge/shape 0.45 paper 0.80 ink 0.26 seen 1.00 size 0.94 m 0.23 idx -0.07 notcard ev2
+411,ink part,0.002,347.3,1096.6,493.5,1138.5,456.6,1347.7,267.7,1293.5,edge/shape 0.05 paper 0.81 ink 0.17 seen 0.68 size 0.45 m 0.19 ev2
+411,doc,0.005,510.0,805.0,485.0,1265.0,210.6,1238.1,211.3,799.9,edge/shape 0.34 paper 0.61 ink 0.20 seen 1.00 size 0.86 m 0.26 idx 0.02 notcard ev0
+411,doc fit,0.015,290.0,1245.9,279.9,950.1,493.1,946.4,475.8,1264.1,edge/shape 0.15 paper 0.85 ink 0.27 seen 1.00 size 0.95 m 0.08 idx -0.22 notcard ev-1
+411,doc ref,0.001,255.9,1242.5,271.8,797.0,506.9,799.4,481.6,1264.7,edge/shape 0.06 paper 0.70 ink 0.17 seen 1.00 size 0.84 m 0.10 idx -0.08 notcard ev0
+411,rect,0.000,362.4,961.3,346.9,1079.5,269.1,1081.1,248.1,991.3,edge/shape 0.09 paper 0.64 ink 0.28 seen 1.00 size 0.03 m 0.00 idx -0.38 notcard ev-1 past01
+411,rect ref,0.000,374.8,1088.3,268.9,1079.7,267.6,975.5,364.3,953.7,edge/shape 0.03 paper 0.76 ink 0.44 seen 1.00 size 0.07 m 0.06 idx -0.15 notcard ev-1 past02
+411,rect,0.000,495.9,1142.4,488.5,1272.5,219.9,1247.3,222.8,1127.1,edge/shape 0 size 0.80 m 0.08 idx 0.00 notcard ev0
+411,rect part,0.000,222.8,1127.1,495.9,1142.4,474.2,1523.7,213.5,1509.0,edge/shape 0 size 0.99 m -1.00 ev0
+411,rect part,0.001,222.8,1127.1,495.9,1142.4,484.8,1337.9,218.0,1322.9,edge/shape 0.03 paper 0.63 ink 0.11 seen 0.65 size 0.80 m -0.00 ev0
+411,rect fit,0.004,490.4,1158.8,484.5,1263.7,315.0,1247.9,317.4,1149.1,edge/shape 0.55 paper 0.91 ink 0.16 seen 1.00 size 0.22 m 0.19 idx 0.00 notcard ev0
+411,rect ref,0.005,255.9,1103.1,488.7,1149.2,482.3,1262.5,267.1,1242.3,edge/shape 0.34 paper 0.78 ink 0.21 seen 1.00 size 0.60 m 0.03 idx 0.00 notcard part ev-1
+411,rectx2,0.000,-50.3,1111.9,495.9,1142.4,481.1,1402.6,-47.2,1332.5,edge/shape 0.01 paper 0.71 ink 0.04 seen 0.39 size 0.63 m -0.04 ev2
+411,corner,0.655,476.1,1261.0,224.4,1235.4,232.8,891.5,494.2,907.1,edge/shape 0.71 paper 0.96 ink 0.24 seen 1.00 size 1.00 m 0.96 idx 0.08 notcard ev2
+412,last,0.000,214.0,892.3,499.6,910.3,482.5,1263.6,207.7,1236.4,edge/shape 0.03 paper 0.47 ink 0.20 seen 1.00 size 1.00 m 0.16 idx 0.00 notcard ev0 past2
+412,last fit,0.002,266.2,1000.5,498.8,1015.2,486.0,1281.5,258.7,1259.0,edge/shape 0.14 paper 0.69 ink 0.29 seen 1.00 size 0.80 m 0.22 idx -0.17 notcard ev-1
+412,match,0.561,239.2,963.2,499.6,979.6,482.5,1332.9,229.2,1307.8,edge/shape 0.67 paper 0.97 ink 0.26 seen 0.74 size 1.00 m 0.97 ev2
+412,match fit,0.001,267.5,1022.5,493.5,1015.9,480.8,1280.1,260.7,1258.3,edge/shape 0.04 paper 0.71 ink 0.30 seen 1.00 size 0.79 m 0.21 idx -0.18 notcard ev-1
+412,ink,0.001,407.4,1028.8,389.6,1129.6,211.0,1098.1,211.0,1003.8,edge/shape 0.52 paper 0.62 ink 0.26 seen 1.00 size 0.39 m 0.13 idx 0.00 notcard ev0 past1
+412,ink,0.000,316.9,1062.5,489.8,1112.1,478.2,1277.2,360.8,1269.0,edge/shape 0.01 paper 0.69 ink 0.31 seen 1.00 size 0.48 m 0.13 idx -0.35 notcard part ev-1
+412,doc,0.011,209.7,1274.6,211.9,869.9,510.0,875.0,485.0,1280.0,edge/shape 0.40 paper 0.45 ink 0.18 seen 1.00 size 0.95 m 0.20 idx 0.00 notcard ev0
+412,doc part,0.014,208.8,1279.3,212.3,869.9,510.0,875.0,484.7,1284.0,edge/shape 0.39 paper 0.50 ink 0.18 seen 1.00 size 0.94 m 0.21 idx 0.00 notcard ev0
+412,doc fit,0.002,284.4,1269.3,278.3,1021.8,496.7,1016.0,480.9,1273.2,edge/shape 0.30 paper 0.78 ink 0.31 seen 1.00 size 0.76 m 0.12 idx -0.28 notcard ev-1 past1
+412,doc ref,0.000,253.1,1292.4,272.4,865.2,522.7,860.7,471.2,1250.5,edge/shape 0.04 paper 0.54 ink 0.18 seen 1.00 size 0.90 m 0.01 idx 0.00 notcard part ev-1
+412,docx2,0.003,485.0,1280.0,-25.0,1270.0,-70.0,865.0,510.0,875.0,edge/shape 0.09 paper 0.69 ink 0.09 seen 0.74 size 0.51 m 0.02 ev-1
+413,last,0.000,482.5,1263.6,210.0,1236.6,212.4,892.2,499.6,910.3,edge/shape 0 size 1.00 m 0.18 idx 0.00 notcard ev2
+413,match,0.559,239.2,1035.2,499.2,1054.9,483.0,1402.8,229.1,1374.8,edge/shape 0.65 paper 0.96 ink 0.27 seen 0.61 size 1.00 m 0.98 ev2
+413,match fit,0.003,497.3,1095.0,488.1,1285.8,344.0,1271.5,349.5,1081.8,edge/shape 0.30 paper 0.78 ink 0.26 seen 1.00 size 0.35 m 0.13 idx -0.08 notcard part ev-1
+414,last,0.000,482.5,1263.6,209.6,1236.6,211.2,892.1,499.6,910.3,edge/shape 0 size 1.00 m 0.01 idx 0.00 notcard ev0
+414,last fit,0.000,274.5,1008.1,456.3,1004.9,448.6,1163.5,274.4,1143.9,edge/shape 0.40 paper 0.90 ink 0.00 seen 1.00 size 0.29 m 0.17 idx 0.00 notcard ev0
+414,doc,0.001,210.2,1231.6,209.9,1010.0,510.0,1010.0,495.0,1280.0,edge/shape 0.29 paper 0.41 ink 0.08 seen 1.00 size 0.93 m 0.02 idx 0.00 notcard part ev-1 past3
+414,doc part,0.007,209.6,1414.7,210.2,1010.0,510.0,1010.0,487.5,1414.4,edge/shape 0.49 paper 0.33 ink 0.11 seen 0.60 size 0.95 m 0.21 ev0
+415,last,0.000,229.2,1238.5,239.2,893.9,499.6,910.3,482.5,1263.6,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev2 past3
+416,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+417,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m -0.11 idx 0.00 notcard ev0
+417,last fit,0.000,483.9,1234.5,230.0,1209.3,239.2,893.9,499.6,910.3,edge/shape 0 size 0.98 m -0.00 idx 0.00 notcard ev0
+418,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+419,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+419,rect ref,0.000,503.9,65.8,611.4,3.4,717.3,304.3,628.0,393.5,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+420,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+421,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+422,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+423,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+424,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+425,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+426,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+427,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+428,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.01 idx 0.00 notcard ev0
+428,rect,0.000,121.5,408.7,117.2,617.1,12.4,704.7,12.7,311.8,edge/shape 0 size 0.97 m 0.02 ev0
+429,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+430,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m -0.00 idx 0.00 notcard ev0
+431,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+432,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m -0.07 idx 0.00 notcard ev0
+432,last fit,0.000,499.6,910.3,484.1,1230.7,229.3,1232.1,239.2,893.9,edge/shape 0 size 0.99 m -0.01 idx 0.00 notcard ev0
+433,last,0.000,229.2,1238.5,239.2,893.9,499.6,910.3,482.5,1263.6,edge/shape 0 size 1.00 m -0.03 idx 0.00 notcard ev0
+433,last fit,0.000,499.6,910.3,486.6,1180.0,230.8,1180.5,239.2,893.9,edge/shape 0 size 0.88 m 0.00 idx 0.00 notcard ev0
+433,rectx2,0.000,478.4,1366.5,375.5,1351.9,377.2,1185.4,476.3,1174.6,edge/shape 0.07 paper 0.21 ink 0.00 seen 0.53 size 0.35 m -0.17 ev0
+433,rectx2,0.000,343.7,1176.5,350.1,1362.8,245.4,1354.9,245.6,1184.3,edge/shape 0.16 paper 0.21 ink 0.00 seen 0.53 size 0.32 m -0.17 ev0
+433,rectx2,0.000,347.0,1359.3,245.4,1335.5,245.7,1187.5,345.5,1171.9,edge/shape 0.77 paper 0.24 ink 0.00 seen 0.56 size 0.33 m -0.16 ev0
+434,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m 0.07 idx 0.00 notcard ev0
+434,last fit,0.000,239.2,893.9,392.4,903.5,381.4,1131.0,232.3,1129.9,edge/shape 0 size 0.64 m -1.00 idx 0.00 notcard ev0
+434,rect,0.000,472.2,1124.5,478.6,1268.7,377.3,1268.7,378.0,1153.8,edge/shape 0 size 0.11 m -0.07 idx 0.00 notcard ev0
+434,rectx2,0.000,473.7,1410.8,376.5,1383.9,376.6,1136.8,465.5,1124.0,edge/shape 0.79 paper 0.07 ink 0.00 seen 0.54 size 0.89 m -0.08 ev0
+434,rect,0.000,345.6,1131.6,346.5,1268.7,244.9,1268.7,246.8,1129.3,edge/shape 0 size 0.09 m -0.11 idx 0.00 notcard ev0
+434,rect fit,0.000,345.7,1130.2,346.4,1268.7,245.3,1268.7,245.9,1130.4,edge/shape 0 size 0.09 m -0.11 idx 0.00 notcard ev0
+434,rect ref,0.000,345.4,1131.3,346.6,1268.7,244.3,1268.7,248.0,1129.3,edge/shape 0 size 0.09 m -0.11 idx 0.00 notcard ev0
+434,rectx2,0.000,237.2,1406.9,241.5,1131.5,350.1,1129.4,354.6,1411.1,edge/shape 0.09 paper 0.12 ink 0.00 seen 0.53 size 0.87 m -0.21 ev0
+434,rect,0.000,115.6,1133.4,212.6,1127.0,217.3,1267.7,113.7,1265.8,edge/shape 0 size 0.09 m -0.11 idx 0.00 notcard ev0
+434,rect fit,0.000,213.6,1130.9,216.4,1267.7,113.4,1265.8,115.6,1130.1,edge/shape 0 size 0.08 m -0.10 idx 0.00 notcard ev0
+434,rect ref,0.000,213.8,1133.7,216.0,1267.7,113.2,1265.8,116.2,1126.8,edge/shape 0 size 0.09 m -0.10 idx 0.00 notcard ev0
+434,rectx2,0.000,114.4,1395.9,114.4,1132.8,213.6,1127.9,217.0,1406.8,edge/shape 0.08 paper 0.12 ink 0.00 seen 0.53 size 0.85 m -0.13 ev0
+434,rect,0.000,126.4,412.4,112.6,618.8,11.5,707.6,11.4,309.2,edge/shape 0 size 0.96 m 0.03 ev0
+434,rect fit,0.000,131.2,417.3,107.7,628.4,11.5,704.0,11.4,308.9,edge/shape 0 size 0.97 m 0.03 ev-1
+435,last,0.000,239.2,893.9,511.8,911.0,505.8,1265.9,229.2,1238.5,edge/shape 0 size 1.00 m 0.10 idx 0.00 notcard ev0
+435,rect ref,0.000,477.6,1268.7,376.4,1268.8,376.9,1084.2,476.8,1076.2,edge/shape 0 size 0.36 m -0.11 idx 0.00 notcard ev0
+435,rect,0.000,345.2,1079.2,347.0,1268.7,245.0,1268.7,246.2,1081.7,edge/shape 0 size 0.34 m -0.12 idx 0.00 notcard ev0
+435,rect fit,0.000,346.4,1268.7,245.3,1268.7,246.1,1081.9,345.7,1079.0,edge/shape 0 size 0.34 m -0.12 idx 0.00 notcard ev0
+435,rect ref,0.000,346.9,1268.7,245.2,1268.7,246.0,1083.3,345.2,1077.2,edge/shape 0 size 0.35 m -0.11 idx 0.00 notcard ev0
+435,rect,0.000,215.6,1268.7,114.5,1268.7,114.5,1086.8,214.5,1073.1,edge/shape 0 size 0.38 m -0.10 idx 0.00 notcard ev0
+435,rect fit,0.000,215.2,1268.7,114.3,1268.7,114.4,1086.3,214.7,1073.7,edge/shape 0 size 0.37 m -0.10 idx 0.00 notcard ev0
+435,rect ref,0.000,215.3,1268.7,114.3,1268.7,114.8,1084.4,214.7,1076.4,edge/shape 0 size 0.36 m -0.11 idx 0.00 notcard ev0
+435,rect,0.000,214.3,1081.2,215.4,1268.5,114.2,1263.4,114.9,1079.7,edge/shape 0 size 0.33 m -0.10 idx 0.00 notcard ev0
+435,rect fit,0.000,214.5,1078.2,215.6,1268.5,113.9,1263.4,115.1,1082.7,edge/shape 0 size 0.34 m -0.11 idx 0.00 notcard ev0
+435,rect ref,0.000,214.1,1079.1,215.8,1268.5,114.3,1263.4,114.7,1082.1,edge/shape 0 size 0.34 m -0.11 idx 0.00 notcard ev0
+436,last,0.000,213.6,892.3,507.3,910.8,506.2,1265.9,216.3,1237.2,edge/shape 0 size 1.00 m 0.08 idx 0.00 notcard ev0
+436,rect,0.000,478.0,1032.2,477.9,1237.7,374.9,1236.4,377.1,1025.0,edge/shape 0.19 paper 0.31 ink 0.00 seen 1.00 size 0.48 m -0.15 idx 0.00 notcard ev0
+436,rect fit,0.000,477.9,1037.4,477.9,1234.1,375.1,1232.8,377.1,1018.1,edge/shape 0.76 paper 0.14 ink 0.00 seen 1.00 size 0.50 m -0.12 idx 0.00 notcard ev0
+436,rect ref,0.000,478.0,1035.7,477.9,1235.0,375.5,1233.7,376.7,1019.8,edge/shape 0.51 paper 0.14 ink 0.00 seen 1.00 size 0.50 m -0.12 idx 0.00 notcard ev0
+436,rect,0.000,244.1,1031.8,345.8,1026.2,347.1,1227.2,244.1,1229.7,edge/shape 0.23 paper 0.10 ink 0.00 seen 1.00 size 0.41 m -0.13 idx 0.00 notcard ev0
+436,rect fit,0.000,244.2,1032.9,345.2,1025.1,347.6,1233.8,244.1,1236.3,edge/shape 0.26 paper 0.09 ink 0.00 seen 1.00 size 0.46 m -0.13 idx 0.00 notcard ev0
+436,rect ref,0.000,244.3,1032.3,345.8,1025.5,347.2,1234.6,244.0,1237.1,edge/shape 0.19 paper 0.10 ink 0.00 seen 1.00 size 0.46 m -0.13 idx 0.00 notcard ev0
+436,rect,0.000,608.2,1028.7,609.4,1240.6,506.3,1233.5,506.8,1029.3,edge/shape 0.08 paper 0.21 ink 0.00 seen 1.00 size 0.48 m -0.15 idx 0.00 notcard ev0
+436,rect fit,0.000,608.2,1026.0,609.5,1237.1,506.3,1230.0,506.8,1031.6,edge/shape 0.13 paper 0.12 ink 0.00 seen 1.00 size 0.48 m -0.15 idx 0.00 notcard ev0
+436,rect ref,0.000,608.3,1026.4,609.5,1238.0,506.3,1230.9,506.8,1031.4,edge/shape 0.12 paper 0.12 ink 0.00 seen 1.00 size 0.48 m -0.14 idx 0.00 notcard ev0
+436,rect,0.000,213.7,973.3,216.5,1225.5,112.8,1266.5,112.8,1048.8,edge/shape 0.03 paper 0.34 ink 0.00 seen 1.00 size 0.73 m -0.02 idx 0.00 notcard ev0
+436,rect fit,0.000,214.0,973.1,216.4,1225.6,112.8,1266.5,112.8,1048.8,edge/shape 0.04 paper 0.35 ink 0.00 seen 1.00 size 0.73 m -0.02 idx 0.00 notcard ev0
+436,rectx2,0.000,218.2,970.0,224.4,1477.4,105.3,1485.6,108.6,1051.9,edge/shape 0.08 paper 0.34 ink 0.01 seen 0.55 size 0.70 m -0.06 ev0
+436,rectx2,0.000,215.1,716.2,221.3,1223.7,107.0,1268.7,110.3,835.1,edge/shape 0 size 0.70 m 0.13 idx 0.00 notcard ev0
+437,last,0.000,245.2,894.2,507.0,910.7,504.5,1265.8,243.3,1239.9,edge/shape 0.03 paper 0.84 ink 0.00 seen 1.00 size 1.00 m 0.21 idx 0.00 notcard ev0 past2
+437,last fit,0.000,345.4,976.4,505.7,986.5,505.4,1240.4,345.7,1243.3,edge/shape 0.39 paper 0.88 ink 0.00 seen 1.00 size 0.80 m 0.10 idx 0.00 notcard ev0
+437,rect,0.000,345.5,1000.3,345.6,1178.4,243.3,1175.0,245.6,927.9,edge/shape 0.48 paper 0.23 ink 0.00 seen 1.00 size 0.70 m 0.06 idx 0.00 notcard ev0
+437,rect fit,0.000,345.6,996.0,345.5,1185.5,243.4,1182.1,245.3,923.2,edge/shape 0.22 paper 0.26 ink 0.00 seen 1.00 size 0.76 m 0.05 idx 0.00 notcard ev0
+437,rect ref,0.000,345.6,990.9,345.5,1182.8,243.4,1186.5,245.1,964.9,edge/shape 0.85 paper 0.12 ink 0.00 seen 1.00 size 0.55 m -0.10 idx 0.00 notcard ev0
+437,rect,0.000,608.8,999.6,608.7,1188.4,505.0,1182.4,506.6,922.1,edge/shape 0.36 paper 0.29 ink 0.00 seen 1.00 size 0.77 m 0.05 idx 0.00 notcard ev0
+437,rect fit,0.000,608.8,999.6,608.7,1184.7,504.8,1178.7,507.1,922.5,edge/shape 0.38 paper 0.25 ink 0.00 seen 1.00 size 0.75 m 0.05 idx 0.00 notcard ev0
+437,rect ref,0.000,608.8,989.6,608.7,1179.3,504.9,1180.5,506.4,963.8,edge/shape 0.41 paper 0.12 ink 0.00 seen 1.00 size 0.51 m -0.12 idx 0.00 notcard ev0
+437,rectx2,0.000,504.1,920.2,608.5,999.4,609.4,1377.4,497.9,1444.1,edge/shape 0.31 paper 0.35 ink 0.00 seen 0.64 size 0.65 m -0.04 ev0
+437,doc,0.000,5.0,5.0,720.0,5.0,715.0,1280.0,115.0,1275.0,edge/shape 0 size 0.01 m -0.08 idx 0.00 notcard ev0 past3
+437,doc fit,0.000,5.0,5.0,720.0,5.0,715.1,1258.8,113.2,1253.7,edge/shape 0.01 paper 0.89 ink 0.00 seen 1.00 size 0.01 m -0.09 idx 0.00 notcard ev0 past3
+437,doc ref,0.000,172.0,1243.6,-253.2,5.0,720.0,5.0,715.1,1248.1,edge/shape 0.13 paper 0.93 ink 0.05 seen 0.84 size 0.01 m 0.06 ev0
+438,last,0.000,239.2,893.9,477.0,908.9,477.0,1263.0,229.2,1238.5,edge/shape 0.03 paper 0.64 ink 0.02 seen 1.00 size 1.00 m 0.02 idx 0.00 notcard ev2 past2
+438,last fit,0.000,345.3,929.7,505.5,939.8,505.8,1188.7,345.8,1191.8,edge/shape 0.43 paper 0.86 ink 0.00 seen 1.00 size 0.78 m 0.09 idx 0.00 notcard ev0
+438,rect,0.000,345.3,965.7,346.0,1121.0,243.5,1126.0,245.2,884.8,edge/shape 0.11 paper 0.19 ink 0.00 seen 1.00 size 0.67 m -0.02 idx 0.00 notcard ev0
+438,rect,0.000,476.9,948.5,477.2,1132.1,374.2,1133.8,376.6,871.2,edge/shape 0.42 paper 0.25 ink 0.00 seen 1.00 size 0.78 m 0.04 idx 0.00 notcard ev0
+438,rect fit,0.000,476.9,948.5,477.2,1128.3,374.4,1130.0,376.5,871.1,edge/shape 0.44 paper 0.25 ink 0.00 seen 1.00 size 0.76 m 0.04 idx 0.00 notcard ev0
+438,rect ref,0.000,477.0,946.9,477.1,1129.3,374.6,1131.0,375.9,884.7,edge/shape 0.38 paper 0.21 ink 0.00 seen 1.00 size 0.69 m 0.01 idx 0.00 notcard ev0
+438,rect,0.000,608.8,948.8,608.7,1136.4,504.8,1129.4,507.3,871.4,edge/shape 0.36 paper 0.30 ink 0.00 seen 1.00 size 0.76 m 0.05 idx 0.00 notcard ev0
+438,rect fit,0.000,608.7,948.8,608.7,1132.7,505.3,1125.7,506.4,870.7,edge/shape 0.39 paper 0.24 ink 0.00 seen 1.00 size 0.74 m 0.06 idx 0.00 notcard ev0
+438,rect ref,0.000,608.8,936.0,608.6,1127.2,505.2,1127.5,506.3,917.7,edge/shape 0.80 paper 0.14 ink 0.00 seen 1.00 size 0.47 m -0.11 idx 0.00 notcard ev0
+438,rectx2,0.000,501.3,866.8,608.4,948.5,609.4,1324.8,502.2,1391.7,edge/shape 0.26 paper 0.36 ink 0.00 seen 0.70 size 0.65 m -0.03 ev0 past3
+438,doc,0.000,120.0,1275.0,5.0,5.0,720.0,5.0,715.0,1280.0,edge/shape 0 size 0.01 m -0.08 idx 0.00 notcard ev0 past0
+438,doc fit,0.000,112.3,1189.9,5.0,5.0,720.0,5.0,715.3,1195.0,edge/shape 0.02 paper 0.89 ink 0.00 seen 1.00 size 0.02 m -0.10 idx 0.00 notcard ev0 past03
+438,doc ref,0.000,164.4,1230.5,-261.8,5.0,720.0,5.0,715.5,1157.8,edge/shape 0.23 paper 0.89 ink 0.05 seen 0.82 size 0.01 m 0.06 ev0
+439,last,0.001,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0.11 paper 0.55 ink 0.08 seen 1.00 size 1.00 m 0.05 idx -0.12 notcard ev2 past0
+439,last fit,0.000,345.6,1140.5,345.4,900.6,505.9,910.7,505.5,1136.8,edge/shape 0.13 paper 0.82 ink 0.00 seen 1.00 size 0.66 m 0.10 idx 0.00 notcard ev0
+439,doc,0.000,5.0,710.0,605.0,885.0,610.0,1280.0,110.0,1275.0,edge/shape 0 size 0.41 m 0.17 idx 0.00 notcard part ev-1
+439,doc fit,0.000,212.7,770.6,507.6,856.6,504.2,1140.2,215.3,1132.7,edge/shape 0.01 paper 1.00 ink 0.00 seen 1.00 size 1.00 m 0.26 idx 0.00 notcard ev0 past2
+439,docx2,0.000,110.0,1275.0,-100.0,145.0,600.0,490.0,610.0,1280.0,edge/shape 0.01 paper 0.69 ink 0.07 seen 0.93 size 0.02 m -0.04 ev0
+439,docx2,0.000,-390.0,1270.0,-595.0,535.0,608.8,886.1,608.8,1280.0,edge/shape 0 size 0.01 m 0.04 ev0
+439,rect fit,0.000,476.8,890.8,476.9,1076.2,375.3,1078.6,374.7,858.2,edge/shape 0.55 paper 0.14 ink 0.00 seen 1.00 size 0.54 m -0.10 idx 0.00 notcard ev0
+439,rect ref,0.000,480.9,896.3,481.9,1077.0,345.9,1080.2,344.7,829.5,edge/shape 0.32 paper 0.46 ink 0.00 seen 1.00 size 0.72 m 0.04 idx 0.00 notcard ev0
+439,rect,0.000,345.1,875.5,345.6,1074.5,244.2,1074.5,244.4,880.8,edge/shape 0.22 paper 0.11 ink 0.00 seen 1.00 size 0.40 m -0.12 idx 0.00 notcard ev0
+439,rect fit,0.000,345.6,1081.1,244.2,1081.1,244.4,884.6,345.2,870.5,edge/shape 0.37 paper 0.12 ink 0.00 seen 1.00 size 0.47 m -0.12 idx 0.00 notcard ev0
+439,rect ref,0.000,345.7,1079.4,244.1,1079.4,244.4,884.0,345.2,870.9,edge/shape 0.37 paper 0.14 ink 0.00 seen 1.00 size 0.46 m -0.12 idx 0.00 notcard ev0
+439,rect,0.000,608.5,896.4,608.9,1082.5,504.3,1075.7,508.4,831.6,edge/shape 0.36 paper 0.25 ink 0.00 seen 1.00 size 0.68 m 0.05 idx 0.00 notcard ev0
+439,rect fit,0.000,608.5,896.4,608.9,1078.9,504.1,1072.1,508.8,831.9,edge/shape 0.41 paper 0.24 ink 0.00 seen 1.00 size 0.66 m 0.05 idx 0.00 notcard ev0
+439,rect ref,0.000,608.5,891.1,608.8,1076.2,478.1,1076.9,475.0,840.0,edge/shape 0.12 paper 0.46 ink 0.00 seen 1.00 size 0.64 m 0.07 idx 0.00 notcard ev0
+439,rectx2,0.000,501.4,1075.6,503.5,580.0,613.0,716.7,614.2,1082.8,edge/shape 0 size 0.73 m 0.08 idx 0.00 notcard ev0
+439,search,0.584,571.9,1615.0,156.5,1617.4,128.2,1076.8,555.7,1064.9,edge/shape 0 size 0.58 m 0.99 ev1
+440,flow entry,0.000,127.1,1024.4,557.7,1012.4,562.6,1614.0,160.6,1625.0,edge/shape 0 size 1.00 m 0.48 ev2
+440,flow x2,0.000,562.1,1553.0,-248.1,1567.8,-303.5,1036.3,557.7,1012.4,edge/shape 0 size 1.00 m -1.00 ev0
+440,flow x2,0.006,967.2,1545.6,157.0,1560.4,127.1,1024.4,988.3,1000.4,edge/shape 0.06 paper 0.92 ink 0.17 seen 0.30 size 1.00 m -1.00 ev2
+440,flow fit,0.005,157.0,1560.4,131.6,1104.9,572.2,1088.9,576.0,1552.8,edge/shape 0.05 paper 0.91 ink 0.28 seen 0.44 size 1.00 m 0.14 ev0
+440,ink part,0.008,560.6,1418.7,99.1,1434.8,110.7,1102.7,572.1,1090.3,edge/shape 0.44 paper 0.72 ink 0.26 seen 0.54 size 1.00 m 0.42 ev-1 past2
+440,rect,0.000,476.7,846.0,477.2,1027.2,375.1,1030.0,374.9,780.0,edge/shape 0.20 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.02 idx 0.00 notcard ev0
+440,rect fit,0.000,476.9,846.0,477.0,1023.6,374.8,1026.4,375.4,780.3,edge/shape 0.29 paper 0.23 ink 0.00 seen 1.00 size 1.00 m 0.03 idx 0.00 notcard ev0
+440,rect ref,0.000,477.1,836.7,476.8,1024.5,375.0,1027.3,375.0,812.8,edge/shape 0.83 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+440,rectx2,0.000,369.1,1030.2,369.1,522.3,510.6,709.1,504.1,1026.4,edge/shape 0 size 1.00 m 0.26 idx 0.00 notcard ev0
+440,rect,0.000,214.5,848.3,214.2,1026.7,111.5,1107.0,113.5,775.2,edge/shape 0.30 paper 0.39 ink 0.00 seen 1.00 size 1.00 m -0.01 idx 0.00 notcard ev0 past1
+440,rect fit,0.000,218.1,845.6,221.5,1037.2,112.2,1122.7,112.4,769.2,edge/shape 0.24 paper 0.42 ink 0.00 seen 1.00 size 1.00 m -0.02 idx 0.00 notcard ev0 past1
+440,rect,0.000,608.5,845.1,608.8,1030.8,504.5,1024.7,508.4,785.1,edge/shape 0.20 paper 0.29 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+440,rect fit,0.000,608.5,845.1,608.8,1027.2,504.3,1021.2,508.6,785.2,edge/shape 0.30 paper 0.21 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+440,rect ref,0.000,608.5,838.0,608.7,1028.1,504.8,1022.1,507.5,811.4,edge/shape 0.73 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+440,rectx2,0.000,500.5,1024.5,508.3,540.8,613.0,665.3,614.2,1031.1,edge/shape 0 size 1.00 m 0.07 idx 0.00 notcard ev0
+440,rectx2,0.000,507.9,784.8,608.4,845.0,609.1,1216.4,500.7,1264.5,edge/shape 0.12 paper 0.40 ink 0.00 seen 1.00 size 1.00 m -0.00 idx 0.00 notcard ev0 past3
+441,flow entry,0.586,140.5,980.1,567.0,968.6,575.6,1508.7,169.4,1519.1,edge/shape 0.04 paper 0.93 ink 0.24 seen 0.51 size 1.00 m 0.99 ev2
+441,flow x2,0.009,559.3,1500.3,-236.1,1512.0,-306.5,987.9,559.0,960.4,edge/shape 0.08 paper 1.00 ink 0.19 seen 0.33 size 1.00 m -0.04 ev0
+441,flow x2,0.000,161.6,1506.1,126.3,974.2,991.8,946.7,957.0,1494.5,edge/shape 0 size 1.00 m 0.24 ev2
+441,flow fit,0.582,136.7,978.7,574.5,962.7,567.3,1493.5,181.8,1495.2,edge/shape 0.50 paper 0.86 ink 0.30 seen 0.55 size 1.00 m 0.99 ev2
+441,rect,0.000,345.2,964.4,243.3,971.6,243.2,782.5,345.7,773.1,edge/shape 0.21 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+441,rect fit,0.000,345.4,973.8,243.2,981.0,243.4,781.5,345.4,774.5,edge/shape 0.15 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+441,rect ref,0.000,345.3,975.6,243.1,979.2,243.5,782.0,345.5,773.9,edge/shape 0.19 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+441,rect,0.000,476.4,797.9,477.4,977.4,373.6,979.8,377.0,727.8,edge/shape 0.29 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+441,rect fit,0.000,476.4,793.4,477.3,973.8,374.2,976.2,376.3,722.9,edge/shape 0.29 paper 0.26 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+441,rect ref,0.000,476.2,786.3,477.4,974.7,374.0,977.1,376.1,766.8,edge/shape 0.80 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+441,rectx2,0.001,483.7,1154.0,369.1,1237.6,369.1,722.2,480.3,800.7,edge/shape 0.21 paper 0.46 ink 0.09 seen 1.00 size 1.00 m 0.00 idx -0.27 notcard ev2 past3
+441,rect,0.000,607.8,775.3,609.0,978.3,506.2,966.2,506.2,780.4,edge/shape 0.14 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+441,rect fit,0.000,607.1,771.4,609.6,981.6,506.0,969.4,506.3,783.8,edge/shape 0.27 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+441,rect ref,0.000,607.5,776.4,609.3,973.0,505.9,971.7,506.5,779.5,edge/shape 0.16 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+442,flow entry,0.583,140.2,938.4,567.6,925.6,575.0,1466.7,171.1,1476.1,edge/shape 0.04 paper 0.93 ink 0.23 seen 0.55 size 1.00 m 0.99 ev2
+442,flow x2,0.004,559.4,1460.7,-235.2,1473.9,-306.8,946.7,559.0,917.2,edge/shape 0.03 paper 1.00 ink 0.17 seen 0.35 size 1.00 m -0.03 ev1
+442,flow x2,0.003,991.9,902.4,956.8,1454.1,162.1,1467.3,126.1,931.9,edge/shape 0.03 paper 0.90 ink 0.13 seen 0.36 size 1.00 m 0.18 ev1
+442,flow fit,0.002,218.7,1277.3,195.9,938.6,565.9,925.9,566.2,1271.6,edge/shape 0.05 paper 0.86 ink 0.27 seen 1.00 size 1.00 m 0.07 idx -0.08 notcard ev0 past0
+442,rect,0.000,154.9,1168.3,201.7,1275.8,83.4,1262.9,14.5,1151.9,edge/shape 0.16 paper 0.39 ink 0.00 seen 1.00 size 1.00 m 0.01 idx 0.00 notcard ev0
+442,rect fit,0.000,162.4,1169.2,209.2,1276.7,83.4,1262.9,14.5,1151.9,edge/shape 0.31 paper 0.41 ink 0.00 seen 1.00 size 1.00 m -0.01 idx 0.00 notcard ev0 past0
+442,rect ref,0.000,7.9,1151.1,179.7,1171.3,204.9,1276.2,46.7,1258.8,edge/shape 0.03 paper 0.47 ink 0.00 seen 1.00 size 1.00 m -0.01 idx 0.00 notcard ev0 past1
+442,rect,0.000,368.7,750.7,479.8,705.1,482.0,932.9,369.8,936.5,edge/shape 0.51 paper 0.46 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+442,rect fit,0.000,477.5,929.6,375.2,932.9,374.9,746.5,475.0,724.7,edge/shape 0.41 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+442,rect ref,0.000,474.5,734.1,478.2,930.4,375.2,933.8,375.0,739.8,edge/shape 0.20 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.13 idx 0.00 notcard ev0
+442,rect,0.000,608.3,755.4,608.4,942.5,505.9,930.4,507.1,689.7,edge/shape 0.03 paper 0.33 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+442,rect fit,0.000,608.3,755.4,608.3,938.9,505.9,926.8,507.2,689.7,edge/shape 0.08 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.05 idx 0.00 notcard ev0
+442,rect ref,0.000,608.4,747.6,608.3,935.3,505.4,926.8,507.6,722.3,edge/shape 0.74 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+442,rectx2,0.000,503.0,930.1,498.4,441.0,613.0,574.5,614.2,943.2,edge/shape 0 size 1.00 m 0.08 idx 0.00 notcard ev0
+442,rectx2,0.000,508.6,690.7,608.2,755.3,608.9,1130.1,499.9,1177.0,edge/shape 0.08 paper 0.44 ink 0.00 seen 1.00 size 1.00 m -0.01 idx 0.00 notcard ev0 past3
+443,flow entry,0.580,140.4,904.7,567.3,891.8,574.1,1434.6,170.7,1445.2,edge/shape 0.03 paper 0.94 ink 0.25 seen 0.59 size 1.00 m 0.99 ev2
+443,flow x2,0.007,559.0,1427.9,-234.3,1444.4,-307.1,914.1,558.8,883.2,edge/shape 0.06 paper 1.00 ink 0.19 seen 0.38 size 1.00 m -0.05 ev1
+443,flow x2,0.002,162.4,1436.2,125.8,898.7,991.7,867.8,955.7,1419.7,edge/shape 0.03 paper 0.90 ink 0.15 seen 0.38 size 1.00 m 0.16 ev1
+443,flow fit,0.003,204.3,904.9,565.7,892.0,565.9,1265.2,226.5,1272.3,edge/shape 0.12 paper 0.72 ink 0.31 seen 1.00 size 1.00 m 0.13 idx 0.00 notcard part ev-1 past3
+443,rect,0.000,475.8,704.6,476.6,893.8,375.2,896.8,375.3,703.6,edge/shape 0.24 paper 0.14 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+443,rect fit,0.000,475.9,706.2,476.6,897.0,375.1,899.9,375.5,702.4,edge/shape 0.25 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+443,rect ref,0.000,475.9,708.9,476.6,896.2,374.9,899.2,375.8,699.2,edge/shape 0.42 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+443,rect,0.000,343.1,647.0,345.1,888.8,243.4,893.3,243.6,724.0,edge/shape 0.07 paper 0.26 ink 0.00 seen 1.00 size 1.00 m -0.03 idx 0.00 notcard ev0
+443,rect fit,0.000,343.8,646.5,344.8,899.1,243.5,903.6,243.5,724.1,edge/shape 0.17 paper 0.25 ink 0.00 seen 1.00 size 1.00 m -0.03 idx 0.00 notcard ev0
+443,rect ref,0.000,344.7,899.1,243.5,903.6,243.6,718.6,343.9,682.5,edge/shape 0.76 paper 0.15 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+443,rectx2,0.001,234.9,1059.0,238.3,728.2,347.0,643.9,351.9,1133.4,edge/shape 0.25 paper 0.42 ink 0.17 seen 1.00 size 1.00 m -0.08 idx -0.22 notcard ev2 past0
+443,rect,0.000,608.2,708.5,608.4,904.3,506.4,895.4,506.4,699.7,edge/shape 0.11 paper 0.21 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+443,rect fit,0.000,608.2,708.7,608.4,901.0,506.2,892.0,506.7,699.2,edge/shape 0.20 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+443,rect ref,0.000,608.0,705.2,608.5,895.8,505.8,894.0,507.1,703.3,edge/shape 0.21 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+443,rect fit,0.000,608.4,720.4,608.2,899.9,506.3,892.9,506.6,675.8,edge/shape 0.10 paper 0.19 ink 0.00 seen 1.00 size 1.00 m -0.02 idx 0.00 notcard ev0
+443,rect ref,0.000,608.3,714.6,608.4,898.0,506.2,894.6,506.7,689.3,edge/shape 0.74 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+443,rectx2,0.000,511.7,884.2,519.6,472.6,604.8,579.9,601.9,890.4,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev0
+449,flow part,0.004,132.8,868.7,566.4,852.9,562.7,1458.8,173.8,1473.2,edge/shape 0.03 paper 0.92 ink 0.29 seen 0.62 size 1.00 m 0.18 ev2
+449,flow x2,0.008,566.4,852.9,563.1,1389.3,-224.9,1418.4,-300.7,884.4,edge/shape 0.07 paper 1.00 ink 0.22 seen 0.39 size 1.00 m -0.00 ev0
+449,flow x2,0.000,169.1,1403.9,132.8,868.7,999.9,837.2,957.1,1374.8,edge/shape 0 size 1.00 m 0.17 ev0
+449,flow fit,0.039,179.6,874.2,566.8,830.0,572.2,1400.0,238.5,1393.5,edge/shape 0.39 paper 0.81 ink 0.33 seen 0.68 size 1.00 m 0.69 ev2
+449,ink,0.005,414.7,1365.0,166.0,934.3,294.4,801.3,687.6,1180.9,edge/shape 0.08 paper 0.63 ink 0.32 seen 0.89 size 1.00 m 0.10 ev-1
+449,rect,0.000,142.6,875.5,574.8,859.5,577.1,1132.1,159.7,1148.8,edge/shape 0.03 paper 0.84 ink 0.22 seen 1.00 size 1.00 m 0.16 idx 0.02 notcard part ev-1 past2
+449,rect fit,0.005,233.1,862.7,574.9,850.0,576.7,1132.2,250.7,1145.0,edge/shape 0.15 paper 0.82 ink 0.24 seen 1.00 size 1.00 m 0.19 idx -0.25 notcard part ev-1 past2
+449,rect ref,0.001,117.6,1160.2,117.7,872.8,574.5,856.0,577.5,1124.3,edge/shape 0.25 paper 0.60 ink 0.22 seen 1.00 size 1.00 m 0.18 idx -0.07 notcard part ev-1 past3
+449,rectx2,0.000,115.0,1150.9,115.1,613.6,571.9,554.4,577.2,1131.9,edge/shape 0 size 1.00 m 0.16 idx 0.00 notcard ev0 past3
+449,rectx2,0.000,-314.1,669.2,518.1,561.4,505.0,1160.2,-254.4,1113.3,edge/shape 0.01 paper 0.66 ink 0.07 seen 0.59 size 1.00 m 0.08 ev2 past0
+449,rect,0.000,351.8,858.4,249.7,860.8,249.7,671.6,350.5,664.8,edge/shape 0.25 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+449,rect fit,0.000,351.8,858.4,249.6,860.8,249.7,672.6,350.2,664.1,edge/shape 0.29 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+449,rect ref,0.000,351.4,865.6,249.6,867.9,249.7,672.6,350.5,663.6,edge/shape 0.21 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+449,rect,0.000,482.8,688.9,483.1,855.0,381.2,857.1,382.3,613.5,edge/shape 0.50 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.06 idx 0.00 notcard ev0
+449,rect fit,0.000,483.0,689.0,483.0,861.8,380.8,863.9,382.9,613.9,edge/shape 0.38 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.06 idx 0.00 notcard ev0
+449,rect ref,0.000,483.0,686.9,483.0,861.9,381.4,860.4,381.7,621.4,edge/shape 0.11 paper 0.23 ink 0.00 seen 1.00 size 1.00 m 0.05 idx 0.00 notcard ev0
+449,rect fit,0.000,137.7,410.6,102.7,631.0,11.5,703.7,10.4,307.4,edge/shape 0 size 1.00 m 0.04 ev-1
+459,flow part,0.393,157.5,863.8,568.5,847.6,595.3,1405.9,161.3,1444.7,edge/shape 0.06 paper 0.92 ink 0.30 seen 0.64 size 1.00 m 0.90 ev2
+459,flow x2,0.006,-221.8,1419.6,-300.9,873.1,568.9,833.1,564.5,1371.2,edge/shape 0.05 paper 0.97 ink 0.16 seen 0.40 size 1.00 m 0.02 ev1
+459,flow x2,0.000,171.3,1395.4,134.0,853.1,1003.8,813.1,957.7,1346.9,edge/shape 0 size 1.00 m 0.16 ev1
+459,flow fit,0.002,213.3,858.5,578.2,841.7,578.1,1207.8,235.2,1228.9,edge/shape 0.08 paper 0.72 ink 0.31 seen 1.00 size 1.00 m 0.11 idx -0.03 notcard ev1 past23
+459,ink,0.012,273.7,1319.8,174.8,854.9,443.4,845.5,522.8,1219.1,edge/shape 0.52 paper 0.71 ink 0.28 seen 0.96 size 1.00 m 0.11 idx 0.00 notcard part ev-1
+459,rect,0.000,484.9,675.9,485.1,845.3,383.1,906.5,384.2,608.0,edge/shape 0 size 1.00 m -0.04 idx 0.00 notcard ev0
+459,rect ref,0.000,384.0,638.8,485.0,666.8,485.1,911.9,383.1,916.6,edge/shape 0.09 paper 0.44 ink 0.00 seen 1.00 size 1.00 m -0.02 idx 0.00 notcard ev0 past2
+459,rect,0.000,353.1,674.7,353.2,841.4,251.4,847.2,252.4,609.4,edge/shape 0 size 1.00 m 0.04 idx 0.00 notcard ev0
+459,rect ref,0.000,353.1,672.3,353.2,853.3,251.1,855.5,253.1,612.3,edge/shape 0.08 paper 0.21 ink 0.00 seen 1.00 size 1.00 m 0.03 idx 0.00 notcard ev0
+459,rectx2,0.000,360.3,1005.3,242.5,1088.9,247.5,606.3,356.6,677.0,edge/shape 0.06 paper 0.42 ink 0.14 seen 1.00 size 1.00 m -0.03 idx -0.22 notcard ev2 past03
+469,flow part,0.002,534.8,1425.9,146.6,1446.5,102.7,838.2,538.9,816.0,edge/shape 0.02 paper 0.94 ink 0.28 seen 0.65 size 1.00 m 0.23 ev2
+469,flow x2,0.004,538.9,816.0,535.3,1352.1,-251.0,1417.3,-333.4,860.4,edge/shape 0.04 paper 0.94 ink 0.17 seen 0.40 size 1.00 m 0.06 ev1
+469,flow x2,0.000,142.2,1384.7,102.7,838.2,975.0,793.8,928.5,1319.5,edge/shape 0 size 1.00 m 0.12 ev1
+469,flow fit,0.009,172.6,843.7,548.3,824.6,548.3,1098.5,192.8,1123.3,edge/shape 0.38 paper 0.72 ink 0.26 seen 1.00 size 1.00 m 0.17 idx -0.28 notcard ev-1 past23
+469,ink,0.000,531.9,1227.3,308.9,1317.3,98.4,844.4,320.1,828.9,edge/shape 0.07 paper 0.64 ink 0.29 seen 0.96 size 1.00 m 0.13 idx -0.25 notcard part ev-1 past3
+469,rect,0.000,130.2,1096.5,111.7,850.4,542.3,829.1,544.0,1130.6,edge/shape 0.02 paper 0.90 ink 0.24 seen 1.00 size 1.00 m 0.16 idx 0.08 notcard part ev-1 past3
+469,rect fit,0.004,202.7,836.7,548.4,819.6,548.2,1098.5,223.9,1121.0,edge/shape 0.14 paper 0.81 ink 0.23 seen 1.00 size 1.00 m 0.19 idx -0.25 notcard part ev-1 past2
+469,rect ref,0.001,88.1,1137.1,89.1,844.6,548.2,821.9,548.5,1094.6,edge/shape 0.27 paper 0.57 ink 0.22 seen 1.00 size 1.00 m 0.17 idx 0.03 notcard part ev-1 past3
+469,rectx2,0.000,547.2,526.4,548.7,1131.0,130.2,1096.5,93.3,604.3,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev1 past1
+469,rectx2,0.000,490.6,536.1,479.1,1125.3,-283.7,1062.3,-354.1,681.1,edge/shape 0 size 1.00 m 0.09 ev2 past3
+469,rect,0.000,66.8,1247.8,26.0,1084.9,145.5,1067.8,161.5,1173.1,edge/shape 0 size 1.00 m 0.04 idx 0.00 notcard ev0
+469,rect part,0.000,44.7,1265.2,-1.8,1088.9,145.5,1067.8,161.5,1173.1,edge/shape 0 size 1.00 m -0.04 idx 0.00 notcard ev0
+469,rectx2,0.000,107.5,1410.7,23.9,1076.3,144.1,1058.4,177.5,1278.4,edge/shape 0.39 paper 0.21 ink 0.00 seen 0.66 size 1.00 m 0.11 ev0
+469,rect,0.000,323.9,828.0,221.7,832.0,221.7,647.8,322.1,626.7,edge/shape 0.57 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.09 idx 0.00 notcard ev0
+469,rect fit,0.000,323.7,828.0,221.7,832.0,221.7,643.8,322.0,632.5,edge/shape 0.27 paper 0.09 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+469,rect ref,0.000,323.9,836.0,221.7,843.6,221.6,645.7,322.1,630.0,edge/shape 0.21 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+469,rect,0.000,454.0,640.9,455.5,825.9,353.5,829.5,353.6,635.7,edge/shape 0.33 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+469,rect fit,0.000,453.9,639.6,455.6,832.2,353.5,835.8,353.6,637.7,edge/shape 0.21 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+469,rect ref,0.000,454.1,641.1,455.9,830.6,353.4,834.2,353.8,635.4,edge/shape 0.28 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.10 idx 0.00 notcard ev0
+479,flow part,0.003,558.6,1439.5,169.7,1463.9,129.5,857.3,564.0,831.6,edge/shape 0.02 paper 0.94 ink 0.25 seen 0.64 size 1.00 m 0.23 ev2
+479,flow x2,0.007,-227.6,1445.3,-305.0,883.0,564.0,831.6,559.2,1364.8,edge/shape 0.06 paper 0.97 ink 0.16 seen 0.40 size 1.00 m 0.01 ev1
+479,flow x2,0.000,165.8,1405.1,129.5,857.3,998.5,805.9,952.7,1324.6,edge/shape 0 size 1.00 m 0.16 ev1
+479,flow fit,0.001,289.1,856.9,573.7,840.1,571.5,1111.4,307.4,1134.2,edge/shape 0.08 paper 0.79 ink 0.21 seen 1.00 size 1.00 m 0.09 idx -0.22 notcard part ev-1 past23
+479,ink,0.007,166.3,859.6,457.8,839.2,511.9,1224.6,199.8,1338.2,edge/shape 0.25 paper 0.78 ink 0.29 seen 0.90 size 1.00 m 0.09 ev-1 past1
+479,rect,0.000,573.4,844.3,571.3,1171.6,154.1,1101.2,138.9,868.2,edge/shape 0 size 1.00 m 0.11 idx 0.02 notcard part ev-1 past1
+479,rect ref,0.002,113.5,1157.7,113.7,862.6,573.9,837.3,571.2,1122.4,edge/shape 0.36 paper 0.64 ink 0.24 seen 1.00 size 1.00 m 0.20 idx 0.07 notcard part ev-1 past3
+479,rectx2,0.000,575.3,518.1,571.3,1171.6,154.1,1101.2,123.6,635.3,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev1 past1
+479,rect,0.000,347.2,677.0,347.1,841.2,245.0,849.9,247.0,603.7,edge/shape 0 size 1.00 m 0.04 idx 0.00 notcard ev0
+479,rect fit,0.000,347.1,672.7,347.2,841.2,245.6,849.9,245.8,598.6,edge/shape 0 size 1.00 m 0.03 idx 0.00 notcard ev0
+479,rect ref,0.000,347.0,673.7,347.2,853.5,245.2,858.6,246.5,600.2,edge/shape 0.04 paper 0.24 ink 0.00 seen 1.00 size 1.00 m 0.04 idx 0.00 notcard ev0
+479,rectx2,0.000,353.9,1002.1,237.0,1100.8,241.8,600.0,350.7,679.5,edge/shape 0.09 paper 0.44 ink 0.12 seen 1.00 size 1.00 m -0.03 idx -0.28 notcard ev2 past0
+489,flow part,0.003,120.7,887.3,555.0,858.9,550.1,1466.7,159.8,1493.9,edge/shape 0.03 paper 0.94 ink 0.28 seen 0.61 size 1.00 m 0.26 ev2
+489,flow x2,0.007,555.0,858.9,550.8,1389.2,-238.4,1487.9,-313.7,915.7,edge/shape 0.06 paper 0.97 ink 0.17 seen 0.39 size 1.00 m -0.02 ev1
+489,flow x2,0.000,156.2,1438.5,120.7,887.3,989.3,830.4,945.3,1339.8,edge/shape 0 size 1.00 m 0.21 ev1
+489,flow fit,0.008,190.5,891.8,564.8,867.3,562.9,1137.4,208.4,1168.7,edge/shape 0.31 paper 0.74 ink 0.24 seen 1.00 size 1.00 m 0.18 idx -0.22 notcard ev-1 past3
+489,ink,0.000,108.5,1199.3,100.5,971.2,565.2,935.9,558.2,1136.1,edge/shape 0.05 paper 0.57 ink 0.27 seen 1.00 size 1.00 m 0.19 idx 0.20 part ev-1 past13
+489,rect,0.000,339.7,876.1,237.5,881.7,237.6,688.6,339.0,679.8,edge/shape 0.21 paper 0.11 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+489,rect fit,0.000,339.7,882.5,237.3,888.0,237.9,690.0,338.8,677.9,edge/shape 0.20 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+489,rect ref,0.000,339.5,883.3,236.9,888.9,238.2,690.0,339.0,677.7,edge/shape 0.20 paper 0.10 ink 0.00 seen 1.00 size 1.00 m -0.11 idx 0.00 notcard ev0
+489,rect,0.000,369.3,703.6,470.2,631.3,471.6,868.9,369.2,868.9,edge/shape 0.17 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev0
+489,rect fit,0.000,369.4,703.6,470.0,631.5,471.8,879.0,369.2,879.0,edge/shape 0.05 paper 0.24 ink 0.00 seen 1.00 size 1.00 m -0.05 idx 0.00 notcard ev0
+489,rect ref,0.000,471.4,875.4,369.2,882.6,369.3,699.2,470.7,660.2,edge/shape 0.73 paper 0.16 ink 0.00 seen 1.00 size 1.00 m -0.07 idx 0.00 notcard ev0
+489,rect,0.000,602.5,682.0,603.7,865.9,501.4,866.7,501.6,686.5,edge/shape 0.22 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+489,rect fit,0.000,602.2,683.6,603.8,865.9,501.0,866.7,502.1,685.2,edge/shape 0.28 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+489,rect ref,0.000,602.0,683.8,604.3,866.8,501.3,866.2,501.7,684.9,edge/shape 0.26 paper 0.12 ink 0.00 seen 1.00 size 1.00 m -0.12 idx 0.00 notcard ev0
+493,last,0.005,499.6,910.3,482.5,1263.6,235.3,1239.1,236.4,893.7,edge/shape 0.39 paper 0.51 ink 0.05 seen 1.00 size 1.00 m -0.03 idx -0.15 notcard ev2 past1
+493,last fit,0.000,338.7,1163.5,338.7,894.3,508.4,905.0,496.7,1147.2,edge/shape 0.42 paper 0.88 ink 0.00 seen 1.00 size 0.81 m 0.11 idx 0.00 notcard ev0
+493,rect,0.000,475.2,918.3,476.7,1093.1,368.7,1105.0,369.4,836.3,edge/shape 0.32 paper 0.26 ink 0.00 seen 1.00 size 0.81 m 0.01 idx 0.00 notcard ev0
+493,rect fit,0.000,475.2,918.3,476.7,1089.3,368.6,1101.3,369.8,836.6,edge/shape 0.30 paper 0.24 ink 0.00 seen 1.00 size 0.79 m 0.01 idx 0.00 notcard ev0
+493,rect ref,0.000,475.1,911.3,476.7,1092.3,368.3,1100.4,369.9,860.4,edge/shape 0.33 paper 0.20 ink 0.00 seen 1.00 size 0.66 m -0.07 idx 0.00 notcard ev0
+493,rectx2,0.001,478.3,1267.9,364.6,1379.7,363.1,831.4,475.2,918.3,edge/shape 0.16 paper 0.51 ink 0.09 seen 0.76 size 0.59 m 0.11 ev2 past13
+493,rect,0.000,602.7,890.3,605.0,1090.6,495.2,1089.4,497.7,897.5,edge/shape 0.26 paper 0.47 ink 0.00 seen 1.00 size 0.41 m -0.15 idx 0.00 notcard ev0
+493,rect fit,0.000,603.3,889.1,604.4,1087.2,493.3,1086.0,495.8,898.6,edge/shape 0.36 paper 0.44 ink 0.00 seen 1.00 size 0.39 m -0.14 idx 0.00 notcard ev0
+493,rect ref,0.000,603.3,887.6,604.4,1081.9,495.2,1088.4,497.7,899.8,edge/shape 0.36 paper 0.39 ink 0.00 seen 1.00 size 0.37 m -0.14 idx 0.00 notcard ev0
+494,last,0.000,236.5,893.7,499.6,910.3,482.5,1263.6,235.7,1239.1,edge/shape 0 size 1.00 m 0.03 idx 0.00 notcard ev0 past2
+494,last fit,0.000,338.8,1225.5,338.8,952.6,509.9,963.4,498.1,1207.8,edge/shape 0.39 paper 0.88 ink 0.00 seen 1.00 size 0.83 m 0.10 idx 0.00 notcard ev0
+494,doc,0.000,110.0,1275.0,5.0,710.0,605.0,960.0,715.0,1280.0,edge/shape 0 size 0.36 m 0.03 idx 0.00 notcard ev1
+494,rect,0.000,476.6,1153.7,367.7,1168.0,368.3,950.2,475.6,953.6,edge/shape 0.51 paper 0.50 ink 0.00 seen 1.00 size 0.52 m -0.13 idx 0.00 notcard ev0
+494,rect fit,0.000,472.7,1150.6,367.4,1164.5,368.4,950.2,471.8,953.5,edge/shape 0.57 paper 0.16 ink 0.00 seen 1.00 size 0.50 m -0.15 idx 0.00 notcard ev0
+494,rect ref,0.000,475.1,1153.2,367.5,1163.6,368.4,950.2,474.2,953.6,edge/shape 0.46 paper 0.20 ink 0.00 seen 1.00 size 0.49 m -0.14 idx 0.00 notcard ev0
+494,rect,0.000,495.4,1151.2,496.5,958.0,602.5,949.4,605.0,1150.5,edge/shape 0.17 paper 0.51 ink 0.00 seen 1.00 size 0.41 m -0.16 idx 0.00 notcard ev0
+494,rect fit,0.000,602.4,954.5,605.1,1147.1,497.3,1147.9,498.5,953.5,edge/shape 0.43 paper 0.25 ink 0.00 seen 1.00 size 0.37 m -0.15 idx 0.00 notcard ev0
+494,rect ref,0.000,602.2,948.4,605.0,1145.5,499.7,1146.2,500.8,958.5,edge/shape 0.30 paper 0.15 ink 0.00 seen 1.00 size 0.39 m -0.15 idx 0.00 notcard ev0
+494,rect,0.000,125.9,393.1,112.6,616.8,10.2,706.2,11.4,272.6,edge/shape 0 size 0.89 m 0.03 ev-1
+494,rect fit,0.000,128.3,384.0,111.0,620.8,10.2,704.3,11.3,280.3,edge/shape 0 size 0.91 m 0.04 ev-1
+495,last,0.000,482.5,1263.6,234.8,1239.1,238.0,893.8,499.6,910.3,edge/shape 0 size 1.00 m 0.13 idx 0.00 notcard ev0
+495,last fit,0.000,507.1,1021.6,495.4,1264.9,339.1,1249.4,338.5,1010.9,edge/shape 0.03 paper 0.88 ink 0.00 seen 1.00 size 0.68 m 0.12 idx 0.00 notcard ev0
+495,rect,0.000,338.2,1013.9,339.1,1224.0,235.7,1229.7,236.2,1014.2,edge/shape 0.10 paper 0.11 ink 0.00 seen 1.00 size 0.51 m -0.14 idx 0.00 notcard ev0
+495,rect fit,0.000,339.1,1224.0,235.7,1229.7,236.1,1018.1,338.2,1009.3,edge/shape 0.13 paper 0.11 ink 0.00 seen 1.00 size 0.50 m -0.14 idx 0.00 notcard ev0
+495,rect ref,0.000,338.5,1015.6,339.1,1229.4,235.4,1235.1,236.4,1012.2,edge/shape 0.10 paper 0.10 ink 0.00 seen 1.00 size 0.55 m -0.14 idx 0.00 notcard ev0
+495,rect,0.000,206.7,1014.9,206.8,1237.6,103.4,1269.2,103.6,1012.8,edge/shape 0 size 0.75 m -0.14 idx 0.00 notcard ev0
+495,rect fit,0.000,206.3,1015.0,207.4,1237.4,103.4,1269.2,103.7,1012.6,edge/shape 0 size 0.75 m -0.14 idx 0.00 notcard ev0
+495,rect,0.000,495.8,1213.0,495.7,1015.3,602.9,1012.0,604.8,1207.7,edge/shape 0.30 paper 0.51 ink 0.00 seen 1.00 size 0.39 m -0.16 idx 0.00 notcard ev0
+495,rect fit,0.000,602.9,1012.5,604.8,1204.4,497.7,1209.5,497.6,1014.8,edge/shape 0.40 paper 0.26 ink 0.00 seen 1.00 size 0.37 m -0.16 idx 0.00 notcard ev0
+495,rect ref,0.000,603.4,1014.6,604.5,1207.0,500.0,1208.4,499.9,1012.1,edge/shape 0.34 paper 0.20 ink 0.00 seen 1.00 size 0.38 m -0.16 idx 0.00 notcard ev0
+496,last,0.000,239.2,893.9,499.6,910.3,482.5,1263.6,229.2,1238.5,edge/shape 0 size 1.00 m 0.09 idx 0.00 notcard ev0
+496,rect,0.000,339.0,1268.7,235.5,1268.8,236.3,1077.1,338.6,1070.3,edge/shape 0 size 0.40 m -0.14 idx 0.00 notcard ev0
+496,rect fit,0.000,339.5,1268.7,235.6,1268.8,236.2,1077.9,337.9,1069.4,edge/shape 0 size 0.40 m -0.14 idx 0.00 notcard ev0
+496,rect ref,0.000,338.4,1072.9,339.3,1268.7,234.9,1268.8,237.0,1074.7,edge/shape 0 size 0.38 m -0.14 idx 0.00 notcard ev0
+496,rect,0.000,368.6,1061.1,456.8,1102.7,464.2,1267.7,367.1,1269.3,edge/shape 0.34 paper 0.10 ink 0.00 seen 1.00 size 0.46 m -0.07 idx 0.00 notcard ev0
+496,rect fit,0.000,369.1,1061.3,456.8,1102.7,464.7,1277.0,366.7,1278.5,edge/shape 0.59 paper 0.10 ink 0.00 seen 1.00 size 0.52 m -0.08 idx 0.00 notcard ev0
+496,rect ref,0.000,473.1,1081.0,475.0,1267.6,366.6,1269.3,369.3,1060.3,edge/shape 0.38 paper 0.20 ink 0.00 seen 1.00 size 0.46 m -0.13 idx 0.00 notcard ev0
+496,rectx2,0.000,471.7,1432.8,371.9,1473.4,376.8,1064.9,456.8,1102.7,edge/shape 0.51 paper 0.10 ink 0.00 seen 0.53 size 0.94 m 0.03 ev0
+496,rect,0.000,338.8,1083.1,338.9,1268.7,235.0,1268.7,237.0,1062.1,edge/shape 0 size 0.45 m -0.11 idx 0.00 notcard ev0
+496,rect fit,0.000,338.8,1083.7,338.9,1268.7,234.7,1268.7,237.5,1061.1,edge/shape 0 size 0.45 m -0.11 idx 0.00 notcard ev0
+496,rect ref,0.000,338.7,1078.3,339.0,1268.7,234.9,1268.7,237.1,1069.1,edge/shape 0 size 0.40 m -0.13 idx 0.00 notcard ev0
+496,rect,0.000,603.6,1094.4,604.6,1270.0,495.0,1267.2,497.0,1013.2,edge/shape 0.16 paper 0.30 ink 0.00 seen 1.00 size 0.74 m 0.01 idx 0.00 notcard ev0
+496,rect fit,0.000,603.6,1094.4,604.6,1270.0,499.3,1267.3,501.2,1016.4,edge/shape 0.20 paper 0.26 ink 0.00 seen 1.00 size 0.72 m 0.02 idx 0.00 notcard ev0
+496,rect ref,0.000,603.6,1092.3,604.7,1280.8,496.6,1266.7,498.5,1023.2,edge/shape 0.59 paper 0.31 ink 0.00 seen 1.00 size 0.68 m -0.02 idx 0.00 notcard ev0
+497,last,0.000,482.5,1263.6,229.2,1238.5,239.2,893.9,499.6,910.3,edge/shape 0 size 1.00 m 0.08 idx 0.00 notcard ev0
+497,last fit,0.000,232.4,1127.7,239.2,893.9,512.4,911.1,500.7,1154.3,edge/shape 0 size 0.83 m 0.02 idx 0.00 notcard ev0
+497,rect,0.000,236.6,1137.3,337.6,1131.4,338.6,1268.5,236.4,1267.3,edge/shape 0 size 0.08 m -0.11 idx 0.00 notcard ev0
+497,rect fit,0.000,236.7,1141.1,336.6,1126.6,339.1,1268.5,236.4,1267.3,edge/shape 0 size 0.10 m -0.10 idx 0.00 notcard ev0
+497,rect ref,0.000,236.6,1142.5,337.9,1124.5,338.3,1268.5,236.4,1267.3,edge/shape 0 size 0.11 m -0.10 idx 0.00 notcard ev0
+497,rectx2,0.000,236.5,1392.9,236.5,1141.3,341.1,1125.9,341.8,1412.5,edge/shape 0.40 paper 0.14 ink 0.00 seen 0.53 size 0.88 m -0.16 ev0
+497,rect,0.000,462.3,1135.7,473.6,1268.7,369.0,1268.7,371.0,1138.9,edge/shape 0 size 0.07 m -0.11 idx 0.00 notcard ev0
+497,rect ref,0.000,369.1,1140.0,469.9,1127.6,471.9,1268.7,368.2,1268.7,edge/shape 0 size 0.10 m -0.12 idx 0.00 notcard ev0
+497,rect ref,0.000,205.8,1268.7,102.7,1268.7,104.3,1141.1,203.9,1125.9,edge/shape 0 size 0.10 m -0.09 idx 0.00 notcard ev0
+497,rect,0.000,203.3,1136.9,206.3,1268.7,103.0,1268.7,104.0,1131.9,edge/shape 0 size 0.08 m -0.10 idx 0.00 notcard ev0
+497,rect fit,0.000,205.0,1132.8,205.3,1268.7,103.0,1268.7,103.8,1135.9,edge/shape 0 size 0.08 m -0.11 idx 0.00 notcard ev0
+497,rect ref,0.000,203.8,1135.7,206.1,1268.7,102.0,1268.7,105.4,1132.7,edge/shape 0 size 0.08 m -0.11 idx 0.00 notcard ev0
+497,rectx2,0.000,208.3,1137.1,216.5,1406.9,98.6,1402.0,98.6,1131.6,edge/shape 0.09 paper 0.14 ink 0.00 seen 0.53 size 0.82 m -0.22 ev0
+498,last,0.000,229.2,1238.5,239.2,893.9,499.6,910.3,482.5,1263.6,edge/shape 0 size 1.00 m -0.07 idx 0.00 notcard ev0
+498,last fit,0.000,499.6,910.3,485.8,1194.8,230.5,1193.8,239.2,893.9,edge/shape 0 size 0.93 m -0.00 idx 0.00 notcard ev0
+499,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m 0.01 idx 0.00 notcard ev0
+499,last fit,0.000,499.6,910.3,482.0,1275.2,228.8,1250.2,239.2,893.9,edge/shape 0 size 1.00 m 0.00 idx 0.00 notcard ev0
+500,last,0.000,499.6,910.3,482.5,1263.6,229.2,1238.5,239.2,893.9,edge/shape 0 size 1.00 m 0.01 idx 0.00 notcard ev0
+500,rectx2,0.000,82.6,1069.5,149.2,1268.8,51.7,1267.6,6.4,1131.4,edge/shape 0 size 0.47 m -1.00 idx 0.00 notcard ev0
+500,rectx2,0.000,82.6,1069.5,215.8,1468.1,96.9,1403.8,6.4,1131.4,edge/shape 0 size 0.92 m -1.00 ev0
+500,rectx2,0.000,16.0,870.3,149.2,1268.8,51.7,1267.6,-38.8,995.2,edge/shape 0 size 0.92 m -1.00 ev0
+510,doc,0.000,315.0,375.0,485.0,5.0,720.0,660.0,490.0,905.0,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+510,doc fit,0.000,311.2,383.3,485.0,5.0,720.0,660.0,485.2,910.1,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
+510,doc ref,0.000,312.2,381.2,485.0,5.0,720.0,660.0,486.4,908.9,edge/shape 0 size 1.00 m -1.00 idx 0.00 notcard ev0
