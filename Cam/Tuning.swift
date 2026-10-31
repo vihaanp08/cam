@@ -43,13 +43,17 @@ enum Tuning {
     /// The light across the card is read along its four edges and carried across between them, so a
     /// shadow falling across the card falls across the fake too (Compositor).
     static var edgeLight = true
-    /// A card's border judged even along each side against its own neighbours (a shadow or a lamp to
-    /// one side doesn't count against it), and read the right distance in at a steep angle
-    /// (PlanarTracker.cardScore).
-    static var robustEven = true
+    /// A card's border read the right distance in from each side at a steep angle (4% of its longest
+    /// side in can land on the printing when it is narrow one way) (PlanarTracker.cardScore).
+    static var evenInset = true
+    /// The followed card's border judged even along each side against its own neighbours, so a
+    /// shadow or a lamp to one side doesn't count against it (PlanarTracker.cardScore).
+    static var evenLocalTrack = true
+    /// The same for candidates found by detection.
+    static var evenLocalDetect = false
     /// The card's picture read as its printing over the paper around it, so a shadow over part of the
     /// card doesn't stop it matching (CardTracker.samplePicture).
-    static var shadowMatch = true
+    static var shadowMatch = false
     /// Printing past one end of a side (an index cut off at a steep angle, a thumb over the middle)
     /// moves that side out to the card's edge (CardTracker.printingPast).
     static var bandPast = true

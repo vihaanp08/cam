@@ -824,7 +824,9 @@ enum PlanarTracker {
     /// outside the picture are ignored, so a card that is only partly in view still scores well.
     /// Used to choose between detections and to notice when the tracker has latched onto something
     /// else (a card-plus-fingers blob, half a card, a patch of palm, a window).
-    static func cardScore(_ g: GrayImage, quad: [CGPoint]) -> Double {
+    /// `tracking`: the outline being followed (not a candidate being judged): its border is judged
+    /// even against its own neighbours along each side (Tuning.evenLocalTrack).
+    static func cardScore(_ g: GrayImage, quad: [CGPoint], tracking: Bool = false) -> Double {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return 0 }
         let sides = (0..<4).map { k -> Double in
             let a = quad[k], b = quad[(k + 1) % 4]
@@ -846,7 +848,7 @@ enum PlanarTracker {
             // (seen at a steep angle the card is narrow one way: 4% of its longest side in from a side
             // can land on the printing there. The border is a fixed share of the card across that side.)
             var inset = 0.04 * size
-            if Tuning.robustEven {
+            if Tuning.evenInset {
                 let across = (sides[(k + 1) % 4] + sides[(k + 3) % 4]) / 2
                 inset = min(inset, 0.05 * across)
             }
@@ -861,7 +863,8 @@ enum PlanarTracker {
             sideRings.append(side)
         }
         guard ring.count >= 20 else { return 0 }
-        if Tuning.robustEven {
+        let localEven = tracking ? Tuning.evenLocalTrack : Tuning.evenLocalDetect
+        if localEven {
             // even along each side compared with its own neighbours, so light changing across the
             // card (a lamp to one side, a shadow over part of it) doesn't count against it; but each
             // side still has to be about as bright as the rest (not one side on something dark)
@@ -884,7 +887,7 @@ enum PlanarTracker {
         let edgeScore = support.reduce(0, +) / Double(support.count) * min(1, support.min()! / 0.5)
         let sorted = ring.sorted()
         let med = sorted[sorted.count / 2]
-        let even = Tuning.robustEven ? Double(evenCount) / Double(ring.count)
+        let even = localEven ? Double(evenCount) / Double(ring.count)
             : Double(ring.filter { abs($0 - med) < 0.06 }.count) / Double(ring.count)
         let r = trueAspect(quad, f: focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2)
         let aspect = exp(-pow((r - 0.716) / 0.15, 2))

@@ -220,7 +220,10 @@ if args.count > 6 {
         case "fastlight": Tuning.fastLight = v != 0
         case "edgelight": Tuning.edgeLight = v != 0
         case "rearm": pipe.rearmAfter = v
-        case "even": Tuning.robustEven = v != 0
+        case "even": Tuning.evenInset = v != 0; Tuning.evenLocalTrack = v != 0; Tuning.evenLocalDetect = v != 0
+        case "eveninset": Tuning.evenInset = v != 0
+        case "eventrack": Tuning.evenLocalTrack = v != 0
+        case "evendetect": Tuning.evenLocalDetect = v != 0
         case "shadowmatch": Tuning.shadowMatch = v != 0
         case "bandpast": Tuning.bandPast = v != 0
         case "tiltlearn": Tuning.tiltLearn = v != 0

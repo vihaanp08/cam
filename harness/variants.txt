@@ -1,6 +1,5 @@
-oldlight fastlight=0,edgelight=0,shadowline=0 syn7
-noshadowline shadowline=0 syn7
-oldtrack even=0,shadowmatch=0,bandpast=0,tiltlearn=0 syn3,syn5,syn9,syn8
-nobandpast bandpast=0 syn5,syn9
-noeven even=0 syn5,syn9
-noshadowmatch shadowmatch=0 syn5,syn9
+evendetect evendetect=1 syn8,syn9
+noinset eveninset=0 syn8
+notrack eventrack=0 syn7,syn8
+shadowmatch shadowmatch=1 syn5,syn7
+oldtrack even=0,bandpast=0,tiltlearn=0 syn8,syn3

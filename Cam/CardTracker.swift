@@ -301,7 +301,7 @@ final class CardTracker {
                     }
                     lockPrinting = (0..<4).contains { printingPast(paper, next.quad, side: $0) == true }
                 }
-                trackedScore = cardLikeness(g, paper, next.quad)
+                trackedScore = cardLikeness(g, paper, next.quad, tracking: true)
                 verified = cardPicture != nil && lastPictureMatch >= 0.85
                 let inView = FramePipeline.fractionInside(quadCI(next.quad), CGRect(x: 0, y: 0, width: W, height: H))
                 // Still looks like a card? Weak frames happen (motion blur, a thumb over an edge), so
@@ -1581,8 +1581,8 @@ final class CardTracker {
     /// wins over the card.
     private var partsNote = ""
 
-    private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint]) -> Double {
-        let s = PlanarTracker.cardScore(g, quad: quad)
+    private func cardLikeness(_ g: GrayImage, _ paper: PaperReader?, _ quad: [CGPoint], tracking: Bool = false) -> Double {
+        let s = PlanarTracker.cardScore(g, quad: quad, tracking: tracking)
         partsNote = "edge/shape 0"
         guard s > 0 else { return 0 }
         guard let paper = paper else { return s }
