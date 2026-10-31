@@ -1,10 +1,6 @@
-noentry entry=0 syn4
-nocarry carry=0 syn5
-nosearch search=0 syn5
-nowb wb=0 syn6
 oldlight fastlight=0,edgelight=0,shadowline=0 syn7
 noshadowline shadowline=0 syn7
-noshadowmatch shadowmatch=0 syn7,syn8
-noeven even=0 syn7,syn8
-nobandpast bandpast=0 syn8,syn
-notiltlearn tiltlearn=0 syn8
+oldtrack even=0,shadowmatch=0,bandpast=0,tiltlearn=0 syn3,syn5,syn9,syn8
+nobandpast bandpast=0 syn5,syn9
+noeven even=0 syn5,syn9
+noshadowmatch shadowmatch=0 syn5,syn9

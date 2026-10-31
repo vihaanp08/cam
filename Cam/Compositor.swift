@@ -197,15 +197,18 @@ final class Compositor {
         var edges: [[(Double, Double, Double)]]?
         var shadow: Shadow?
         if Tuning.edgeLight {
-            // (paper in shadow counts: as dark as a fifth of the lit paper, same colour as it)
+            // (paper in shadow counts: in linear light a hand's shadow leaves a fifth of the light or
+            // less; black ink is darker still, and is a run of a cell or two the medians drop)
+            // (and up to the brightest of the border: in a big shadow the median is the shadow)
+            let p98 = sortedL[Int(Double(sortedL.count - 1) * 0.98)]
             let paperish = samples.filter { s in
-                guard s.l > 0.18 * p75 && s.l < 1.7 * p75 else { return false }
+                guard s.l > 0.06 * p75 && s.l < max(1.7 * p75, 1.3 * p98) else { return false }
                 let l = max(s.l, 1e-5)
                 let r = s.r / l / ref.0, g = s.g / l / ref.1, b = s.b / l / ref.2
                 let mx = max(r, g, b), mn = min(r, g, b)
                 return (mx - mn) / max(mx, 1e-4) < 0.32
             }
-            func profile(_ count: Int, _ pick: (S) -> Int?, _ along: (Int) -> (Double, Double)) -> [(Double, Double, Double)] {
+            func profile(_ count: Int, _ pick: (S) -> Int?) -> [(Double, Double, Double)]? {
                 var bins = [[S]](repeating: [], count: count)
                 for s in paperish { if let p = pick(s), p >= 0, p < count { bins[p].append(s) } }
                 var known: [(Double, Double, Double)?] = Array(repeating: nil, count: count)
@@ -216,10 +219,8 @@ final class Compositor {
                     if win.count >= 4 { known[p] = (med(win.map(\.r)), med(win.map(\.g)), med(win.map(\.b))) }
                 }
                 let idx = known.indices.filter { known[$0] != nil }
-                // (an edge hardly seen, out of the picture or under fingers: the smooth fit there)
-                guard idx.count * 4 >= count, let first = idx.first, let last = idx.last else {
-                    return (0..<count).map { let (u, v) = along($0); return predict(u, v) }
-                }
+                // (an edge hardly seen, out of the picture or under fingers: filled in below)
+                guard idx.count * 4 >= count, let first = idx.first, let last = idx.last else { return nil }
                 var out = [(Double, Double, Double)](repeating: (0, 0, 0), count: count)
                 var prevK = first
                 for p in 0..<count {
@@ -234,13 +235,30 @@ final class Compositor {
                 return out
             }
             let gwD = Double(gw - 1), ghD = Double(gh - 1)
+            // (the outermost cells only at the sides: the next ones in can catch the edge of the
+            // index, which would read as a shadow)
+            let measuredEdges = [
+                profile(gh, { $0.x == 1 ? $0.y : nil }),
+                profile(gh, { $0.x == gw - 2 ? $0.y : nil }),
+                profile(gw, { $0.y <= 3 ? $0.x : nil }),
+                profile(gw, { $0.y >= gh - 4 ? $0.x : nil })
+            ]
+            // An edge not seen: straight between the ends of the two edges beside it (in the shadow
+            // if they are), or the smooth fit when those aren't seen either.
+            func line(_ a: (Double, Double, Double)?, _ b: (Double, Double, Double)?, _ count: Int,
+                      _ along: (Int) -> (Double, Double)) -> [(Double, Double, Double)] {
+                guard let a = a, let b = b else { return (0..<count).map { let (u, v) = along($0); return predict(u, v) } }
+                return (0..<count).map { p in
+                    let f = Double(p) / Double(count - 1)
+                    return (a.0 + (b.0 - a.0) * f, a.1 + (b.1 - a.1) * f, a.2 + (b.2 - a.2) * f)
+                }
+            }
+            let mL = measuredEdges[0], mR = measuredEdges[1], mT = measuredEdges[2], mB = measuredEdges[3]
             var fe = [
-                // (the outermost cells only at the sides: the next ones in can catch the edge of the
-                // index, which would read as a shadow)
-                profile(gh, { $0.x == 1 ? $0.y : nil }, { (0, Double($0) / ghD) }),
-                profile(gh, { $0.x == gw - 2 ? $0.y : nil }, { (1, Double($0) / ghD) }),
-                profile(gw, { $0.y <= 3 ? $0.x : nil }, { (Double($0) / gwD, 0) }),
-                profile(gw, { $0.y >= gh - 4 ? $0.x : nil }, { (Double($0) / gwD, 1) })
+                mL ?? line(mT?.first, mB?.first, gh, { (0, Double($0) / ghD) }),
+                mR ?? line(mT?.last, mB?.last, gh, { (1, Double($0) / ghD) }),
+                mT ?? line(mL?.first, mR?.first, gw, { (Double($0) / gwD, 0) }),
+                mB ?? line(mL?.last, mR?.last, gw, { (Double($0) / gwD, 1) })
             ]
             if let prev = edgePrev, prev.count == 4 {
                 for e in 0..<4 where prev[e].count == fe[e].count {
@@ -468,14 +486,19 @@ final class Compositor {
             let l0 = l[(k + n - 1) % n], l1 = l[k]
             let f = abs(l1 - l0) > 1e-9 ? min(1, max(0, (mid - l0) / (l1 - l0))) : 0.5
             xs.append((p0.x + f * (p1.x - p0.x), p0.y + f * (p1.y - p0.y)))
-            // the soft edge: from below a quarter of the way up to above three quarters, round the border
-            var a = (k + n - 1) % n, b = k
-            var steps = 0
-            while steps < 40 && l[a] > lo && l[a] < hi { a = (a + n - 1) % n; steps += 1 }
+            // the levels either side of it, a little way off (the light can differ across the card)
+            let darkStep = isDark[k] ? 1 : n - 1          // round the border towards the shadow
+            let litStep = n - darkStep
+            let start = isDark[k] ? (k + n - 1) % n : k  // the last lit point
+            let ld = l[(start + darkStep * 12) % n], ll = l[(start + litStep * 11 + n) % n]
+            // (a sharp drop: a shadow's edge, not the light falling off across the card)
+            guard ll > 1e-6, ld / ll < 0.7 else { return nil }
+            let q1 = ld + 0.25 * (ll - ld), q3 = ld + 0.75 * (ll - ld)
+            var a = start, b = start, steps = 0
+            while steps < 24 && l[a] > q1 { a = (a + darkStep) % n; steps += 1 }
             steps = 0
-            while steps < 40 && l[b] > lo && l[b] < hi { b = (b + 1) % n; steps += 1 }
-            let d = hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y)
-            soft = max(soft, d)
+            while steps < 24 && l[b] < q3 { b = (b + litStep) % n; steps += 1 }
+            soft = max(soft, hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y))
         }
         // (a gradual change round the border is a lamp to one side, not a shadow's edge)
         guard soft < 14 else { return nil }
