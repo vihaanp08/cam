@@ -1,0 +1,51 @@
+i,drew,armed,tracking,source,reason,cardness,h,x0,y0,x1,y1,x2,y2,x3,y3,debug
+0,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+3,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+4,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 3 tried 17 shapeOK 2 best rect 0.00 [edge/shape 0.02 paper 1.00 ink 0.00 seen 1.00 size 1.00] idx 0.00 notcard new
+5,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 10 shapeOK 0 best - idx 0.00 new
+6,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+7,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+8,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+10,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+11,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 9 shapeOK 1 best rect fit 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+12,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+13,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 11 shapeOK 3 best rect 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+14,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+14,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+15,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 11 shapeOK 0 best - idx 0.00 new
+15,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 11 shapeOK 0 best - idx 0.00 new
+16,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+17,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 12 shapeOK 3 best rect 0.00 [edge/shape 0.03 paper 1.00 ink 0.00 seen 1.00 size 1.00] idx 0.00 notcard new
+18,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+19,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 3 tried 18 shapeOK 11 best rect 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+20,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+21,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+22,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+23,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+24,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+25,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+26,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+27,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+27,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+27,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+27,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+29,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 9 shapeOK 0 best - idx 0.00 new
+30,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 3 tried 17 shapeOK 4 best rect part 0.00 [edge/shape 0.35 paper 1.00 ink 0.00 seen 0.82 size 1.00] idx 0.00 new
+32,1,1,searching,none,ahead,0.00,1080,1256.1,517.7,1252.8,-259.8,229.4,-275.7,203.2,502.7,vision 2 tried 15 shapeOK 2 best rect 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+33,1,1,searching,none,ahead,0.00,1080,1264.4,585.4,1263.2,-188.9,244.6,-207.5,217.8,567.6,vision 3 tried 15 shapeOK 6 best rect entry 0.14 [edge/shape 0.54 paper 0.98 ink 0.16 seen 0.68 size 1.00] idx 0.00 new
+35,1,1,searching,none,ahead,0.00,1080,1308.6,674.5,1303.4,-103.5,289.1,-116.8,255.7,662.0,vision 1 tried 5 shapeOK 1 best ink 0.13 [edge/shape 0.54 paper 0.94 ink 0.16 seen 0.84 size 1.00] idx 0.00 new
+36,1,1,locked,ink,ahead,0.89,1080,1324.6,717.0,1325.2,-65.2,296.2,-72.7,276.0,710.7,vision 3 tried 12 shapeOK 5 best ink 0.66 [edge/shape 0.67 paper 1.00 ink 0.17 seen 0.96 size 1.00] idx 0.00 new
+38,1,1,locked,flow+edge,ok,0.75,1080,1358.2,790.2,1360.7,-0.4,315.9,5.5,315.8,791.3,vision 5 tried 23 shapeOK 8 best rect 0.29 [edge/shape 0.40 paper 0.85 ink 0.17 seen 1.00 size 1.00] idx 0.20 new
+39,1,1,locked,flow+edge,ok,0.72,1080,1367.2,817.6,1372.5,36.0,333.1,43.4,337.1,821.0,vision 5 tried 23 shapeOK 11 best rect fit 0.18 [edge/shape 0.61 paper 0.99 ink 0.17 seen 1.00 size 1.00] lockpast idx 0.13 new
+41,1,1,locked,flow+edge,ok,0.91,1080,1364.8,868.9,1372.5,134.7,385.2,147.5,374.7,861.0,flow s0.85 v1.00
+42,1,1,locked,flow+edge,ok,0.85,1080,1351.2,888.1,1361.5,157.9,405.8,188.1,387.1,875.5,vision 4 tried 17 shapeOK 10 best flow fit 0.16 [edge/shape 0.54 paper 1.00 ink 0.17 seen 1.00 size 1.00] lockpast idx -0.13 notcard
+44,1,1,locked,flow+edge,ok,0.95,1080,1313.3,920.2,1326.5,260.5,428.7,240.9,403.3,901.8,vision 2 tried 11 shapeOK 5 best rect fit 0.20 [edge/shape 0.66 paper 1.00 ink 0.15 seen 1.00 size 1.00] lockpast idx 0.18
+45,1,1,locked,flow+edge,ok,0.96,1080,1288.8,931.6,1300.3,292.9,433.9,269.2,402.7,911.1,vision 4 tried 18 shapeOK 11 best rect fit 0.20 [edge/shape 0.68 paper 1.00 ink 0.15 seen 1.00 size 1.00] lockpast idx 0.22
+47,1,1,locked,flow+edge,ok,0.96,1080,1238.2,943.8,1254.0,343.5,425.6,313.0,390.0,925.3,vision 2 tried 13 shapeOK 7 best rect fit 0.22 [edge/shape 0.73 paper 1.00 ink 0.15 seen 1.00 size 1.00] lockpast idx 0.32
+48,1,1,locked,flow+edge,ok,0.97,1080,1212.4,942.4,1227.8,353.5,412.3,322.4,378.1,925.3,vision 3 tried 16 shapeOK 7 best rect fit 0.23 [edge/shape 0.80 paper 0.99 ink 0.14 seen 1.00 size 1.00] lockpast idx 0.33
+49,1,1,locked,flow+edge,ok,0.97,1080,1188.2,934.2,1202.3,356.0,399.7,322.6,365.0,917.5,vision 3 tried 13 shapeOK 7 best ink 0.24 [edge/shape 0.83 paper 0.99 ink 0.18 seen 1.00 size 1.00] lockpast idx 0.28

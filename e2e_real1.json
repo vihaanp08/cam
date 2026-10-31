@@ -1,0 +1,15 @@
+{
+ "frames": 43,
+ "drawn_frames": 13,
+ "first_drawn": 32,
+ "flickers": 0,
+ "repeated_frames": 7,
+ "skipped_frames": 7,
+ "reasons": {
+  "no card": 30,
+  "ahead": 4,
+  "ok": 9
+ },
+ "armed_after_presses": [],
+ "frames_shown": 43
+}

@@ -1,0 +1,377 @@
+{
+ "script": "rearm",
+ "opaque_inset": [
+  0.02,
+  0.016295454545454547
+ ],
+ "paint_inset": [
+  0.014,
+  0.012
+ ],
+ "all": {
+  "exposed": 2,
+  "ghost": 0,
+  "fake_while_revealed": 0,
+  "tone": {
+   "mean": 1.9801,
+   "p50": 0.64,
+   "p95": 4.73,
+   "max": 30.29,
+   "n": 109
+  },
+  "err": {
+   "mean": 9.8463,
+   "p50": 2.0987,
+   "p95": 10.8385,
+   "max": 212.4799,
+   "n": 109
+  },
+  "raw_err": {
+   "mean": 4.5739,
+   "p50": 2.3592,
+   "p95": 5.1185,
+   "max": 208.7499,
+   "n": 223
+  },
+  "bleed_pct": {
+   "mean": 1.7725,
+   "p50": 0.0,
+   "p95": 0.2327,
+   "max": 66.4159,
+   "n": 109
+  },
+  "spill_pct": {
+   "mean": 1.1424,
+   "p50": 0.0001,
+   "p95": 0.0211,
+   "max": 48.6361,
+   "n": 109
+  },
+  "bleed_frames_over_0.5pct": 5,
+  "exposed_list": [
+   70,
+   302
+  ]
+ },
+ "segments": {
+  "enter": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 6.1193,
+    "p50": 3.27,
+    "p95": 19.14,
+    "max": 30.29,
+    "n": 15
+   },
+   "err": {
+    "mean": 27.5446,
+    "p50": 5.3062,
+    "p95": 134.2511,
+    "max": 212.4799,
+    "n": 15
+   },
+   "raw_err": {
+    "mean": 5.1929,
+    "p50": 5.4473,
+    "p95": 10.2063,
+    "max": 10.8385,
+    "n": 13
+   },
+   "bleed_pct": {
+    "mean": 1.6627,
+    "p50": 0.1765,
+    "p95": 0.6389,
+    "max": 22.9588,
+    "n": 15
+   },
+   "spill_pct": {
+    "mean": 5.2328,
+    "p50": 0.0128,
+    "p95": 29.6456,
+    "max": 48.6361,
+    "n": 15
+   },
+   "bleed_frames_over_0.5pct": 2
+  },
+  "fake shown": {
+   "exposed": 1,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 0.6288,
+    "p50": 0.63,
+    "p95": 0.74,
+    "max": 0.77,
+    "n": 52
+   },
+   "err": {
+    "mean": 1.6839,
+    "p50": 2.2793,
+    "p95": 2.4953,
+    "max": 2.5756,
+    "n": 52
+   },
+   "raw_err": {
+    "mean": 1.6462,
+    "p50": 2.268,
+    "p95": 2.3505,
+    "max": 2.4279,
+    "n": 57
+   },
+   "bleed_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "max": 0.0,
+    "n": 52
+   },
+   "spill_pct": {
+    "mean": 0.0064,
+    "p50": 0.0097,
+    "p95": 0.0135,
+    "max": 0.0148,
+    "n": 52
+   },
+   "bleed_frames_over_0.5pct": 0,
+   "exposed_list": [
+    70
+   ]
+  },
+  "revealed": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": {
+    "mean": 1.9888,
+    "p50": 2.3592,
+    "p95": 2.4695,
+    "max": 2.5035,
+    "n": 40
+   },
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "leave short": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": {
+    "mean": 2.9075,
+    "p50": 2.5382,
+    "p95": 4.2745,
+    "max": 5.3494,
+    "n": 12
+   },
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "away short": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": null,
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "back": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": {
+    "mean": 2.7232,
+    "p50": 2.7169,
+    "p95": 2.8015,
+    "max": 2.883,
+    "n": 15
+   },
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "revealed held": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": {
+    "mean": 2.7882,
+    "p50": 2.7929,
+    "p95": 2.8525,
+    "max": 2.8727,
+    "n": 32
+   },
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "leave long": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": {
+    "mean": 3.1429,
+    "p50": 2.8055,
+    "p95": 4.4499,
+    "max": 5.1185,
+    "n": 12
+   },
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "away long": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": null,
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "enter rearmed": {
+   "exposed": 1,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 5.0807,
+    "p50": 3.06,
+    "p95": 13.74,
+    "max": 19.24,
+    "n": 15
+   },
+   "err": {
+    "mean": 36.5602,
+    "p50": 2.1457,
+    "p95": 207.9882,
+    "max": 208.6535,
+    "n": 15
+   },
+   "raw_err": {
+    "mean": 36.7149,
+    "p50": 2.3175,
+    "p95": 207.9546,
+    "max": 208.7499,
+    "n": 15
+   },
+   "bleed_pct": {
+    "mean": 11.2173,
+    "p50": 0.0,
+    "p95": 62.2567,
+    "max": 66.4159,
+    "n": 15
+   },
+   "spill_pct": {
+    "mean": 3.0467,
+    "p50": 0.0003,
+    "p95": 15.8918,
+    "max": 22.4814,
+    "n": 15
+   },
+   "bleed_frames_over_0.5pct": 3,
+   "exposed_list": [
+    302
+   ]
+  },
+  "fake again": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 0.5604,
+    "p50": 0.56,
+    "p95": 0.59,
+    "max": 0.63,
+    "n": 27
+   },
+   "err": {
+    "mean": 0.8929,
+    "p50": 0.9005,
+    "p95": 1.0643,
+    "max": 1.1543,
+    "n": 27
+   },
+   "raw_err": {
+    "mean": 0.9518,
+    "p50": 0.9491,
+    "p95": 0.9888,
+    "max": 1.0044,
+    "n": 27
+   },
+   "bleed_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "max": 0.0,
+    "n": 27
+   },
+   "spill_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "max": 0.0,
+    "n": 27
+   },
+   "bleed_frames_over_0.5pct": 0
+  }
+ },
+ "worst_bleed": [
+  [
+   305,
+   66.42,
+   "ok"
+  ],
+  [
+   306,
+   62.26,
+   "ok"
+  ],
+  [
+   304,
+   39.59,
+   "ok"
+  ],
+  [
+   3,
+   22.96,
+   "ahead"
+  ],
+  [
+   5,
+   0.64,
+   "confirmed"
+  ],
+  [
+   11,
+   0.24,
+   "ok"
+  ],
+  [
+   10,
+   0.23,
+   "ok"
+  ],
+  [
+   7,
+   0.23,
+   "ok"
+  ]
+ ]
+}

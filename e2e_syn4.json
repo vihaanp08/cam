@@ -1,0 +1,62 @@
+{
+ "frames": 56,
+ "drawn_frames": 33,
+ "first_drawn": 20,
+ "flickers": 1,
+ "repeated_frames": 4,
+ "skipped_frames": 4,
+ "reasons": {
+  "no card": 19,
+  "ahead": 1,
+  "ok": 31,
+  "carried on": 1,
+  "lost": 4
+ },
+ "armed_after_presses": [],
+ "frames_shown": 56,
+ "real_card_shown_frames": 8,
+ "real_card_shown_list": [
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18
+ ],
+ "ghost_frames": 0,
+ "ghost_list": [],
+ "lock_delay_frames": 9,
+ "corner_err_mean": 2.7,
+ "corner_err_p95": 3.11,
+ "bleed_pct_mean": 0.01,
+ "bleed_pct_p95": 0.03,
+ "bleed_frames_over_0.5pct": 0,
+ "worst_bleed": [
+  [
+   23,
+   0.1
+  ],
+  [
+   24,
+   0.0
+  ],
+  [
+   46,
+   0.0
+  ],
+  [
+   43,
+   0.0
+  ],
+  [
+   45,
+   0.0
+  ],
+  [
+   44,
+   0.0
+  ]
+ ]
+}

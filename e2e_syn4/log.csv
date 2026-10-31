@@ -1,0 +1,61 @@
+i,drew,armed,tracking,source,reason,cardness,h,x0,y0,x1,y1,x2,y2,x3,y3,debug
+0,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 0 tried 0 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+3,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+4,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+5,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+5,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+6,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+6,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+7,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+8,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+10,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+11,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+12,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+13,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+14,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+15,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+16,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+17,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+18,0,1,searching,none,no card,0.00,1280,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+20,1,1,locked,ink,ahead,0.92,1280,210.2,834.3,497.0,842.8,493.1,443.6,223.6,451.6,vision 2 tried 9 shapeOK 4 best ink 0.64 [edge/shape 0.69 paper 0.96 ink 0.28 seen 1.00 size 1.00] idx 0.20 new
+21,1,1,locked,flow+edge,ok,0.92,1280,216.4,834.3,502.3,842.9,500.0,443.5,229.7,451.8,vision 2 tried 12 shapeOK 5 best ink 0.66 [edge/shape 0.72 paper 0.96 ink 0.28 seen 1.00 size 1.00] idx 0.22 new
+23,1,1,locked,flow+edge,ok,0.92,1280,219.2,832.9,506.0,838.3,498.6,438.8,229.8,450.6,vision 3 tried 16 shapeOK 5 best ink 0.64 [edge/shape 0.70 paper 0.95 ink 0.28 seen 1.00 size 1.00] idx 0.28 new
+24,1,1,locked,flow+edge,ok,0.92,1280,221.5,831.7,508.3,832.3,495.9,433.3,226.9,449.1,vision 2 tried 13 shapeOK 4 best flow fit 0.62 [edge/shape 0.69 paper 0.95 ink 0.28 seen 1.00 size 1.00] idx 0.18 new
+26,1,1,locked,flow+edge,ok,0.92,1280,225.3,828.0,512.0,824.8,492.2,425.4,223.4,446.5,flow s0.76 v1.00
+27,1,1,locked,flow+edge,ok,0.92,1280,226.4,827.4,513.5,822.0,490.4,423.1,222.5,445.8,flow s0.78 v1.00
+29,1,1,locked,flow+edge,ok,0.92,1280,226.9,827.1,514.1,821.1,490.2,422.2,222.2,445.6,vision 2 tried 10 shapeOK 6 best flow fit 0.67 [edge/shape 0.73 paper 0.96 ink 0.28 seen 1.00 size 1.00] idx 0.22
+30,1,1,locked,flow+edge,ok,0.92,1280,226.6,827.4,513.8,822.0,490.4,423.1,222.6,445.8,flow s0.79 v1.00
+31,1,1,locked,flow+edge,ok,0.92,1280,225.2,828.2,512.6,826.0,491.8,426.3,223.8,447.1,flow s0.74 v1.00 pic 1.00
+32,1,1,locked,flow+edge,ok,0.92,1280,223.1,830.2,510.8,830.2,493.6,430.6,225.8,448.7,flow s0.76 v1.00 pic 1.00
+33,1,1,locked,flow+edge,ok,0.92,1280,220.8,831.8,508.5,835.6,496.1,435.5,228.2,450.4,flow s0.77 v1.00 pic 1.00
+34,1,1,locked,flow+edge,ok,0.92,1280,218.4,833.5,506.0,841.5,498.4,441.0,230.6,452.5,flow s0.76 v1.00 pic 1.00
+35,1,1,locked,flow+edge,ok,0.92,1280,215.7,835.3,502.6,847.5,501.8,446.8,233.2,454.3,flow s0.73 v1.00 pic 1.00
+36,1,1,locked,flow+edge,ok,0.92,1280,213.1,837.3,500.5,853.2,504.0,452.5,235.8,456.3,flow s0.74 v1.00 pic 1.00
+37,1,1,locked,flow+edge,ok,0.92,1280,210.9,838.9,498.3,858.5,506.0,456.9,238.2,458.9,flow s0.74 v1.00 pic 1.00
+38,1,1,locked,flow+edge,ok,0.92,1280,209.1,840.2,496.4,863.0,507.7,462.4,240.3,459.4,flow s0.73 v1.00 pic 1.00
+39,1,1,locked,flow+edge,ok,0.92,1280,207.5,841.3,494.8,866.3,509.1,465.1,241.6,461.1,vision 2 tried 12 shapeOK 9 best ink 0.62 [edge/shape 0.68 paper 0.95 ink 0.28 seen 1.00 size 1.00] idx 0.30 m 0.98 pic 1.00
+40,1,1,locked,flow+edge,ok,0.92,1280,206.7,842.0,494.0,868.4,509.8,467.0,242.5,462.2,flow s0.75 v1.00 pic 1.00
+41,1,1,locked,flow+edge,ok,0.92,1280,206.4,842.2,493.6,869.0,510.2,467.8,243.0,462.4,flow s0.74 v1.00 pic 1.00
+42,1,1,locked,flow+edge,ok,0.92,1280,206.5,842.2,493.9,868.5,510.0,467.2,242.8,462.4,flow s0.70 v1.00 pic 1.00
+43,1,1,locked,flow+edge,ok,0.92,1280,206.8,841.9,494.6,866.9,509.5,464.9,242.5,462.3,flow s0.72 v1.00 pic 1.00
+44,1,1,locked,flow+edge,ok,0.92,1280,208.5,840.8,496.8,863.4,507.3,461.2,240.9,461.2,flow s0.71 v1.00 pic 1.00
+45,1,1,locked,flow+edge,ok,0.92,1280,210.4,839.4,499.0,858.8,505.3,457.6,239.2,459.2,flow s0.76 v1.00 pic 1.00
+46,1,1,locked,flow+edge,ok,0.92,1280,215.1,836.0,504.4,846.9,500.5,446.2,234.4,455.5,flow s0.76 v1.00 pic 1.00
+47,1,1,locked,flow+edge,ok,0.91,1280,222.4,835.7,512.3,846.5,506.4,445.8,239.9,455.4,flow s0.77 v1.00 pic 1.00
+48,1,1,locked,flow+edge,ok,0.91,1280,244.8,835.5,536.1,846.8,529.4,445.8,261.9,455.5,flow s0.77 v1.00 pic 1.00
+49,1,1,locked,flow+edge,ok,0.90,1280,282.3,835.6,575.7,846.7,566.8,445.9,297.6,455.5,vision 3 tried 16 shapeOK 10 best ink 0.63 [edge/shape 0.68 paper 0.96 ink 0.29 seen 1.00 size 1.00] idx 0.23 m 0.96 pic 1.00
+50,1,1,locked,flow+edge,ok,0.89,1280,334.7,835.8,631.4,846.8,619.4,446.2,347.5,455.5,flow s0.73 v1.00 pic 1.00
+51,1,1,locked,flow,ok,0.89,1280,394.8,836.0,694.9,846.9,679.5,446.2,404.5,455.5,flow s0.73 v1.00 pic 0.99
+52,1,1,locked,flow,ok,0.89,1280,455.0,836.1,758.6,846.7,738.7,446.5,461.6,455.5,flow s0.67 v0.88 pic 0.99
+53,1,1,locked,flow,ok,0.87,1280,514.9,836.4,823.2,846.8,798.6,446.5,518.0,455.5,flow s0.63 v0.69 pic 0.99
+54,1,1,locked,flow,ok,0.82,1280,575.0,836.5,885.8,846.6,857.7,447.5,574.9,455.5,flow s0.55 v0.50 pic 1.00
+55,1,1,coast 1,none,carried on,0.00,1280,635.2,836.5,948.4,846.5,916.9,448.6,631.7,455.4,vision 2 tried 13 shapeOK 9 best last 0.00 [edge/shape 0 size 1.00] idx -0.03 notcard m 0.08
+56,0,1,coast 2,none,lost,0.00,1280,633.4,836.7,947.4,846.5,915.5,448.3,630.1,455.4,vision 1 tried 5 shapeOK 4 best last 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard m -0.02
+57,0,1,coast 3,none,lost,0.00,1280,662.6,836.8,978.2,846.4,944.4,448.6,657.7,455.4,vision 1 tried 6 shapeOK 5 best last 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard m 0.03
+58,0,1,coast 4,none,lost,0.00,1280,691.8,836.9,1009.0,846.3,973.3,449.0,685.3,455.3,vision 1 tried 6 shapeOK 5 best last 0.00 [edge/shape 0 size 1.00] idx 0.00 m -1.00
+59,0,1,coast 5,none,lost,0.00,1280,691.8,836.9,1009.0,846.3,973.3,449.0,685.3,455.3,vision 1 tried 6 shapeOK 5 best last 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard m -0.03
