@@ -215,8 +215,7 @@ jobs:
             /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_nohold" 0.5 hold=0 > "results/real_${n}_nohold_log.txt" 2>&1 || true
             # (and with the tracker as it was before the shadow and steep-angle changes)
             /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_oldtrack" 0.5 even=0,shadowmatch=0,bandpast=0,tiltlearn=0 > "results/real_${n}_oldtrack_log.txt" 2>&1 || true
-            /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_evendetect" 0.5 evendetect=1 > "results/real_${n}_evendetect_log.txt" 2>&1 || true
-            /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_nobandpast" 0.5 bandpast=0 > "results/real_${n}_nobandpast_log.txt" 2>&1 || true
+            /tmp/harness video "$f" /tmp/fake_9h.png "results/real_${n}_noshadowmatch" 0.5 shadowmatch=0 > "results/real_${n}_noshadowmatch_log.txt" 2>&1 || true
           done
 
       - name: Publish harness results early

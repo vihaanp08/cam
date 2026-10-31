@@ -1,5 +1,3 @@
-evendetect evendetect=1 syn8,syn9
-noinset eveninset=0 syn8
-notrack eventrack=0 syn7,syn8
-shadowmatch shadowmatch=1 syn5,syn7
-oldtrack even=0,bandpast=0,tiltlearn=0 syn8,syn3
+notrack eventrack=0 syn9
+inset eveninset=1 syn9,syn8
+noshadowmatch shadowmatch=0 syn5,syn7,syn9

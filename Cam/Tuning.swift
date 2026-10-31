@@ -45,7 +45,7 @@ enum Tuning {
     static var edgeLight = true
     /// A card's border read the right distance in from each side at a steep angle (4% of its longest
     /// side in can land on the printing when it is narrow one way) (PlanarTracker.cardScore).
-    static var evenInset = true
+    static var evenInset = false
     /// The followed card's border judged even along each side against its own neighbours, so a
     /// shadow or a lamp to one side doesn't count against it (PlanarTracker.cardScore).
     static var evenLocalTrack = true
@@ -53,10 +53,10 @@ enum Tuning {
     static var evenLocalDetect = false
     /// The card's picture read as its printing over the paper around it, so a shadow over part of the
     /// card doesn't stop it matching (CardTracker.samplePicture).
-    static var shadowMatch = false
+    static var shadowMatch = true
     /// Printing past one end of a side (an index cut off at a steep angle, a thumb over the middle)
     /// moves that side out to the card's edge (CardTracker.printingPast).
-    static var bandPast = true
+    static var bandPast = false
     /// The card's picture can be taken at a steep angle, with a little more leeway on its
     /// proportions while both corner indices show clearly (CardTracker).
     static var tiltLearn = true
