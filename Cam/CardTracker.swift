@@ -850,12 +850,16 @@ final class CardTracker {
         let fullyInView = grayQuad.map { q in q.allSatisfy { $0.x > 3 && $0.y > 3 && $0.x < gw - 4 && $0.y < gh - 4 } } ?? false
         // (and the card's proportions right: from an outline a little off, every later outline was
         // lined up that little off)
-        let rightShape = grayQuad.flatMap { gq in gray.map { g in
-            abs(PlanarTracker.trueAspect(gq, f: PlanarTracker.focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2) - 0.716) < 0.03
-        } } ?? false
+        let shapeOff = grayQuad.flatMap { gq in gray.map { g in
+            abs(PlanarTracker.trueAspect(gq, f: PlanarTracker.focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2) - 0.716)
+        } } ?? 1
+        // (held at a steep angle the proportions read less exactly from the outline: a little more
+        // leeway, as long as both corner indices show clearly where they belong)
+        let ipNow = grayQuad.flatMap { indexPattern(paper, $0) }
+        let rightShape = shapeOff < 0.03 || (Tuning.tiltLearn && shapeOff < 0.055 && (ipNow?.both ?? 0) >= 0.2 && (ipNow?.cardLike ?? false))
         if cardPicture == nil, fullyInView, rightShape, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 6,
            snapStreak4 >= 3 || (snapStreak3 >= 10 && trackedScore >= 0.5), lastMotion < 0.02 * quadSize(gq),
-           let ip = indexPattern(paper, gq), ip.both >= 0.12,
+           let ip = ipNow, ip.both >= 0.12,
            let pic = CardTracker.samplePicture(pyr, gq) {
             cardPicture = pic
             cardPictureFrame = frameIndex
@@ -1805,6 +1809,9 @@ final class CardTracker {
         guard paperLum > 60 else { return nil }
         // past the side: 2 to 10% of the card across, along the middle of the side
         var seen = 0, paperish = 0, ink = 0
+        // (and by thirds along the side: a thumb over the middle of it hides the rest, and at a
+        // steep angle the strip past a side that cuts off an index is only the index's width)
+        var bSeen = [0, 0, 0], bPaper = [0, 0, 0], bInk = [0, 0, 0]
         for j in 0..<6 {
             for s in 0..<14 {
                 let off = (0.02 + 0.08 * CGFloat(j) / 5) * across
@@ -1812,16 +1819,30 @@ final class CardTracker {
                 let x = a.x + t * (b.x - a.x) + off * n.dx, y = a.y + t * (b.y - a.y) + off * n.dy
                 guard let c = paper.color(x, y) else { continue }
                 seen += 1
+                let band = min(2, s * 3 / 14)
+                let near = j <= 2
+                if near { bSeen[band] += 1 }
                 let l = lum(c)
                 if l > 0.8 * paperLum && l < 1.25 * paperLum && sat(c) < 0.3 {
                     paperish += 1
+                    if near { bPaper[band] += 1 }
                 } else if c.0 - max(c.1, c.2) > 60 || (l < 0.6 * paperLum && !(c.0 - c.2 > 25 && c.1 > c.2 + 5)) {
                     ink += 1       // (printing: red, or dark and not warm like a fingertip in shadow)
+                    if near { bInk[band] += 1 }
                 }
             }
         }
         guard seen >= 30 else { return nil }
-        return Double(paperish + ink) / Double(seen) >= 0.8 && Double(ink) / Double(seen) >= 0.04
+        if Double(paperish + ink) / Double(seen) >= 0.8 && Double(ink) / Double(seen) >= 0.04 { return true }
+        if Tuning.bandPast {
+            // the near strip (2-5% of the card out) of one end third: paper and printing only, with
+            // clearly more printing than a stray mark
+            for k in [0, 2] where bSeen[k] >= 10 {
+                let pf = Double(bPaper[k] + bInk[k]) / Double(bSeen[k]), inf = Double(bInk[k]) / Double(bSeen[k])
+                if pf >= 0.9 && inf >= 0.08 { return true }
+            }
+        }
+        return false
     }
 
     // MARK: - The card's picture
@@ -1871,10 +1892,54 @@ final class CardTracker {
             }
         }
         guard n >= picW * picH / 3 else { return nil }
+        if Tuning.shadowMatch {
+            // Read as the card's printing, not its lighting: each cell over the paper around it (the
+            // brightest nearby), so a shadow over part of the card, or a lamp to one side, leaves the
+            // picture the same.
+            out = paperRelative(out)
+            sum = 0; sum2 = 0; n = 0
+            for v in out where !v.isNaN { sum += v; sum2 += v * v; n += 1 }
+            guard n >= picW * picH / 3 else { return nil }
+        }
         let mean = sum / Float(n)
         let sd = (max(1e-8, sum2 / Float(n) - mean * mean)).squareRoot()
         guard sd > 0.01 else { return nil }
         for k in out.indices where !out[k].isNaN { out[k] = (out[k] - mean) / sd }
+        return out
+    }
+
+    /// Each cell of a picture grid over the paper level around it: the brightest cell within a few
+    /// cells (paper is the bright majority on a card face), smoothed. NaN cells stay NaN.
+    static func paperRelative(_ g: [Float]) -> [Float] {
+        let w = picW, h = picH, r = 5
+        var rowMax = [Float](repeating: .nan, count: w * h)
+        for j in 0..<h {
+            for i in 0..<w {
+                var m: Float = -1
+                for ii in max(0, i - r)...min(w - 1, i + r) { let v = g[j * w + ii]; if !v.isNaN, v > m { m = v } }
+                if m >= 0 { rowMax[j * w + i] = m }
+            }
+        }
+        var env = [Float](repeating: .nan, count: w * h)
+        for j in 0..<h {
+            for i in 0..<w {
+                var m: Float = -1
+                for jj in max(0, j - r)...min(h - 1, j + r) { let v = rowMax[jj * w + i]; if !v.isNaN, v > m { m = v } }
+                if m >= 0 { env[j * w + i] = m }
+            }
+        }
+        // (smoothed, so the paper level changes gently: a 5x5 average)
+        var out = [Float](repeating: .nan, count: w * h)
+        for j in 0..<h {
+            for i in 0..<w where !g[j * w + i].isNaN {
+                var s: Float = 0, c: Float = 0
+                for jj in max(0, j - 2)...min(h - 1, j + 2) {
+                    for ii in max(0, i - 2)...min(w - 1, i + 2) { let v = env[jj * w + ii]; if !v.isNaN { s += v; c += 1 } }
+                }
+                let e = c > 0 ? s / c : 0
+                out[j * w + i] = e > 0.02 ? g[j * w + i] / e : .nan
+            }
+        }
         return out
     }
 
@@ -1915,11 +1980,12 @@ final class CardTracker {
         let s = CGFloat(1 << L)
         let img = pyr[L]
         var c = quad.map { CGPoint(x: $0.x / s, y: $0.y / s) }
-        var uv: [CGPoint] = [], T: [Float] = []
+        var uv: [CGPoint] = [], T: [Float] = [], cell: [Int] = []
         for j in 0..<picH {
             for i in 0..<picW where !pic[j * picW + i].isNaN {
                 uv.append(picUV(i, j))
                 T.append(pic[j * picW + i])
+                cell.append(j * picW + i)
             }
         }
         guard uv.count >= picW * picH / 3 else { return nil }
@@ -1947,8 +2013,21 @@ final class CardTracker {
                 I[k] = v
                 gx[k] = 0.5 * (img.sample(x + 1, y) - img.sample(x - 1, y))
                 gy[k] = 0.5 * (img.sample(x, y + 1) - img.sample(x, y - 1))
-                sum += v; sum2 += v * v; n += 1
             }
+            if Tuning.shadowMatch {
+                // (the printing over the paper around it, as the picture was taken: see samplePicture)
+                var grid = [Float](repeating: .nan, count: picW * picH)
+                for k in uv.indices where !I[k].isNaN { grid[cell[k]] = I[k] }
+                let rel = paperRelative(grid)
+                for k in uv.indices where !I[k].isNaN {
+                    let r = rel[cell[k]]
+                    if r.isNaN { I[k] = .nan; continue }
+                    let e = I[k] / max(r, 1e-4)        // the paper level there
+                    guard e > 0.02 else { I[k] = .nan; continue }
+                    I[k] = r; gx[k] /= e; gy[k] /= e
+                }
+            }
+            for k in uv.indices where !I[k].isNaN { sum += I[k]; sum2 += I[k] * I[k]; n += 1 }
             guard n >= picW * picH / 4 else { return nil }
             let mean = sum / Float(n)
             let sd = (max(1e-8, sum2 / Float(n) - mean * mean)).squareRoot()

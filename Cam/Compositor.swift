@@ -195,6 +195,7 @@ final class Compositor {
         // border can't follow a shadow falling across the card (a hand, the phone): its edge cuts
         // the card's border on two sides, and is carried straight across between them.
         var edges: [[(Double, Double, Double)]]?
+        var shadow: Shadow?
         if Tuning.edgeLight {
             // (paper in shadow counts: as dark as a fifth of the lit paper, same colour as it)
             let paperish = samples.filter { s in
@@ -245,15 +246,28 @@ final class Compositor {
                 for e in 0..<4 where prev[e].count == fe[e].count {
                     for p in fe[e].indices {
                         let a = prev[e][p], b = fe[e][p]
-                        fe[e][p] = ((1 - w) * a.0 + w * b.0, (1 - w) * a.1 + w * b.1, (1 - w) * a.2 + w * b.2)
+                        // (a shadow's edge moving along the border: taken at once where it changed)
+                        let la = 0.2126 * a.0 + 0.7152 * a.1 + 0.0722 * a.2, lb = 0.2126 * b.0 + 0.7152 * b.1 + 0.0722 * b.2
+                        let wp = Tuning.fastLight && abs(lb - la) > 0.12 * max(la, 1e-4) ? 0.95 : w
+                        fe[e][p] = ((1 - wp) * a.0 + wp * b.0, (1 - wp) * a.1 + wp * b.1, (1 - wp) * a.2 + wp * b.2)
                     }
                 }
             }
             edgePrev = fe
             edges = fe
+            if Tuning.shadowLine, let sh = Compositor.findShadow(fe, gw: gw, gh: gh) {
+                shadow = sh
+                edges = sh.unshadowed
+            }
         }
         /// The paper's colour under the real light at grid cell (x, y).
         func lightAt(_ x: Int, _ y: Int) -> (Double, Double, Double) {
+            let c = coonsAt(x, y)
+            guard let sh = shadow else { return c }
+            let m = sh.mask(Double(x) / Double(gw - 1), Double(y) / Double(gh - 1))   // 1 = in the shadow
+            return (c.0 * (1 - m + m * sh.k.0), c.1 * (1 - m + m * sh.k.1), c.2 * (1 - m + m * sh.k.2))
+        }
+        func coonsAt(_ x: Int, _ y: Int) -> (Double, Double, Double) {
             let u = Double(x) / Double(gw - 1), v = Double(y) / Double(gh - 1)
             guard let e = edges else { return predict(u, v) }
             let L = e[0][y], R = e[1][y], T = e[2][x], B = e[3][x]
@@ -391,6 +405,113 @@ final class Compositor {
                         keep: gridImage(keepPx, colorSpace: nil),
                         cardness: cardness, faceUp: faceUp, noise: noise,
                         paper: lightAt(gw / 2, gh / 2))
+    }
+
+    /// A shadow with a straight edge across the card (a hand, the phone, a sleeve): where its edge
+    /// crosses the card's border, how much darker it is, and the edge profiles with it taken out.
+    struct Shadow {
+        var a: (Double, Double)          // where the shadow's edge crosses the border (mm on the card)
+        var b: (Double, Double)
+        var side: Double                 // which side of the line is in shadow (+1 / -1)
+        var soft: Double                 // width of its soft edge (mm)
+        var k: (Double, Double, Double)  // light left in the shadow, per colour
+        var unshadowed: [[(Double, Double, Double)]]
+        func mask(_ u: Double, _ v: Double) -> Double {
+            let x = u * 63, y = v * 88
+            let dx = b.0 - a.0, dy = b.1 - a.1
+            let L = max(1e-6, (dx * dx + dy * dy).squareRoot())
+            let d = side * ((x - a.0) * dy - (y - a.1) * dx) / L     // > 0 inside the shadow
+            let t = min(1, max(0, d / max(soft, 1) + 0.5))
+            return t * t * (3 - 2 * t)
+        }
+    }
+
+    /// Looks for one shadow edge across the card in the paper colour measured along its four edges
+    /// (left, right, first row, last row, as in analyze): going round the border, the light drops
+    /// sharply once and comes back sharply once. A gentle change (a lamp to one side) is left to the
+    /// smooth fill.
+    static func findShadow(_ e: [[(Double, Double, Double)]], gw: Int, gh: Int) -> Shadow? {
+        guard e.count == 4, e[0].count == gh, e[1].count == gh, e[2].count == gw, e[3].count == gw else { return nil }
+        // round the border: first row left to right, right side down, last row right to left, left side up
+        var pts: [(x: Double, y: Double, c: (Double, Double, Double), edge: Int, i: Int)] = []
+        for x in 0..<gw { pts.append((63 * Double(x) / Double(gw - 1), 0, e[2][x], 2, x)) }
+        for y in 1..<gh { pts.append((63, 88 * Double(y) / Double(gh - 1), e[1][y], 1, y)) }
+        for x in stride(from: gw - 2, through: 0, by: -1) { pts.append((63 * Double(x) / Double(gw - 1), 88, e[3][x], 3, x)) }
+        for y in stride(from: gh - 2, through: 1, by: -1) { pts.append((0, 88 * Double(y) / Double(gh - 1), e[0][y], 0, y)) }
+        let n = pts.count
+        func lum(_ c: (Double, Double, Double)) -> Double { 0.2126 * c.0 + 0.7152 * c.1 + 0.0722 * c.2 }
+        let l = pts.map { lum($0.c) }
+        let sorted = l.sorted()
+        let lit = sorted[Int(Double(n - 1) * 0.9)], dark = sorted[Int(Double(n - 1) * 0.1)]
+        guard lit > 1e-4, dark / lit < 0.78 else { return nil }
+        let mid = (lit + dark) / 2
+        var isDark = l.map { $0 < mid }
+        // (runs shorter than a few cells are noise: merged into their neighbours)
+        for _ in 0..<2 {
+            var i = 0
+            while i < n {
+                var j = i
+                while j + 1 < n && isDark[j + 1] == isDark[i] { j += 1 }
+                if j - i + 1 < 4 && n > 8 { for k in i...j { isDark[k] = !isDark[k] } }
+                i = j + 1
+            }
+        }
+        var cross: [Int] = []          // index where the state changes (between k-1 and k)
+        for k in 0..<n where isDark[k] != isDark[(k + n - 1) % n] { cross.append(k) }
+        guard cross.count == 2 else { return nil }
+        // where exactly each crossing is (the mid level between its neighbours), and how soft it is
+        var xs: [(Double, Double)] = []
+        var soft = 0.0
+        let lo = dark + 0.25 * (lit - dark), hi = dark + 0.75 * (lit - dark)
+        for k in cross {
+            let p0 = pts[(k + n - 1) % n], p1 = pts[k]
+            let l0 = l[(k + n - 1) % n], l1 = l[k]
+            let f = abs(l1 - l0) > 1e-9 ? min(1, max(0, (mid - l0) / (l1 - l0))) : 0.5
+            xs.append((p0.x + f * (p1.x - p0.x), p0.y + f * (p1.y - p0.y)))
+            // the soft edge: from below a quarter of the way up to above three quarters, round the border
+            var a = (k + n - 1) % n, b = k
+            var steps = 0
+            while steps < 40 && l[a] > lo && l[a] < hi { a = (a + n - 1) % n; steps += 1 }
+            steps = 0
+            while steps < 40 && l[b] > lo && l[b] < hi { b = (b + 1) % n; steps += 1 }
+            let d = hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y)
+            soft = max(soft, d)
+        }
+        // (a gradual change round the border is a lamp to one side, not a shadow's edge)
+        guard soft < 14 else { return nil }
+        // light left in the shadow: the shadowed border over the lit border next to it
+        var dk = [[Double]](repeating: [], count: 3), lt = [[Double]](repeating: [], count: 3)
+        for k in 0..<n {
+            let c = pts[k].c
+            if isDark[k] && l[k] < lo { dk[0].append(c.0); dk[1].append(c.1); dk[2].append(c.2) }
+            if !isDark[k] && l[k] > hi { lt[0].append(c.0); lt[1].append(c.1); lt[2].append(c.2) }
+        }
+        guard dk[0].count >= 3, lt[0].count >= 3 else { return nil }
+        func med(_ v: [Double]) -> Double { let s = v.sorted(); return s[s.count / 2] }
+        let k = (min(1, med(dk[0]) / max(med(lt[0]), 1e-6)), min(1, med(dk[1]) / max(med(lt[1]), 1e-6)),
+                 min(1, med(dk[2]) / max(med(lt[2]), 1e-6)))
+        guard max(k.0, k.1, k.2) < 0.85, min(k.0, k.1, k.2) > 0.05 else { return nil }
+        // which side of the line the shadow is on: a shadowed border point well away from the edge
+        let a = xs[0], b = xs[1]
+        let dx = b.0 - a.0, dy = b.1 - a.1
+        guard hypot(dx, dy) > 5 else { return nil }
+        var side = 0.0
+        for kk in 0..<n where isDark[kk] && l[kk] < lo {
+            side += ((pts[kk].x - a.0) * dy - (pts[kk].y - a.1) * dx) > 0 ? 1 : -1
+        }
+        guard side != 0 else { return nil }
+        var sh = Shadow(a: a, b: b, side: side > 0 ? 1 : -1, soft: max(1.5, soft * 0.8), k: k, unshadowed: e)
+        // the edges with the shadow divided out (so the smooth fill carries only the light around it)
+        for (pi, p) in pts.enumerated() {
+            _ = pi
+            let m = sh.mask(p.x / 63, p.y / 88)
+            let f = (1 - m + m * k.0, 1 - m + m * k.1, 1 - m + m * k.2)
+            sh.unshadowed[p.edge][p.i] = (p.c.0 / max(f.0, 0.05), p.c.1 / max(f.1, 0.05), p.c.2 / max(f.2, 0.05))
+        }
+        // (the end cells of the left and right sides aren't on the way round: carried from the rows)
+        sh.unshadowed[0][0] = sh.unshadowed[2][0]; sh.unshadowed[1][0] = sh.unshadowed[2][gw - 1]
+        sh.unshadowed[0][gh - 1] = sh.unshadowed[3][0]; sh.unshadowed[1][gh - 1] = sh.unshadowed[3][gw - 1]
+        return sh
     }
 
     /// Turns a gw x gh float grid into a smooth card-sized image.

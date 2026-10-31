@@ -834,7 +834,8 @@ enum PlanarTracker {
         guard size > 16, sides.min()! > 8 else { return 0 }
         let cx = quad.map(\.x).reduce(0, +) / 4, cy = quad.map(\.y).reduce(0, +) / 4
         var ring: [Float] = []
-        let inset = 0.04 * size
+        var sideRings: [[Float]] = []
+        var evenCount = 0
         for k in 0..<4 {
             let a = quad[k], b = quad[(k + 1) % 4]
             let L = sides[k]
@@ -842,14 +843,40 @@ enum PlanarTracker {
             var n = (-d.1, d.0)
             let mx = Double(a.x + b.x) / 2 - Double(cx), my = Double(a.y + b.y) / 2 - Double(cy)
             if n.0 * mx + n.1 * my < 0 { n = (-n.0, -n.1) }
+            // (seen at a steep angle the card is narrow one way: 4% of its longest side in from a side
+            // can land on the printing there. The border is a fixed share of the card across that side.)
+            var inset = 0.04 * size
+            if Tuning.robustEven {
+                let across = (sides[(k + 1) % 4] + sides[(k + 3) % 4]) / 2
+                inset = min(inset, 0.05 * across)
+            }
+            var side: [Float] = []
             for s in 0..<20 {
                 let t = 0.12 + 0.76 * Double(s) / 19
                 let px = Double(a.x) + t * Double(b.x - a.x) - inset * n.0, py = Double(a.y) + t * Double(b.y - a.y) - inset * n.1
                 guard g.contains(px, py) else { continue }
-                ring.append(g.sample(Float(px), Float(py)))
+                side.append(g.sample(Float(px), Float(py)))
             }
+            ring += side
+            sideRings.append(side)
         }
         guard ring.count >= 20 else { return 0 }
+        if Tuning.robustEven {
+            // even along each side compared with its own neighbours, so light changing across the
+            // card (a lamp to one side, a shadow over part of it) doesn't count against it; but each
+            // side still has to be about as bright as the rest (not one side on something dark)
+            let all = ring.sorted()
+            let gm = all[all.count / 2]
+            for side in sideRings where side.count >= 5 {
+                let sm = side.sorted()[side.count / 2]
+                guard sm > 0.35 * gm, sm < 1.7 * gm else { continue }
+                for i in side.indices {
+                    let w = side[max(0, i - 3)...min(side.count - 1, i + 3)].sorted()
+                    let m = w[w.count / 2]
+                    if abs(side[i] - m) < 0.07 * max(m, 0.3) { evenCount += 1 }
+                }
+            }
+        }
         let support = edgeSupport(g, quad: quad).filter { $0 >= 0 }
         guard support.count >= 2 else { return 0 }
         // Every visible side of a real card is an edge somewhere along it, even with fingers on it;
@@ -857,7 +884,8 @@ enum PlanarTracker {
         let edgeScore = support.reduce(0, +) / Double(support.count) * min(1, support.min()! / 0.5)
         let sorted = ring.sorted()
         let med = sorted[sorted.count / 2]
-        let even = Double(ring.filter { abs($0 - med) < 0.06 }.count) / Double(ring.count)
+        let even = Tuning.robustEven ? Double(evenCount) / Double(ring.count)
+            : Double(ring.filter { abs($0 - med) < 0.06 }.count) / Double(ring.count)
         let r = trueAspect(quad, f: focalGuess(g), cx: Double(g.w) / 2, cy: Double(g.h) / 2)
         let aspect = exp(-pow((r - 0.716) / 0.15, 2))
         return edgeScore * even * aspect

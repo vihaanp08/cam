@@ -43,4 +43,20 @@ enum Tuning {
     /// The light across the card is read along its four edges and carried across between them, so a
     /// shadow falling across the card falls across the fake too (Compositor).
     static var edgeLight = true
+    /// A card's border judged even along each side against its own neighbours (a shadow or a lamp to
+    /// one side doesn't count against it), and read the right distance in at a steep angle
+    /// (PlanarTracker.cardScore).
+    static var robustEven = true
+    /// The card's picture read as its printing over the paper around it, so a shadow over part of the
+    /// card doesn't stop it matching (CardTracker.samplePicture).
+    static var shadowMatch = true
+    /// Printing past one end of a side (an index cut off at a steep angle, a thumb over the middle)
+    /// moves that side out to the card's edge (CardTracker.printingPast).
+    static var bandPast = true
+    /// The card's picture can be taken at a steep angle, with a little more leeway on its
+    /// proportions while both corner indices show clearly (CardTracker).
+    static var tiltLearn = true
+    /// A shadow with a straight edge across the card is found where its edge crosses the border and
+    /// laid over the fake with a sharp edge (Compositor.findShadow).
+    static var shadowLine = true
 }

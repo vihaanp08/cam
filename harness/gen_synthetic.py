@@ -702,7 +702,9 @@ def main():
         g = {"i": i, "visible": inside, "corners": [[round(x, 2), round(y, 2)] for x, y in quad],
              "still": still[0] <= i / n < still[1], "inframe": round(inframe_fraction(quad), 3), "paper": paper}
         if kind == "rearm":
-            g["expect"] = "real" if REARM_AT <= i < REARM_FAKE_FROM else "fake"
+            # (the picture runs a few frames behind the camera: a reveal shows on the frame on screen
+            # at that moment, the head start's worth of frames before the one just taken)
+            g["expect"] = "real" if REARM_AT - 4 <= i < REARM_FAKE_FROM else "fake"
         gts.append(g)
     meta = {"width": FW, "height": FH, "fps": FPS, "frames": gts, "paper_grid": [GRID_U, GRID_V]}
     if kind == "entries":

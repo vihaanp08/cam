@@ -220,6 +220,11 @@ if args.count > 6 {
         case "fastlight": Tuning.fastLight = v != 0
         case "edgelight": Tuning.edgeLight = v != 0
         case "rearm": pipe.rearmAfter = v
+        case "even": Tuning.robustEven = v != 0
+        case "shadowmatch": Tuning.shadowMatch = v != 0
+        case "bandpast": Tuning.bandPast = v != 0
+        case "tiltlearn": Tuning.tiltLearn = v != 0
+        case "shadowline": Tuning.shadowLine = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
