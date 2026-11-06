@@ -236,6 +236,7 @@ if args.count > 6 {
         case "paletrack": Tuning.paleTrack = v != 0
         case "steadylearn": Tuning.steadyLearn = v != 0
         case "palemode": Tuning.paleMode = Int(v)
+        case "inkfallback": Tuning.inkFallback = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }

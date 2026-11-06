@@ -1,4 +1,2 @@
-pale0 palemode=0
-pale1 palemode=1
-pale3 palemode=3
-pale4 palemode=4
+old dimink=0,paleink=0,steadylearn=0,palemode=0
+shipped inkfallback=0,steadylearn=1

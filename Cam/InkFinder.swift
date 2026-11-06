@@ -19,6 +19,17 @@ enum InkFinder {
     /// The same, and `paperLight`: the paper round the printing found, as the camera saw it (without
     /// the reader's gains), which is the light falling on that card. nil when nothing was found.
     static func candidates(_ paper: CardTracker.PaperReader, paperLight: inout (Double, Double, Double)?) -> [[CGPoint]] {
+        let dim = Tuning.dimInk, pale = Tuning.paleInk && paleNow
+        guard Tuning.inkFallback else { return scan(paper, paperLight: &paperLight, dim: dim, pale: pale) }
+        // The usual search first, at its usual cost; the wider one (a card in its own shadow,
+        // washed-out red) only when that finds nothing.
+        let first = scan(paper, paperLight: &paperLight, dim: false, pale: false)
+        guard first.isEmpty, dim || pale else { return first }
+        return scan(paper, paperLight: &paperLight, dim: dim, pale: pale)
+    }
+
+    private static func scan(_ paper: CardTracker.PaperReader, paperLight: inout (Double, Double, Double)?,
+                             dim: Bool, pale: Bool) -> [[CGPoint]] {
         paperLight = nil
         let step = 2
         let w = paper.w / step, h = paper.h / step
@@ -29,6 +40,7 @@ enum InkFinder {
         var isPaper = [Bool](repeating: false, count: n)
         var sat = [Float](repeating: 0, count: n)
         var redish = [Bool](repeating: false, count: n)
+        var rgb = [(Double, Double, Double)](repeating: (0, 0, 0), count: pale ? n : 0)
 
         for y in 0..<h {
             for x in 0..<w {
@@ -38,8 +50,9 @@ enum InkFinder {
                 let i = y * w + x
                 lum[i] = 0.299 * r + 0.587 * g + 0.114 * b
                 sat[i] = mx > 0 ? (mx - mn) / mx : 0
+                if pale { rgb[i] = (Double(r), Double(g), Double(b)) }
                 // red ink: strongly red with green and blue both low (skin is red-ish but not like this)
-                redish[i] = r - max(g, b) > (Tuning.dimInk ? min(45, max(22, 0.4 * r)) : 45) && g < 0.55 * r && b < 0.55 * r
+                redish[i] = r - max(g, b) > (dim ? min(45, max(22, 0.4 * r)) : 45) && g < 0.55 * r && b < 0.55 * r
             }
         }
         // Local paper brightness: maximum over a 25 x 25 neighbourhood (wider than a pip, so a pip's
@@ -50,15 +63,15 @@ enum InkFinder {
         let tinted = paper.gain != (1, 1, 1)
         // (a card held up against a bright window or the sky is in its own shadow: its paper can be
         // as dim as 90 of 255, so the floor for paper is low; how pip-like a mark is does the rest)
-        let paperFloor: Float = Tuning.dimInk ? 50 : 100, inkPaperFloor: Float = Tuning.dimInk ? 65 : 120
+        let paperFloor: Float = dim ? 50 : 100, inkPaperFloor: Float = dim ? 65 : 120
         for i in 0..<n {
             let rf = ref[i]
             isPaper[i] = lum[i] > 0.75 * rf && sat[i] < 0.25 && lum[i] > paperFloor
-            var pale = false
-            if Tuning.paleInk, paleNow, !redish[i], let c = paper.colorAt((i % w) * step, (i / w) * step) {
-                pale = CardTracker.paleRed((Double(c.0), Double(c.1), Double(c.2)), paperLum: Double(rf))
+            var paleHere = false
+            if pale, !redish[i], rf > inkPaperFloor {
+                paleHere = CardTracker.paleRed(rgb[i], paperLum: Double(rf))
             }
-            isInk[i] = rf > inkPaperFloor && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i] || pale)
+            isInk[i] = rf > inkPaperFloor && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i] || paleHere)
         }
 
         // Connected marks.
