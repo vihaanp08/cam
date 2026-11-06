@@ -1,2 +1,3 @@
 nodim dimink=0
 nopale paleink=0
+paletrack paletrack=1

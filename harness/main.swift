@@ -233,6 +233,7 @@ if args.count > 6 {
         case "shadowline": Tuning.shadowLine = v != 0
         case "dimink": Tuning.dimInk = v != 0
         case "paleink": Tuning.paleInk = v != 0
+        case "paletrack": Tuning.paleTrack = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }

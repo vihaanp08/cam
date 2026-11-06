@@ -1629,7 +1629,7 @@ final class CardTracker {
         let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]     // the paper is the bright majority
         guard paperLum > 40 else { return 0 }
         let inky = samples.filter { c in
-            lum(c) < 0.6 * paperLum || (c.0 - max(c.1, c.2) > 60) || CardTracker.paleRed(c, paperLum: paperLum)
+            lum(c) < 0.6 * paperLum || (c.0 - max(c.1, c.2) > 60) || (Tuning.paleTrack && CardTracker.paleRed(c, paperLum: paperLum))
         }.count
         return Double(inky) / Double(samples.count)
     }
@@ -1671,7 +1671,7 @@ final class CardTracker {
         guard paperLum > 40 else { return nil }
         // printing: red ink, or dark and not warm (a fingertip in shadow is dark but warm)
         func isInk(_ c: (Double, Double, Double)) -> Bool {
-            if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum) { return true }
+            if c.0 - max(c.1, c.2) > 60 || (Tuning.paleTrack && CardTracker.paleRed(c, paperLum: paperLum)) { return true }
             guard lum(c) < 0.6 * paperLum else { return false }
             return !(c.0 - c.2 > 25 && c.1 > c.2 + 5)
         }
@@ -1744,7 +1744,7 @@ final class CardTracker {
         let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]
         guard paperLum > 40 else { return nil }
         func isInk(_ c: (Double, Double, Double)) -> Bool {
-            if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum) { return true }
+            if c.0 - max(c.1, c.2) > 60 || (Tuning.paleTrack && CardTracker.paleRed(c, paperLum: paperLum)) { return true }
             guard lum(c) < 0.6 * paperLum else { return false }
             return !(c.0 - c.2 > 25 && c.1 > c.2 + 5)
         }
@@ -1837,7 +1837,7 @@ final class CardTracker {
                 if l > 0.8 * paperLum && l < 1.25 * paperLum && sat(c) < 0.3 {
                     paperish += 1
                     if near { bPaper[band] += 1 }
-                } else if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum)
+                } else if c.0 - max(c.1, c.2) > 60 || (Tuning.paleTrack && CardTracker.paleRed(c, paperLum: paperLum))
                             || (l < 0.6 * paperLum && !(c.0 - c.2 > 25 && c.1 > c.2 + 5)) {
                     ink += 1       // (printing: red, or dark and not warm like a fingertip in shadow)
                     if near { bInk[band] += 1 }

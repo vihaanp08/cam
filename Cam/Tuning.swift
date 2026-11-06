@@ -69,4 +69,7 @@ enum Tuning {
     /// Washed-out red printing (pale brick red on a card in its own shadow) counts as ink
     /// (CardTracker.paleRed).
     static var paleInk = true
+    /// The same washed-out red also counts when reading the corner indices and checking a tracked
+    /// card's printing (off: it made the tracker drop a held card).
+    static var paleTrack = false
 }
