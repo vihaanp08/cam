@@ -72,4 +72,7 @@ enum Tuning {
     /// The same washed-out red also counts when reading the corner indices and checking a tracked
     /// card's printing (off: it made the tracker drop a held card).
     static var paleTrack = false
+    /// The card's picture is only taken once the card has held still for a few frames, not while
+    /// it is still sweeping into view (CardTracker).
+    static var steadyLearn = true
 }

@@ -74,6 +74,10 @@ final class CardTracker {
     private var snapStreak4 = 0
     private var snapStreak3 = 0
     private var lastMotion: CGFloat = .infinity
+    /// Frames in a row the card itself hardly moved in the image (Tuning.steadyLearn): the picture
+    /// is not taken from a card still sweeping into view, which blurs it and places it wrong.
+    private var steadyFrames = 0
+    private var steadyQuad: [CGPoint]?
     /// Frames in a row a steady lock didn't match the picture at all (a different card is being held up).
     private var pictureMismatch = 0
     /// The last lock change replaced part of the card (or a poor fit) with the whole card: frames
@@ -223,6 +227,8 @@ final class CardTracker {
         snapStreak4 = 0
         snapStreak3 = 0
         lastMotion = .infinity
+        steadyFrames = 0
+        steadyQuad = nil
         pictureMismatch = 0
         lastWasCorrection = false
         entryLock = false
@@ -857,7 +863,15 @@ final class CardTracker {
         // leeway, as long as both corner indices show clearly where they belong)
         let ipNow = grayQuad.flatMap { indexPattern(paper, $0) }
         let rightShape = shapeOff < 0.03 || (Tuning.tiltLearn && shapeOff < 0.055 && (ipNow?.both ?? 0) >= 0.2 && (ipNow?.cardLike ?? false))
+        if let gq = grayQuad, let pq = steadyQuad,
+           zip(gq, pq).map({ hypot($0.x - $1.x, $0.y - $1.y) }).max() ?? .infinity < 0.025 * quadSize(gq) {
+            steadyFrames += 1
+        } else {
+            steadyFrames = 0
+        }
+        steadyQuad = grayQuad
         if cardPicture == nil, fullyInView, rightShape, let gq = grayQuad, let pyr = pyramid, trackedScore >= 0.35, stableFrames >= 6,
+           !Tuning.steadyLearn || steadyFrames >= 3,
            snapStreak4 >= 3 || (snapStreak3 >= 10 && trackedScore >= 0.5), lastMotion < 0.02 * quadSize(gq),
            let ip = ipNow, ip.both >= 0.12,
            let pic = CardTracker.samplePicture(pyr, gq) {
