@@ -1,1 +1,2 @@
 nodim dimink=0 syn,syn3,syn4,syn5,syn7
+nopale paleink=0 syn,syn3,syn5,syn7

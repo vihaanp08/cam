@@ -1,1 +1,2 @@
 nodim dimink=0
+nopale paleink=0

@@ -1387,6 +1387,17 @@ final class CardTracker {
     // MARK: - Card check
 
     /// Reads colours straight from the BGRA analysis buffer (locked while it exists).
+    /// Red printing seen washed out: a card held up against a bright window is in its own shadow,
+    /// and its red pips come out a pale brick colour (about 110, 83, 81 against paper of 115) that
+    /// the strict test for red ink misses. Red over green and blue, both about equal (skin is orange:
+    /// green well over blue), and darker than the paper (Tuning.paleInk).
+    static func paleRed(_ c: (Double, Double, Double), paperLum: Double) -> Bool {
+        guard Tuning.paleInk else { return false }
+        let m = max(c.1, c.2)
+        let l = 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2
+        return c.0 > 1.22 * m && c.0 - m > max(16, 0.14 * paperLum) && c.1 < c.2 + 8 && l < 0.9 * paperLum
+    }
+
     struct PaperReader {
         let buffer: CVPixelBuffer
         let base: UnsafePointer<UInt8>
@@ -1618,7 +1629,7 @@ final class CardTracker {
         let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]     // the paper is the bright majority
         guard paperLum > 40 else { return 0 }
         let inky = samples.filter { c in
-            lum(c) < 0.6 * paperLum || (c.0 - max(c.1, c.2) > 60)
+            lum(c) < 0.6 * paperLum || (c.0 - max(c.1, c.2) > 60) || CardTracker.paleRed(c, paperLum: paperLum)
         }.count
         return Double(inky) / Double(samples.count)
     }
@@ -1660,7 +1671,7 @@ final class CardTracker {
         guard paperLum > 40 else { return nil }
         // printing: red ink, or dark and not warm (a fingertip in shadow is dark but warm)
         func isInk(_ c: (Double, Double, Double)) -> Bool {
-            if c.0 - max(c.1, c.2) > 60 { return true }
+            if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum) { return true }
             guard lum(c) < 0.6 * paperLum else { return false }
             return !(c.0 - c.2 > 25 && c.1 > c.2 + 5)
         }
@@ -1733,7 +1744,7 @@ final class CardTracker {
         let paperLum = lums[Int(Double(lums.count - 1) * 0.8)]
         guard paperLum > 40 else { return nil }
         func isInk(_ c: (Double, Double, Double)) -> Bool {
-            if c.0 - max(c.1, c.2) > 60 { return true }
+            if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum) { return true }
             guard lum(c) < 0.6 * paperLum else { return false }
             return !(c.0 - c.2 > 25 && c.1 > c.2 + 5)
         }
@@ -1826,7 +1837,8 @@ final class CardTracker {
                 if l > 0.8 * paperLum && l < 1.25 * paperLum && sat(c) < 0.3 {
                     paperish += 1
                     if near { bPaper[band] += 1 }
-                } else if c.0 - max(c.1, c.2) > 60 || (l < 0.6 * paperLum && !(c.0 - c.2 > 25 && c.1 > c.2 + 5)) {
+                } else if c.0 - max(c.1, c.2) > 60 || CardTracker.paleRed(c, paperLum: paperLum)
+                            || (l < 0.6 * paperLum && !(c.0 - c.2 > 25 && c.1 > c.2 + 5)) {
                     ink += 1       // (printing: red, or dark and not warm like a fingertip in shadow)
                     if near { bInk[band] += 1 }
                 }

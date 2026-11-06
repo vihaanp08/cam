@@ -52,7 +52,11 @@ enum InkFinder {
         for i in 0..<n {
             let rf = ref[i]
             isPaper[i] = lum[i] > 0.75 * rf && sat[i] < 0.25 && lum[i] > paperFloor
-            isInk[i] = rf > inkPaperFloor && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i])
+            var pale = false
+            if Tuning.paleInk, !redish[i], let c = paper.colorAt((i % w) * step, (i / w) * step) {
+                pale = CardTracker.paleRed((Double(c.0), Double(c.1), Double(c.2)), paperLum: Double(rf))
+            }
+            isInk[i] = rf > inkPaperFloor && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i] || pale)
         }
 
         // Connected marks.

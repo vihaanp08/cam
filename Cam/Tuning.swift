@@ -66,4 +66,7 @@ enum Tuning {
     /// Pips and paper are found on a card in its own shadow (held up against a bright window), not
     /// only on a well-lit one (InkFinder).
     static var dimInk = true
+    /// Washed-out red printing (pale brick red on a card in its own shadow) counts as ink
+    /// (CardTracker.paleRed).
+    static var paleInk = true
 }
