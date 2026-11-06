@@ -63,4 +63,7 @@ enum Tuning {
     /// A shadow with a straight edge across the card is found where its edge crosses the border and
     /// laid over the fake with a sharp edge (Compositor.findShadow).
     static var shadowLine = true
+    /// Pips and paper are found on a card in its own shadow (held up against a bright window), not
+    /// only on a well-lit one (InkFinder).
+    static var dimInk = true
 }

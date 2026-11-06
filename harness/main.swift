@@ -231,6 +231,7 @@ if args.count > 6 {
         case "bandpast": Tuning.bandPast = v != 0
         case "tiltlearn": Tuning.tiltLearn = v != 0
         case "shadowline": Tuning.shadowLine = v != 0
+        case "dimink": Tuning.dimInk = v != 0
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }

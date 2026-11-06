@@ -1,1 +1,1 @@
-oldtrack even=0,shadowmatch=0,bandpast=0,tiltlearn=0
+nodim dimink=0

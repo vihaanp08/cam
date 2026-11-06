@@ -37,7 +37,7 @@ enum InkFinder {
                 lum[i] = 0.299 * r + 0.587 * g + 0.114 * b
                 sat[i] = mx > 0 ? (mx - mn) / mx : 0
                 // red ink: strongly red with green and blue both low (skin is red-ish but not like this)
-                redish[i] = r - max(g, b) > 45 && g < 0.55 * r && b < 0.55 * r
+                redish[i] = r - max(g, b) > (Tuning.dimInk ? min(45, max(22, 0.4 * r)) : 45) && g < 0.55 * r && b < 0.55 * r
             }
         }
         // Local paper brightness: maximum over a 25 x 25 neighbourhood (wider than a pip, so a pip's
@@ -46,10 +46,13 @@ enum InkFinder {
         // (under a coloured light, read through gains that make the card's paper neutral, very dark
         // marks keep some of the light's tint: black ink under a warm lamp)
         let tinted = paper.gain != (1, 1, 1)
+        // (a card held up against a bright window or the sky is in its own shadow: its paper can be
+        // as dim as 90 of 255, so the floor for paper is low; how pip-like a mark is does the rest)
+        let paperFloor: Float = Tuning.dimInk ? 50 : 100, inkPaperFloor: Float = Tuning.dimInk ? 65 : 120
         for i in 0..<n {
             let rf = ref[i]
-            isPaper[i] = lum[i] > 0.75 * rf && sat[i] < 0.25 && lum[i] > 100
-            isInk[i] = rf > 120 && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i])
+            isPaper[i] = lum[i] > 0.75 * rf && sat[i] < 0.25 && lum[i] > paperFloor
+            isInk[i] = rf > inkPaperFloor && ((lum[i] < 0.62 * rf && sat[i] < 0.35) || (tinted && lum[i] < 0.3 * rf && sat[i] < 0.6) || redish[i])
         }
 
         // Connected marks.
