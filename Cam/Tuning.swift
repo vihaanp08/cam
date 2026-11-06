@@ -77,5 +77,5 @@ enum Tuning {
     static var steadyLearn = true
     /// When washed-out red counts while finding a card: 0 never, 1 always, 2 until the card's
     /// picture is taken, 3 only after 30 frames with no card, 4 only before the first lock.
-    static var paleMode = 2
+    static var paleMode = 4
 }
