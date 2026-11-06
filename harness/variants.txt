@@ -1,3 +1,0 @@
-notrack eventrack=0 syn9
-inset eveninset=1 syn9,syn8
-noshadowmatch shadowmatch=0 syn5,syn7,syn9

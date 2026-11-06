@@ -195,6 +195,9 @@ let analysisScale = CGFloat(Double(args[5]) ?? 0.5)
 let albedo = FramePipeline.makeAlbedo(loadCGImage(facePath)).normal
 let pipe = FramePipeline(context: ciContext)
 pipe.tracker.analysisScale = analysisScale
+// (a real video is looked at in as much detail as the app looks at the camera: its long side at
+// about 960 pixels, whatever size it was recorded or saved at)
+if mode == "video" { pipe.tracker.analysisLongSide = 960 }
 var cfg = RenderConfig()
 cfg.mirror = false
 cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
