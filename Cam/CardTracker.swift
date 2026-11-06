@@ -77,6 +77,8 @@ final class CardTracker {
     /// Frames in a row the card itself hardly moved in the image (Tuning.steadyLearn): the picture
     /// is not taken from a card still sweeping into view, which blurs it and places it wrong.
     private var steadyFrames = 0
+    /// A card has been locked on since the app started.
+    private var everLocked = false
     private var steadyQuad: [CGPoint]?
     /// Frames in a row a steady lock didn't match the picture at all (a different card is being held up).
     private var pictureMismatch = 0
@@ -368,6 +370,14 @@ final class CardTracker {
         let lockMisScaled: Bool = lockPattern.map { $0.misScaled } ?? false
         // (and every frame while a new card is still coming into view: its outline is a completion
         // of the part in view until all of it is in the picture)
+        // (washed-out red counts as printing while looking for a card not yet known, Tuning.paleMode)
+        switch Tuning.paleMode {
+        case 1: InkFinder.paleNow = true
+        case 2: InkFinder.paleNow = cardPicture == nil
+        case 3: InkFinder.paleNow = grayQuad == nil && framesSinceSeen > 30
+        case 4: InkFinder.paleNow = everLocked == false
+        default: InkFinder.paleNow = false
+        }
         let comingIn = cardPicture == nil && stableFrames < 30
             && (grayQuad.map { FramePipeline.fractionInside(quadCI($0), CGRect(x: 0, y: 0, width: W, height: H)) < 0.95 } ?? false)
         let runDetect = measured == nil || frameIndex % detectEvery == 0 || (weakFrames > 0 && frameIndex % 2 == 0)
@@ -928,6 +938,7 @@ final class CardTracker {
             lastQuad = s
             framesSinceSeen = 0
             stableFrames += 1
+            everLocked = true
             lastSource = source
             return .locked(s)
         }

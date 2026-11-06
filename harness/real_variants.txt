@@ -1,2 +1,4 @@
-nopale paleink=0
-nosteady steadylearn=0
+pale0 palemode=0
+pale1 palemode=1
+pale3 palemode=3
+pale4 palemode=4
