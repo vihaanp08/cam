@@ -1,0 +1,31 @@
+i,drew,armed,tracking,source,reason,cardness,h,x0,y0,x1,y1,x2,y2,x3,y3,debug
+0,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 3 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+1,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+2,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+3,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+4,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 3 tried 17 shapeOK 2 best rect 0.00 [edge/shape 0.02 paper 1.00 ink 0.00 seen 1.00 size 1.00] idx 0.00 notcard new
+5,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 10 shapeOK 0 best - idx 0.00 new
+6,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 6 shapeOK 0 best - idx 0.00 new
+7,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+8,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+9,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 7 shapeOK 0 best - idx 0.00 new
+11,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 9 shapeOK 1 best rect fit 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+12,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+14,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+15,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 11 shapeOK 0 best - idx 0.00 new
+16,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+17,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 2 tried 12 shapeOK 3 best rect 0.00 [edge/shape 0.03 paper 1.00 ink 0.00 seen 1.00 size 1.00] idx 0.00 notcard new
+18,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+19,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 3 tried 18 shapeOK 11 best rect 0.00 [edge/shape 0 size 1.00] idx 0.00 notcard new
+20,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 5 shapeOK 0 best - idx 0.00 new
+21,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+22,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+23,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+24,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new
+25,0,1,searching,none,no card,0.00,1080,,,,,,,,,vision 1 tried 4 shapeOK 0 best - idx 0.00 new

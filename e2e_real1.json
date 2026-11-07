@@ -1,0 +1,13 @@
+{
+ "frames": 24,
+ "drawn_frames": 0,
+ "first_drawn": null,
+ "flickers": 0,
+ "repeated_frames": 6,
+ "skipped_frames": 2,
+ "reasons": {
+  "no card": 24
+ },
+ "armed_after_presses": [],
+ "frames_shown": 24
+}

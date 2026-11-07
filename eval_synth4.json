@@ -1,0 +1,498 @@
+{
+ "script": "entries",
+ "opaque_inset": [
+  0.02,
+  0.016295454545454547
+ ],
+ "paint_inset": [
+  0.014,
+  0.012
+ ],
+ "all": {
+  "exposed": 0,
+  "ghost": 0,
+  "fake_while_revealed": 0,
+  "tone": {
+   "mean": 2.0753,
+   "p50": 1.35,
+   "p95": 5.42,
+   "max": 15.36,
+   "n": 165
+  },
+  "err": {
+   "mean": 3.0956,
+   "p50": 3.0569,
+   "p95": 4.6952,
+   "max": 7.1903,
+   "n": 165
+  },
+  "raw_err": {
+   "mean": 3.054,
+   "p50": 2.9802,
+   "p95": 4.5575,
+   "max": 18.1755,
+   "n": 151
+  },
+  "bleed_pct": {
+   "mean": 0.0352,
+   "p50": 0.0233,
+   "p95": 0.0611,
+   "max": 0.9907,
+   "n": 165
+  },
+  "spill_pct": {
+   "mean": 0.0012,
+   "p50": 0.0,
+   "p95": 0.0066,
+   "max": 0.0165,
+   "n": 165
+  },
+  "bleed_frames_over_0.5pct": 2
+ },
+ "segments": {
+  "enter1": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 4.5964,
+    "p50": 4.49,
+    "p95": 8.17,
+    "max": 9.59,
+    "n": 11
+   },
+   "err": {
+    "mean": 4.3182,
+    "p50": 4.361,
+    "p95": 5.1246,
+    "max": 5.6205,
+    "n": 11
+   },
+   "raw_err": {
+    "mean": 5.664,
+    "p50": 4.2155,
+    "p95": 4.3412,
+    "max": 18.1755,
+    "n": 8
+   },
+   "bleed_pct": {
+    "mean": 0.015,
+    "p50": 0.0222,
+    "p95": 0.0303,
+    "max": 0.0304,
+    "n": 11
+   },
+   "spill_pct": {
+    "mean": 0.0013,
+    "p50": 0.0,
+    "p95": 0.0032,
+    "max": 0.0101,
+    "n": 11
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "held1": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 0.5804,
+    "p50": 0.58,
+    "p95": 0.61,
+    "max": 0.64,
+    "n": 24
+   },
+   "err": {
+    "mean": 2.7258,
+    "p50": 2.7154,
+    "p95": 3.1477,
+    "max": 3.2996,
+    "n": 24
+   },
+   "raw_err": {
+    "mean": 2.7667,
+    "p50": 2.8487,
+    "p95": 2.9235,
+    "max": 2.9892,
+    "n": 24
+   },
+   "bleed_pct": {
+    "mean": 0.0377,
+    "p50": 0.039,
+    "p95": 0.0611,
+    "max": 0.0987,
+    "n": 24
+   },
+   "spill_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0001,
+    "max": 0.0004,
+    "n": 24
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "leave1": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 5.169,
+    "p50": 5.02,
+    "p95": 9.68,
+    "max": 15.36,
+    "n": 10
+   },
+   "err": {
+    "mean": 3.1565,
+    "p50": 3.0569,
+    "p95": 3.2288,
+    "max": 4.1854,
+    "n": 10
+   },
+   "raw_err": {
+    "mean": 2.893,
+    "p50": 2.8435,
+    "p95": 2.9408,
+    "max": 3.4392,
+    "n": 9
+   },
+   "bleed_pct": {
+    "mean": 0.0334,
+    "p50": 0.0195,
+    "p95": 0.0588,
+    "max": 0.1293,
+    "n": 10
+   },
+   "spill_pct": {
+    "mean": 0.0011,
+    "p50": 0.0008,
+    "p95": 0.0024,
+    "max": 0.0031,
+    "n": 10
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "away1": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": null,
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "enter2": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 1.1386,
+    "p50": 1.06,
+    "p95": 1.55,
+    "max": 2.79,
+    "n": 29
+   },
+   "err": {
+    "mean": 3.5219,
+    "p50": 3.332,
+    "p95": 4.3484,
+    "max": 4.6847,
+    "n": 29
+   },
+   "raw_err": {
+    "mean": 3.4875,
+    "p50": 3.2582,
+    "p95": 4.5575,
+    "max": 4.8329,
+    "n": 24
+   },
+   "bleed_pct": {
+    "mean": 0.0191,
+    "p50": 0.0056,
+    "p95": 0.0404,
+    "max": 0.0813,
+    "n": 29
+   },
+   "spill_pct": {
+    "mean": 0.0007,
+    "p50": 0.0006,
+    "p95": 0.0018,
+    "max": 0.0019,
+    "n": 29
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "held2": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 0.6633,
+    "p50": 0.65,
+    "p95": 0.8,
+    "max": 0.83,
+    "n": 24
+   },
+   "err": {
+    "mean": 3.1497,
+    "p50": 3.1706,
+    "p95": 3.3777,
+    "max": 3.7286,
+    "n": 24
+   },
+   "raw_err": {
+    "mean": 3.0978,
+    "p50": 3.0395,
+    "p95": 3.2813,
+    "max": 3.8273,
+    "n": 24
+   },
+   "bleed_pct": {
+    "mean": 0.0296,
+    "p50": 0.0355,
+    "p95": 0.0419,
+    "max": 0.0456,
+    "n": 24
+   },
+   "spill_pct": {
+    "mean": 0.003,
+    "p50": 0.0011,
+    "p95": 0.0082,
+    "max": 0.0112,
+    "n": 24
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "leave2": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 2.6085,
+    "p50": 2.62,
+    "p95": 4.01,
+    "max": 6.93,
+    "n": 13
+   },
+   "err": {
+    "mean": 4.044,
+    "p50": 3.43,
+    "p95": 5.9348,
+    "max": 6.9354,
+    "n": 13
+   },
+   "raw_err": {
+    "mean": 3.9517,
+    "p50": 3.2724,
+    "p95": 6.0018,
+    "max": 7.0351,
+    "n": 13
+   },
+   "bleed_pct": {
+    "mean": 0.0109,
+    "p50": 0.0039,
+    "p95": 0.0262,
+    "max": 0.0305,
+    "n": 13
+   },
+   "spill_pct": {
+    "mean": 0.0059,
+    "p50": 0.0046,
+    "p95": 0.0109,
+    "max": 0.0165,
+    "n": 13
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "away2": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": null,
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  },
+  "enter3": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 3.6,
+    "p50": 3.44,
+    "p95": 4.88,
+    "max": 9.72,
+    "n": 17
+   },
+   "err": {
+    "mean": 3.8728,
+    "p50": 3.7899,
+    "p95": 5.894,
+    "max": 7.1903,
+    "n": 17
+   },
+   "raw_err": {
+    "mean": 3.5965,
+    "p50": 2.9403,
+    "p95": 5.0777,
+    "max": 5.4389,
+    "n": 13
+   },
+   "bleed_pct": {
+    "mean": 0.164,
+    "p50": 0.036,
+    "p95": 0.5971,
+    "max": 0.9907,
+    "n": 17
+   },
+   "spill_pct": {
+    "mean": 0.0001,
+    "p50": 0.0,
+    "p95": 0.0003,
+    "max": 0.0004,
+    "n": 17
+   },
+   "bleed_frames_over_0.5pct": 2
+  },
+  "held3": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 1.4938,
+    "p50": 1.51,
+    "p95": 1.65,
+    "max": 1.8,
+    "n": 24
+   },
+   "err": {
+    "mean": 1.8475,
+    "p50": 1.4845,
+    "p95": 3.5605,
+    "max": 4.1586,
+    "n": 24
+   },
+   "raw_err": {
+    "mean": 1.822,
+    "p50": 1.4797,
+    "p95": 3.2656,
+    "max": 4.269,
+    "n": 24
+   },
+   "bleed_pct": {
+    "mean": 0.0086,
+    "p50": 0.0,
+    "p95": 0.0386,
+    "max": 0.0416,
+    "n": 24
+   },
+   "spill_pct": {
+    "mean": 0.0002,
+    "p50": 0.0,
+    "p95": 0.0007,
+    "max": 0.0025,
+    "n": 24
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "leave3": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": {
+    "mean": 3.5646,
+    "p50": 3.61,
+    "p95": 4.6,
+    "max": 6.79,
+    "n": 13
+   },
+   "err": {
+    "mean": 1.9862,
+    "p50": 2.0478,
+    "p95": 2.7055,
+    "max": 3.7038,
+    "n": 13
+   },
+   "raw_err": {
+    "mean": 1.9588,
+    "p50": 2.1783,
+    "p95": 2.4409,
+    "max": 3.0703,
+    "n": 12
+   },
+   "bleed_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "max": 0.0,
+    "n": 13
+   },
+   "spill_pct": {
+    "mean": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "max": 0.0,
+    "n": 13
+   },
+   "bleed_frames_over_0.5pct": 0
+  },
+  "away3": {
+   "exposed": 0,
+   "ghost": 0,
+   "fake_while_revealed": 0,
+   "tone": null,
+   "err": null,
+   "raw_err": null,
+   "bleed_pct": null,
+   "spill_pct": null,
+   "bleed_frames_over_0.5pct": 0
+  }
+ },
+ "worst_bleed": [
+  [
+   315,
+   0.99,
+   "ahead"
+  ],
+  [
+   316,
+   0.6,
+   "ahead"
+  ],
+  [
+   317,
+   0.38,
+   "ahead"
+  ],
+  [
+   318,
+   0.26,
+   "ahead"
+  ],
+  [
+   319,
+   0.13,
+   "ahead"
+  ],
+  [
+   55,
+   0.13,
+   "carried on"
+  ],
+  [
+   25,
+   0.1,
+   "ok"
+  ],
+  [
+   173,
+   0.08,
+   "ok"
+  ]
+ ]
+}
