@@ -23,10 +23,20 @@ enum InkFinder {
         guard Tuning.inkFallback else { return scan(paper, paperLight: &paperLight, dim: dim, pale: pale) }
         // The usual search first, at its usual cost; the wider one (a card in its own shadow,
         // washed-out red) only when that finds nothing.
+        // Once the wider one was needed it is kept for about a second, so the outline isn't built
+        // from one kind of search on one frame and the other on the next (that made it hop).
+        guard dim || pale else { return scan(paper, paperLight: &paperLight, dim: false, pale: false) }
+        if wideHold > 0 {
+            wideHold -= 1
+            return scan(paper, paperLight: &paperLight, dim: dim, pale: pale)
+        }
         let first = scan(paper, paperLight: &paperLight, dim: false, pale: false)
-        guard first.isEmpty, dim || pale else { return first }
-        return scan(paper, paperLight: &paperLight, dim: dim, pale: pale)
+        guard first.isEmpty else { return first }
+        let wide = scan(paper, paperLight: &paperLight, dim: dim, pale: pale)
+        if !wide.isEmpty { wideHold = 60 }
+        return wide
     }
+    private static var wideHold = 0
 
     private static func scan(_ paper: CardTracker.PaperReader, paperLight: inout (Double, Double, Double)?,
                              dim: Bool, pale: Bool) -> [[CGPoint]] {
