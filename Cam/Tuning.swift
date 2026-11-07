@@ -83,5 +83,5 @@ enum Tuning {
     static var inkFallback = true
     /// A card tilted off level that the tracker briefly loses keeps its fake: a lost card is held a
     /// few frames longer, and one found again right after needs no fresh confirmation (FramePipeline).
-    static var tiltHold = true
+    static var tiltHold = false
 }

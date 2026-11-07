@@ -201,8 +201,8 @@ final class SnapDetector {
         floorLevel = 0.995 * floorLevel + 0.005 * rms
 
         let s = Float(min(max(sensitivity, 0), 1))
-        let jump: Float = 14 - 10 * s            // how far above the background (14x ... 4x)
-        let absMin: Float = 0.07 - 0.06 * s      // minimum high-passed peak (a snap at arm's length is quiet)
+        let jump: Float = 12 - 9 * s             // how far above the background (12x ... 3x)
+        let absMin: Float = 0.06 - 0.05 * s      // minimum high-passed peak (a snap at arm's length is quiet)
         let crest = rms > 0 ? peak / rms : 0     // impulsiveness
 
         let now = CACurrentMediaTime()
