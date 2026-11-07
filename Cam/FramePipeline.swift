@@ -67,6 +67,8 @@ final class FramePipeline {
     /// Time of the last frame where the card was seen, or -1. (the fake on it, or about to be, or
     /// its back: anything that says the real card is still in front of the camera)
     private(set) var lastCardSeen: Double = -1
+    /// When the fake was last painted on.
+    private var lastDrawn: Double = -1
     /// Auto re-arm: seconds the card must have been out of view (and since the reveal) first.
     var rearmAfter = 2.0
     private var revealedAt: Double = -1
@@ -129,6 +131,7 @@ final class FramePipeline {
         entryHolds = 0
         entryQuiet = 100
         lastShown = nil
+        lastDrawn = -1
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -315,7 +318,10 @@ final class FramePipeline {
             // find that lasts a single frame never shows. Only while the picture runs behind (the
             // head start hides the wait, and the frames before get the fake painted on too), and
             // always on the very first frame (a find there has nothing to confirm it yet).
+            // (or the fake was on this card a moment ago: lost for a few frames at a tilt and found
+            // again, it goes straight back on instead of the real card flashing up while it confirms)
             let confirmed = overlayOn || tracker.stableFrames >= Tuning.confirmFrames
+                || (Tuning.tiltHold && lastDrawn >= 0 && time - lastDrawn < 0.4)
                 || (inputCount > 0 && queue.count < Tuning.confirmFrames - 1)
             if good && !confirmed {
                 badStreak = 0
@@ -354,8 +360,9 @@ final class FramePipeline {
             // alone passes where the card has just been, and the fake was left hanging in the air)
             // (and once the card's picture is known, it must be the card's own printing there: after
             // a sudden fast move the place the card has just left can still have some of it)
-            let stillThere = n <= (tracker.hasPicture ? holdFrames : 1) && FramePipeline.fractionInside(q, frame.extent) > 0.6
-                && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > 0.5
+            let hold = Tuning.tiltHold ? (tracker.hasPicture ? 2 * holdFrames : 2) : (tracker.hasPicture ? holdFrames : 1)
+            let stillThere = n <= hold && FramePipeline.fractionInside(q, frame.extent) > 0.6
+                && (compositor.analyze(frame: frame, quad: q)?.cardness ?? 0) > (Tuning.tiltHold ? 0.4 : 0.5)
                 && (slot.view.map { CardTracker.hasPrinting($0, q) } ?? false)
                 && (slot.view.flatMap { tracker.pictureMatch(q, in: $0) }.map { $0 >= 0.75 } ?? true)
             if overlayOn, stillThere, let a = lastAnalysis {
@@ -417,6 +424,7 @@ final class FramePipeline {
         }
         if slot.status.reason != "followed" && slot.status.reason != "carried on" { followStreak = 0 }
         if slot.draw || slot.status.reason == "confirming" { lastCardSeen = time }
+        if slot.draw { lastDrawn = time }
         beforeLastDecided = lastDecided
         lastDecided = slot
         return slot
