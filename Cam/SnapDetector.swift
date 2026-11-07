@@ -14,7 +14,7 @@ final class SnapDetector {
     /// main thread): for showing the real card without that wait. Keep it short.
     var onSnapNow: (() -> Void)?
     var onLevel: ((Float) -> Void)?          // 0...1 meter for the debug view
-    var sensitivity: Double = 0.55           // 0 = needs a loud snap, 1 = very touchy
+    var sensitivity: Double = 0.7           // 0 = needs a loud snap, 1 = very touchy
 
     private let engine = AVAudioEngine()
     private var sink: AVAudioSinkNode?
@@ -201,8 +201,8 @@ final class SnapDetector {
         floorLevel = 0.995 * floorLevel + 0.005 * rms
 
         let s = Float(min(max(sensitivity, 0), 1))
-        let jump: Float = 22 - 12 * s            // how far above the background (22x ... 10x)
-        let absMin: Float = 0.12 - 0.07 * s      // minimum high-passed peak
+        let jump: Float = 14 - 10 * s            // how far above the background (14x ... 4x)
+        let absMin: Float = 0.07 - 0.06 * s      // minimum high-passed peak (a snap at arm's length is quiet)
         let crest = rms > 0 ? peak / rms : 0     // impulsiveness
 
         let now = CACurrentMediaTime()
@@ -217,7 +217,7 @@ final class SnapDetector {
             } else {
                 pendingTail = max(pendingTail, rms)
             }
-            if pendingTail > 0.35 * pendingRMS {
+            if pendingTail > 0.5 * pendingRMS {     // (a room echoes a snap a little: not too strict)
                 pendingAge = -1                  // still loud: not a snap
             } else if pendingAge >= 0.03 {
                 pendingAge = -1
@@ -228,9 +228,9 @@ final class SnapDetector {
             return
         }
 
-        let sharp = peak > absMin && rms > jump * max(bg, 0.0005) && crest > 2.4
+        let sharp = peak > absMin && rms > jump * max(bg, 0.0003) && crest > 2.0
         // Snaps are mostly high-pitched; knocks, bumps and voices are mostly low.
-        let bright = fullRMS > 0 && rms / fullRMS > 0.45
+        let bright = fullRMS > 0 && rms / fullRMS > 0.33
         if sharp, bright, now - lastTrigger > 0.8 {
             pendingRMS = rms
             pendingAge = 0
