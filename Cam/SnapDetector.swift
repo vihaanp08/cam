@@ -23,6 +23,16 @@ final class SnapDetector {
     private var observers: [NSObjectProtocol] = []
     /// Set from the audio thread when audio arrives (read by the start-up check on the main thread).
     private var heardAudio = false
+    /// Listening was asked for (start) and not called off (stop).
+    private var wanted = false
+    /// When audio last arrived (audio thread writes, the watchdog reads).
+    private var lastAudio: CFTimeInterval = 0
+    /// Every second: if no audio has arrived for a while, start listening again from scratch.
+    /// (iOS quietly stops the audio engine when the app goes to the background, a call comes in or
+    /// the camera takes over the audio, and nothing always says so: the snap then went deaf for
+    /// good, meter and all.)
+    private var watchdog: Timer?
+    private var deafRestarts = 0
 
     // Audio-thread state.
     private var floorLevel: Float = 0.002
@@ -36,6 +46,10 @@ final class SnapDetector {
     private var sorted = [Float](repeating: 0, count: 96)
 
     func start() {
+        wanted = true
+        if watchdog == nil {
+            watchdog = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.checkAlive() }
+        }
         guard !running else { return }
         AVAudioApplication.requestRecordPermission { [weak self] granted in
             guard granted else { return }
@@ -43,7 +57,33 @@ final class SnapDetector {
         }
     }
 
+    /// Back in the foreground: start over, whatever state the audio was left in.
+    func restartIfWanted() {
+        guard wanted else { return }
+        stopEngine()
+        start()
+    }
+
+    private func checkAlive() {
+        guard wanted, AVAudioApplication.shared.recordPermission == .granted else { return }
+        let now = CACurrentMediaTime()
+        guard !running || !engine.isRunning || now - lastAudio > 1.5 else { deafRestarts = 0; return }
+        // (every other try the other way of reading the microphone)
+        deafRestarts += 1
+        if deafRestarts % 2 == 0 { usingTap.toggle() }
+        stopEngine()
+        lastAudio = now
+        startEngine()
+    }
+
     func stop() {
+        wanted = false
+        watchdog?.invalidate()
+        watchdog = nil
+        stopEngine()
+    }
+
+    private func stopEngine() {
         guard running else { return }
         engine.stop()
         engine.inputNode.removeTap(onBus: 0)
@@ -136,11 +176,14 @@ final class SnapDetector {
                       let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
                 if type == .ended { self?.restart() }
             })
+            observers.append(nc.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
+                self?.restart()
+            })
         }
     }
 
     private func restart() {
-        stop()
+        stopEngine()
         startEngine()
     }
 
@@ -173,6 +216,7 @@ final class SnapDetector {
     private func process(_ ch: UnsafePointer<Float>, count n: Int, step: Int, seconds blockSeconds: Double, alpha a: Float) {
         guard n > 0 else { return }
         heardAudio = true
+        lastAudio = CACurrentMediaTime()
 
         var peak: Float = 0
         var energy: Float = 0, fullEnergy: Float = 0
