@@ -515,14 +515,16 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             }
             if ready {
                 lock.lock(); _gateUntilReady = false; lock.unlock()
-                gateFade = 6
+                // (opening from black: two frames, like a real camera coming on; a camera flip keeps
+                // its slower dissolve from the blurred picture)
+                gateFade = gateImage == nil ? 2 : 6
             } else {
                 out = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
             }
         }
         if gateFade > 0 {
             let cover = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
-            out = fade(cover, over: out, alpha: CGFloat(gateFade) / 6, extent: extent)
+            out = fade(cover, over: out, alpha: CGFloat(gateFade) / (gateImage == nil ? 3 : 6), extent: extent)
             gateFade -= 1
         }
 
