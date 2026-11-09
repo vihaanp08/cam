@@ -506,7 +506,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             let elapsed = now - gateStart
             let ready: Bool
             if armed {
-                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 2) || elapsed > 1.2
+                // (opening with the card already held over the camera: black until the fake is on it
+                // and steady, so the real card is never seen; with no card there, the picture after
+                // a moment, as a normal camera opening)
+                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 3) || elapsed > 1.5
             } else {
                 ready = elapsed > 0.35
             }

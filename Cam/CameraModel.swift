@@ -132,8 +132,6 @@ final class CameraModel: ObservableObject {
         AVCaptureDeviceAuthorization.request { [weak self] ok in
             guard ok, let self = self else { return }
             self.engine.start()
-            // (the camera starting can take the audio over: listen for the snap afresh after it)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.snap.restartIfWanted() }
         }
         // Coming back to the app: the microphone was stopped while away.
         snap.restartIfWanted()

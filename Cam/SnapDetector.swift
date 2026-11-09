@@ -60,6 +60,7 @@ final class SnapDetector {
     /// Back in the foreground: start over, whatever state the audio was left in.
     func restartIfWanted() {
         guard wanted else { return }
+        deafRestarts = 0
         stopEngine()
         start()
     }
@@ -67,7 +68,10 @@ final class SnapDetector {
     private func checkAlive() {
         guard wanted, AVAudioApplication.shared.recordPermission == .granted else { return }
         let now = CACurrentMediaTime()
-        guard !running || !engine.isRunning || now - lastAudio > 1.5 else { deafRestarts = 0; return }
+        guard !running || !engine.isRunning || now - lastAudio > 3 else { deafRestarts = 0; return }
+        // (a few tries at most until the app is next opened: restarting the audio over and over
+        // must never get in the camera's way)
+        guard deafRestarts < 4 else { return }
         // (every other try the other way of reading the microphone)
         deafRestarts += 1
         if deafRestarts % 2 == 0 { usingTap.toggle() }
