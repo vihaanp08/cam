@@ -22,14 +22,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vihaanpol.cam
         PRODUCT_NAME: Cam
-        INFOPLIST_KEY_CFBundleDisplayName: Cam
+        INFOPLIST_KEY_CFBundleDisplayName: Camera
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
     info:
       path: Cam/Info.plist
       properties:
-        CFBundleDisplayName: Cam
+        CFBundleDisplayName: Camera
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSRequiresIPhoneOS: true

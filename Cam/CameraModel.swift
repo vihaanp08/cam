@@ -92,6 +92,7 @@ final class CameraModel: ObservableObject {
         } else {
             engine.onAutoRearm = nil
         }
+        Tuning.tiltHold = settings.steadyHold
         snap.sensitivity = settings.snapSensitivity
         if settings.snapEnabled { snap.start() } else { snap.stop() }
         let buttonsOn = settings.buttonsEnabled

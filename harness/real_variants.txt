@@ -1,2 +1,1 @@
-old dimink=0,paleink=0,steadylearn=0,palemode=0
-shipped inkfallback=0,steadylearn=1
+hold tilthold=1

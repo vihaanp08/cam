@@ -81,4 +81,8 @@ enum Tuning {
     /// The wider printing search (Tuning.dimInk, washed-out red) only runs on frames where the
     /// usual one finds nothing, so finding a card in ordinary light costs what it used to (InkFinder).
     static var inkFallback = true
+    /// A card the tracker briefly loses keeps its fake: it is held a few frames longer, and found
+    /// again right after it needs no fresh confirmation (FramePipeline). Off unless switched on in
+    /// Settings ("Hold through brief losses"): with it off everything is exactly as before.
+    static var tiltHold = false
 }
