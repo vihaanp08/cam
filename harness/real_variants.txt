@@ -1,1 +1,1 @@
-hold tilthold=1
+oldfingers steadyfingers=0

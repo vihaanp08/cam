@@ -27,6 +27,9 @@ final class Compositor {
 
     private var coeffs: [[Double]]?          // 3 channels x [a, b, c, d] for a + b u + c v + d u v
     private var fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
+    /// Which cells count as finger right now (see Tuning.steadyFingers), and the cut-out drawn last.
+    private var fingerOn = [Bool](repeating: false, count: Compositor.gw * Compositor.gh)
+    private var cutPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
     private var regionMask: CIImage?
     private var regionInset: Double = -1
     private var regionInsetY: Double = -1
@@ -52,6 +55,8 @@ final class Compositor {
         coeffs = nil
         edgePrev = nil
         fingerPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
+        fingerOn = [Bool](repeating: false, count: Compositor.gw * Compositor.gh)
+        cutPrev = [Float](repeating: 0, count: Compositor.gw * Compositor.gh)
         prevCenter = nil
     }
 
@@ -379,8 +384,21 @@ final class Compositor {
         // Temporal smoothing; then remove thin specks and lines (a fingertip is many cells wide, a
         // stray misread is one or two), then grow the rest so the area covers the whole fingertip.
         // (Inside this area only skin-coloured pixels show the camera: see fingerKeep.)
-        for i in finger.indices { finger[i] = 0.5 * finger[i] + 0.5 * fingerPrev[i] }
-        fingerPrev = finger
+        if Tuning.steadyFingers {
+            // A cell becomes finger only once it has read as skin for a few frames running, and
+            // stops only once it has read as not skin for a few: in dim or uneven light single
+            // cells flip from frame to frame, and each flip showed as a block of the camera
+            // picture blinking on and off over the fake.
+            for i in finger.indices {
+                let s = 0.4 * finger[i] + 0.6 * fingerPrev[i]
+                fingerPrev[i] = s
+                if s > 0.75 { fingerOn[i] = true } else if s < 0.25 { fingerOn[i] = false }
+                finger[i] = fingerOn[i] ? 1 : 0
+            }
+        } else {
+            for i in finger.indices { finger[i] = 0.5 * finger[i] + 0.5 * fingerPrev[i] }
+            fingerPrev = finger
+        }
         var eroded = [Float](repeating: 0, count: gw * gh)
         for y in 1..<(gh - 1) {
             for x in 1..<(gw - 1) {
@@ -404,6 +422,11 @@ final class Compositor {
                 }
                 dilated[y * gw + x] = m
             }
+        }
+        if Tuning.steadyFingers {
+            // (the cut-out itself comes and goes over two or three frames rather than at once)
+            for i in dilated.indices { dilated[i] = 0.5 * dilated[i] + 0.5 * cutPrev[i] }
+            cutPrev = dilated
         }
 
         // 5. Build the card-space images.

@@ -1,1 +1,1 @@
-hold tilthold=1 syn,syn5,syn7,syn8,syn9
+oldfingers steadyfingers=0 syn,syn5,syn7,syn8,syn9
