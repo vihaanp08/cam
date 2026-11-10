@@ -22,7 +22,7 @@ final class AppSettings: ObservableObject {
     @Published var mirror: Bool { didSet { d.set(mirror, forKey: "mirror") } }
     @Published var haptics: Bool { didSet { d.set(haptics, forKey: "haptics") } }
     @Published var autoRearm: Bool { didSet { d.set(autoRearm, forKey: "autoRearm") } }
-    @Published var steadyHold: Bool { didSet { d.set(steadyHold, forKey: "steadyHold") } }
+    @Published var steadyHold: Bool { didSet { d.set(steadyHold, forKey: "steadyHold2") } }
     @Published var facesOnly: Bool { didSet { d.set(facesOnly, forKey: "facesOnly") } }
     @Published var debug: Bool { didSet { d.set(debug, forKey: "debug") } }
     @Published var showGrid: Bool { didSet { d.set(showGrid, forKey: "showGrid") } }
@@ -42,7 +42,7 @@ final class AppSettings: ObservableObject {
             "rank": 9, "suit": 1,
             "snapEnabled": true, "snapSensitivity": 0.55,
             "buttonsEnabled": true, "tapEnabled": false,
-            "mirror": true, "showGrid": true, "haptics": true, "autoRearm": true,
+            "mirror": true, "showGrid": true, "haptics": true, "autoRearm": true, "steadyHold2": true,
             "facesOnly": true, "debug": false,
             "brightness": 0.0, "blurScale": 1.0, "noiseScale": 1.0, "insetScale": 1.0,
             "headStart2": 4
@@ -57,7 +57,7 @@ final class AppSettings: ObservableObject {
         mirror = d.bool(forKey: "mirror")
         haptics = d.bool(forKey: "haptics")
         autoRearm = d.bool(forKey: "autoRearm")
-        steadyHold = d.bool(forKey: "steadyHold")
+        steadyHold = d.bool(forKey: "steadyHold2")
         facesOnly = d.bool(forKey: "facesOnly")
         debug = d.bool(forKey: "debug")
         showGrid = d.bool(forKey: "showGrid")

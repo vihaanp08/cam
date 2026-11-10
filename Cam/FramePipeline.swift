@@ -69,6 +69,15 @@ final class FramePipeline {
     private(set) var lastCardSeen: Double = -1
     /// When the fake was last painted on.
     private var lastDrawn: Double = -1
+    /// Never the real card before the snap (Tuning.tiltHold): when the frame due has no fake on it
+    /// and the one shown before had, the picture holds on that last frame (the fake still on it)
+    /// until the card is covered again, for at most this long. A held picture reads as the camera
+    /// lagging for a moment; the real card showing gives the trick away. Shorter when the card was
+    /// on its way out of the picture (it is leaving, not lost).
+    var lossHoldSeconds = 1.5
+    var lossHoldLeavingSeconds = 0.3
+    /// Time of the first frame held for, nil while not holding.
+    private var lossHoldSince: Double?
     /// Auto re-arm: seconds the card must have been out of view (and since the reveal) first.
     var rearmAfter = 2.0
     private var revealedAt: Double = -1
@@ -132,6 +141,7 @@ final class FramePipeline {
         entryQuiet = 100
         lastShown = nil
         lastDrawn = -1
+        lossHoldSince = nil
     }
 
     /// Turns a card face image into the albedo the compositor paints with (and its mirror image).
@@ -210,6 +220,23 @@ final class FramePipeline {
                 return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
             }
             return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
+        }
+        // Never the real card before the snap (see `lossHoldSeconds`). Not for a card turned to
+        // its back: there is no face to give away.
+        if Tuning.tiltHold, showArmed, let head = queue.first {
+            if head.draw {
+                lossHoldSince = nil
+            } else if head.status.reason != "card back", let last = lastShown, last.draw, let lq = last.quad {
+                let since = lossHoldSince ?? head.time
+                let leaving = FramePipeline.fractionInside(lq, last.image.extent) < 0.85
+                if head.time - since < (leaving ? lossHoldLeavingSeconds : lossHoldSeconds) {
+                    lossHoldSince = since
+                    queue.removeFirst()
+                    var out = show(last, cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
+                    out.status.reason = "held"
+                    return out
+                }
+            }
         }
         ticksSinceAdjust += 1
         let around = queue.prefix(2).map(\.motion).max() ?? 1
