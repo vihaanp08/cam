@@ -72,10 +72,10 @@ final class FramePipeline {
     /// Never the real card before the snap (Tuning.tiltHold): when the frame due has no fake on it
     /// and the one shown before had, the picture holds on that last frame (the fake still on it)
     /// until the card is covered again, for at most this long. A held picture reads as the camera
-    /// lagging for a moment; the real card showing gives the trick away. Shorter when the card was
-    /// on its way out of the picture (it is leaving, not lost).
+    /// lagging for a moment; the real card showing gives the trick away. Not when the card was on
+    /// its way out of the picture (it is leaving, not lost: held, the fake hung at the edge after it).
     var lossHoldSeconds = 1.5
-    var lossHoldLeavingSeconds = 0.3
+    var lossHoldLeavingSeconds = 0.0
     /// Time of the first frame held for, nil while not holding.
     private var lossHoldSince: Double?
     /// Auto re-arm: seconds the card must have been out of view (and since the reveal) first.
