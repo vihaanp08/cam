@@ -211,16 +211,6 @@ final class FramePipeline {
         // frame, moving or not: a picture running behind the camera is what reads as lag), and it
         // falls back behind again (showing the odd frame twice, only while the picture is still, so
         // it is never seen) once the card has gone.
-        let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
-        let behind = queue.count - 1
-        guard cfg.adaptiveHeadStart else {
-            // fixed head start (test harness): fill it up at the start, then keep it
-            if behind < target {
-                lastShown = queue[0]
-                return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
-            }
-            return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
-        }
         // Never the real card before the snap (see `lossHoldSeconds`). Not for a card turned to
         // its back: there is no face to give away.
         if Tuning.tiltHold, showArmed, let head = queue.first {
@@ -232,11 +222,24 @@ final class FramePipeline {
                 if head.time - since < (leaving ? lossHoldLeavingSeconds : lossHoldSeconds) {
                     lossHoldSince = since
                     queue.removeFirst()
+                    // (shown in that frame's place: the picture stays on the last frame with the fake)
                     var out = show(last, cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
                     out.status.reason = "held"
+                    out.frameIndex = head.index
+                    out.time = head.time
                     return out
                 }
             }
+        }
+        let target = (cfg.adaptiveHeadStart && live) ? 0 : maxDelay
+        let behind = queue.count - 1
+        guard cfg.adaptiveHeadStart else {
+            // fixed head start (test harness): fill it up at the start, then keep it
+            if behind < target {
+                lastShown = queue[0]
+                return show(queue[0], cfg: cfg, armed: showArmed, albedo: albedo, advance: false)
+            }
+            return showNext(cfg: cfg, armed: showArmed, albedo: albedo)
         }
         ticksSinceAdjust += 1
         let around = queue.prefix(2).map(\.motion).max() ?? 1

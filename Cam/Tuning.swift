@@ -85,7 +85,7 @@ enum Tuning {
     /// frames longer, found again right after it needs no fresh confirmation, and while it stays
     /// lost the picture holds on the last frame with the fake on it (FramePipeline). Set from
     /// Settings ("Never show real card before snap", on by default); off, everything is as before.
-    static var tiltHold = false
+    static var tiltHold = true
     /// The cut-outs for fingers over the card only change once the reading has held for a few
     /// frames (Compositor): no blocks blinking over the fake in dim or uneven light.
     static var steadyFingers = true
