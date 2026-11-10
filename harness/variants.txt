@@ -1,1 +1,2 @@
-notilt tilthold=0 syn,syn5,syn7,syn8,syn9
+old dimink=0,paleink=0,steadylearn=0,palemode=0 syn,syn5,syn7,syn8,syn9
+shipped inkfallback=0,steadylearn=1 syn,syn5,syn7

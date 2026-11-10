@@ -14,7 +14,7 @@ final class SnapDetector {
     /// main thread): for showing the real card without that wait. Keep it short.
     var onSnapNow: (() -> Void)?
     var onLevel: ((Float) -> Void)?          // 0...1 meter for the debug view
-    var sensitivity: Double = 0.7           // 0 = needs a loud snap, 1 = very touchy
+    var sensitivity: Double = 0.55           // 0 = needs a loud snap, 1 = very touchy
 
     private let engine = AVAudioEngine()
     private var sink: AVAudioSinkNode?
@@ -23,16 +23,6 @@ final class SnapDetector {
     private var observers: [NSObjectProtocol] = []
     /// Set from the audio thread when audio arrives (read by the start-up check on the main thread).
     private var heardAudio = false
-    /// Listening was asked for (start) and not called off (stop).
-    private var wanted = false
-    /// When audio last arrived (audio thread writes, the watchdog reads).
-    private var lastAudio: CFTimeInterval = 0
-    /// Every second: if no audio has arrived for a while, start listening again from scratch.
-    /// (iOS quietly stops the audio engine when the app goes to the background, a call comes in or
-    /// the camera takes over the audio, and nothing always says so: the snap then went deaf for
-    /// good, meter and all.)
-    private var watchdog: Timer?
-    private var deafRestarts = 0
 
     // Audio-thread state.
     private var floorLevel: Float = 0.002
@@ -46,10 +36,6 @@ final class SnapDetector {
     private var sorted = [Float](repeating: 0, count: 96)
 
     func start() {
-        wanted = true
-        if watchdog == nil {
-            watchdog = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.checkAlive() }
-        }
         guard !running else { return }
         AVAudioApplication.requestRecordPermission { [weak self] granted in
             guard granted else { return }
@@ -57,37 +43,7 @@ final class SnapDetector {
         }
     }
 
-    /// Back in the foreground: start over, whatever state the audio was left in.
-    func restartIfWanted() {
-        guard wanted else { return }
-        deafRestarts = 0
-        stopEngine()
-        start()
-    }
-
-    private func checkAlive() {
-        guard wanted, AVAudioApplication.shared.recordPermission == .granted else { return }
-        let now = CACurrentMediaTime()
-        guard !running || !engine.isRunning || now - lastAudio > 3 else { deafRestarts = 0; return }
-        // (a few tries at most until the app is next opened: restarting the audio over and over
-        // must never get in the camera's way)
-        guard deafRestarts < 4 else { return }
-        // (every other try the other way of reading the microphone)
-        deafRestarts += 1
-        if deafRestarts % 2 == 0 { usingTap.toggle() }
-        stopEngine()
-        lastAudio = now
-        startEngine()
-    }
-
     func stop() {
-        wanted = false
-        watchdog?.invalidate()
-        watchdog = nil
-        stopEngine()
-    }
-
-    private func stopEngine() {
         guard running else { return }
         engine.stop()
         engine.inputNode.removeTap(onBus: 0)
@@ -180,14 +136,11 @@ final class SnapDetector {
                       let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
                 if type == .ended { self?.restart() }
             })
-            observers.append(nc.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
-                self?.restart()
-            })
         }
     }
 
     private func restart() {
-        stopEngine()
+        stop()
         startEngine()
     }
 
@@ -220,7 +173,6 @@ final class SnapDetector {
     private func process(_ ch: UnsafePointer<Float>, count n: Int, step: Int, seconds blockSeconds: Double, alpha a: Float) {
         guard n > 0 else { return }
         heardAudio = true
-        lastAudio = CACurrentMediaTime()
 
         var peak: Float = 0
         var energy: Float = 0, fullEnergy: Float = 0
@@ -249,8 +201,8 @@ final class SnapDetector {
         floorLevel = 0.995 * floorLevel + 0.005 * rms
 
         let s = Float(min(max(sensitivity, 0), 1))
-        let jump: Float = 12 - 9 * s             // how far above the background (12x ... 3x)
-        let absMin: Float = 0.06 - 0.05 * s      // minimum high-passed peak (a snap at arm's length is quiet)
+        let jump: Float = 22 - 12 * s            // how far above the background (22x ... 10x)
+        let absMin: Float = 0.12 - 0.07 * s      // minimum high-passed peak
         let crest = rms > 0 ? peak / rms : 0     // impulsiveness
 
         let now = CACurrentMediaTime()
@@ -265,7 +217,7 @@ final class SnapDetector {
             } else {
                 pendingTail = max(pendingTail, rms)
             }
-            if pendingTail > 0.5 * pendingRMS {     // (a room echoes a snap a little: not too strict)
+            if pendingTail > 0.35 * pendingRMS {
                 pendingAge = -1                  // still loud: not a snap
             } else if pendingAge >= 0.03 {
                 pendingAge = -1
@@ -276,9 +228,9 @@ final class SnapDetector {
             return
         }
 
-        let sharp = peak > absMin && rms > jump * max(bg, 0.0003) && crest > 2.0
+        let sharp = peak > absMin && rms > jump * max(bg, 0.0005) && crest > 2.4
         // Snaps are mostly high-pitched; knocks, bumps and voices are mostly low.
-        let bright = fullRMS > 0 && rms / fullRMS > 0.33
+        let bright = fullRMS > 0 && rms / fullRMS > 0.45
         if sharp, bright, now - lastTrigger > 0.8 {
             pendingRMS = rms
             pendingAge = 0

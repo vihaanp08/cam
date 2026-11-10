@@ -506,25 +506,20 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             let elapsed = now - gateStart
             let ready: Bool
             if armed {
-                // (opening with the card already held over the camera: black until the fake is on it
-                // and steady, so the real card is never seen; with no card there, the picture after
-                // a moment, as a normal camera opening)
-                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 3) || elapsed > 1.5
+                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 2) || elapsed > 1.2
             } else {
                 ready = elapsed > 0.35
             }
             if ready {
                 lock.lock(); _gateUntilReady = false; lock.unlock()
-                // (opening from black: two frames, like a real camera coming on; a camera flip keeps
-                // its slower dissolve from the blurred picture)
-                gateFade = gateImage == nil ? 2 : 6
+                gateFade = 6
             } else {
                 out = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
             }
         }
         if gateFade > 0 {
             let cover = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
-            out = fade(cover, over: out, alpha: CGFloat(gateFade) / (gateImage == nil ? 3 : 6), extent: extent)
+            out = fade(cover, over: out, alpha: CGFloat(gateFade) / 6, extent: extent)
             gateFade -= 1
         }
 

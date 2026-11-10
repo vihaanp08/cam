@@ -133,8 +133,6 @@ final class CameraModel: ObservableObject {
             guard ok, let self = self else { return }
             self.engine.start()
         }
-        // Coming back to the app: the microphone was stopped while away.
-        snap.restartIfWanted()
     }
 
     func stop() {
