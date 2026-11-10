@@ -218,12 +218,12 @@ final class FramePipeline {
                 lossHoldSince = nil
             } else if head.status.reason != "card back", let last = lastShown, last.draw, let lq = last.quad {
                 let since = lossHoldSince ?? head.time
-                let leaving = FramePipeline.fractionInside(lq, last.image.extent) < 0.85
+                let leaving = FramePipeline.fractionInside(lq, last.image.extent) < Tuning.leavingInside
                 // (only while the card is still there, where the fake last was: its own printing in
                 // that place in this frame. A card taken away leaves no printing there, and holding
                 // then left the fake frozen on screen after the card had gone)
                 let stillThere = head.view.map { v in
-                    CardTracker.hasPrinting(v, lq) && (tracker.pictureMatch(lq, in: v).map { $0 >= 0.6 } ?? true)
+                    CardTracker.hasPrinting(v, lq) && (tracker.pictureMatch(lq, in: v).map { $0 >= Tuning.holdMatch } ?? true)
                 } ?? false
                 if stillThere, head.time - since < (leaving ? lossHoldLeavingSeconds : lossHoldSeconds) {
                     lossHoldSince = since

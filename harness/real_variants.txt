@@ -1,1 +1,1 @@
-old tilthold=0,steadyfingers=0
+prev mc=1.5,fon=0.75,fblur=1.5,leave=0.85,hmatch=0.6

@@ -390,9 +390,9 @@ final class Compositor {
             // cells flip from frame to frame, and each flip showed as a block of the camera
             // picture blinking on and off over the fake.
             for i in finger.indices {
-                let s = 0.4 * finger[i] + 0.6 * fingerPrev[i]
+                let s = 0.5 * finger[i] + 0.5 * fingerPrev[i]
                 fingerPrev[i] = s
-                if s > 0.75 { fingerOn[i] = true } else if s < 0.25 { fingerOn[i] = false }
+                if s > Tuning.fingerOnLevel { fingerOn[i] = true } else if s < 0.25 { fingerOn[i] = false }
                 finger[i] = fingerOn[i] ? 1 : 0
             }
         } else {
@@ -844,7 +844,7 @@ final class Compositor {
         // Only where the coarse analysis found a finger coming in over the edge.
         let coarse = a.keep.applyingFilter("CIColorInvert")
         let gate = CIFilter.multiplyCompositing()
-        gate.inputImage = skin.clampedToExtent().applyingGaussianBlur(sigma: 1.5).cropped(to: Compositor.cardRect)
+        gate.inputImage = skin.clampedToExtent().applyingGaussianBlur(sigma: Tuning.fingerEdgeBlur).cropped(to: Compositor.cardRect)
         gate.backgroundImage = coarse
         guard let finger = gate.outputImage?.cropped(to: Compositor.cardRect) else { return a.keep }
         return finger.applyingFilter("CIColorInvert").cropped(to: Compositor.cardRect)

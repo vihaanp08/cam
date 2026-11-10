@@ -1,1 +1,1 @@
-old tilthold=0,steadyfingers=0 syn,syn5,syn7,syn8,syn9
+prev mc=1.5,fon=0.75,fblur=1.5,leave=0.85,hmatch=0.6 syn,syn2,syn3,syn4,syn5,syn6,syn7,syn8,syn9

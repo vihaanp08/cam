@@ -5,7 +5,7 @@ import Foundation
 enum Tuning {
     // Smoothing of the card's outline: a One Euro filter on each corner coordinate.
     /// Hz. Lower = steadier while the card is held still.
-    static var smoothMinCutoff = 1.5
+    static var smoothMinCutoff = 1.0
     /// Higher = less lag while the card moves. (0.5 measured best of 0.12 to 0.5: less lag in swipes
     /// and tilts, and less jitter when still too)
     static var smoothBeta = 0.5
@@ -89,4 +89,15 @@ enum Tuning {
     /// The cut-outs for fingers over the card only change once the reading has held for a few
     /// frames (Compositor): no blocks blinking over the fake in dim or uneven light.
     static var steadyFingers = true
+    /// How sure a cell must be before it counts as finger (Compositor; lower: the cut-out appears
+    /// sooner, so the fake isn't drawn over a finger coming onto the card).
+    static var fingerOnLevel: Float = 0.6
+    /// Softening of the finger's own outline in the cut-out, in card pixels (Compositor): higher,
+    /// a smoother edge with fewer single pixels flickering along it.
+    static var fingerEdgeBlur = 2.5
+    /// The hold (tiltHold) treats a card as leaving the picture only once less than this much of it
+    /// is inside (a card held close to the camera often runs a little past the edge).
+    static var leavingInside = 0.6
+    /// The hold keeps the fake while the card's picture still matches this well where it was.
+    static var holdMatch: Float = 0.5
 }

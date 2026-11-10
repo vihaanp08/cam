@@ -239,6 +239,10 @@ if args.count > 6 {
         case "inkfallback": Tuning.inkFallback = v != 0
         case "tilthold": Tuning.tiltHold = v != 0
         case "steadyfingers": Tuning.steadyFingers = v != 0
+        case "fon": Tuning.fingerOnLevel = Float(v)
+        case "fblur": Tuning.fingerEdgeBlur = v
+        case "leave": Tuning.leavingInside = v
+        case "hmatch": Tuning.holdMatch = Float(v)
         case "focal": PlanarTracker.focalFraction = v
         default: FileHandle.standardError.write("unknown setting \(p[0])\n".data(using: .utf8)!)
         }
