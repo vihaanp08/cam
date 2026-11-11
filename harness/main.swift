@@ -203,16 +203,17 @@ cfg.mirror = false
 // Video tests: re-shoot the clip as if the phone were held off level (degrees, swaying over time:
 // forward/back, side to side, twist). 0 = as filmed.
 var tiltPitch = 0.0, tiltYaw = 0.0, tiltRoll = 0.0
-/// The frame as the camera would have seen it turned by a swaying tilt (see tiltPitch): the camera
-/// turning about its own centre moves every point by one homography, K R K^-1. The picture is then
-/// shifted back so the point the camera was looking at stays put (the performer keeps the card in
-/// view), leaving only the change of angle. Where the tilted frame no longer reaches, plain grey.
+/// The frame as the camera would have seen it with the card at a swaying angle (see tiltPitch).
+/// Where the tilted frame no longer reaches, plain grey.
 func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
     guard tiltPitch != 0 || tiltYaw != 0 || tiltRoll != 0 else { return img }
     let a = tiltPitch * .pi / 180 * sin(2 * .pi * t / 4.0)
     let b = tiltYaw * .pi / 180 * sin(2 * .pi * t / 5.3 + 1.0)
     let c = tiltRoll * .pi / 180 * sin(2 * .pi * t / 6.7 + 2.0)
-    let f = 0.9 * max(w, h)
+    // The card (a plane) turned about the point at the middle of the picture: what the camera sees
+    // when the phone isn't level and the card is still held above it. The principal point stays in
+    // the middle and the focal length is the one the app assumes, as on the phone.
+    let f = PlanarTracker.focalFraction * min(w, h)
     func mul(_ m: [[Double]], _ n: [[Double]]) -> [[Double]] {
         (0..<3).map { i in (0..<3).map { j in (0..<3).reduce(0.0) { $0 + m[i][$1] * n[$1][j] } } }
     }
@@ -221,17 +222,17 @@ func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
     let Rx: [[Double]] = [[1, 0, 0], [0, cos(a), -sin(a)], [0, sin(a), cos(a)]]
     let Ry: [[Double]] = [[cos(b), 0, sin(b)], [0, 1, 0], [-sin(b), 0, cos(b)]]
     let Rz: [[Double]] = [[cos(c), -sin(c), 0], [sin(c), cos(c), 0], [0, 0, 1]]
-    let H = mul(K, mul(Rz, mul(Ry, mul(Rx, Ki))))
+    let R = mul(Rz, mul(Ry, Rx))
+    let M: [[Double]] = [[R[0][0], R[0][1], 0], [R[1][0], R[1][1], 0], [R[2][0], R[2][1], 1]]
+    let H = mul(K, mul(M, Ki))
     func map(_ x: Double, _ y: Double) -> (Double, Double) {
         let X = H[0][0] * x + H[0][1] * y + H[0][2], Y = H[1][0] * x + H[1][1] * y + H[1][2]
         let Z = H[2][0] * x + H[2][1] * y + H[2][2]
         return (X / Z, Y / Z)
     }
-    let mid = map(w / 2, h / 2)
-    let dx = w / 2 - mid.0, dy = h / 2 - mid.1
     func corner(_ x: Double, _ y: Double) -> CIVector {
         let p = map(x, y)
-        return CIVector(x: CGFloat(p.0 + dx), y: CGFloat(p.1 + dy))
+        return CIVector(x: CGFloat(p.0), y: CGFloat(p.1))
     }
     // (CIImage's y runs up, the matrix's down: the same kind of tilt either way, mirrored)
     let warped = img.applyingFilter("CIPerspectiveTransform", parameters: [
