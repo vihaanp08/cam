@@ -541,10 +541,12 @@ final class CardTracker {
                     // Fully in view but not a card face (a printed sheet on the wall, a poster), or a box
                     // round part of a card (printing carries on past where its corner index should end),
                     // and not where the card was just seen: it can't be the card.
-                    // (unless a corner index is plainly there, with the blank paper just past it: a
-                    // card face, its other index too faint to read, blurred or washed out by the light)
+                    // (unless a corner index is plainly there, with the blank paper just past it, and the
+                    // two corners beside it blank: a card face, its other index too faint to read,
+                    // blurred or washed out by the light. A printed sheet has print by every corner.)
                     let ip = sc > 0 ? indexPattern(paper, gq) : nil
-                    let proof = Tuning.indexProof && sc > 0 && !(ip?.misScaled ?? false) && entryEvidence(paper, gq) == 2
+                    let proof = Tuning.indexProof && sc > 0 && !(ip?.misScaled ?? false) && (ip?.blankPair ?? false)
+                        && entryEvidence(paper, gq) == 2
                     if sc > 0, let ip = ip, !ip.cardLike || ip.misScaled, !nearLastCard(gq), !proof { sc *= 0.3 }
                     // (or the card carries on past one of its sides: a box inside the card, such as a
                     // court card's printed frame, which looks like a card of its own; a hand in bright
@@ -764,7 +766,7 @@ final class CardTracker {
                 // starts a lock or takes one over, unless it is right where the card was just seen.
                 // (its printing lining up with the card's picture overrules that)
                 // (nor does a box round part of a card)
-                let winProof = Tuning.indexProof && !(bestPattern?.misScaled ?? false)
+                let winProof = Tuning.indexProof && !(bestPattern?.misScaled ?? false) && (bestPattern?.blankPair ?? false)
                     && (winQuad.flatMap { entryEvidence(paper, $0) } ?? 0) == 2
                 let notCardFace = (bestPattern.map { !$0.cardLike || $0.misScaled } ?? false) && bestMatch < 0.9 && !winProof
                 let mayStart = !notCardFace || (winQuad.map { nearLastCard($0) } ?? false)
@@ -1677,7 +1679,10 @@ final class CardTracker {
     /// `misScaled`: printing in an index corner carries on past where a card's index ends (a card
     /// has blank paper there, beside its pips or picture): the quad is smaller than the card it is
     /// on, a box round a corner of it or half of it.
-    private func indexPattern(_ paper: PaperReader?, _ quad: [CGPoint]) -> (both: Double, cardLike: Bool, misScaled: Bool)? {
+    /// `blankPair`: one of the two opposite corners carries a clear index and both corners of the other
+    /// pair are blank paper (a card face with its second index too faint to read; a printed sheet
+    /// has print near all its corners).
+    private func indexPattern(_ paper: PaperReader?, _ quad: [CGPoint]) -> (both: Double, cardLike: Bool, misScaled: Bool, blankPair: Bool)? {
         guard let paper = paper, quad.count == 4,
               quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
         // label it so u runs across the card's short side
@@ -1734,7 +1739,8 @@ final class CardTracker {
         }
         // (both indices: a white sheet with one dark mark in a corner looks like a card with a thumb
         // over one index, so only the full pattern counts as proof)
-        return (both, both >= 0.1, crowded && !clean)
+        let blankPair = (max(tl, br) >= 0.12 && max(tr, bl) <= 0.04) || (max(tr, bl) >= 0.12 && max(tl, br) <= 0.04)
+        return (both, both >= 0.1, crowded && !clean, blankPair)
     }
 
     /// A card coming into view, completed from the part of it in the picture (one way round or the
