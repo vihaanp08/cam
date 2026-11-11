@@ -204,7 +204,8 @@ cfg.mirror = false
 // forward/back, side to side, twist). 0 = as filmed.
 var tiltPitch = 0.0, tiltYaw = 0.0, tiltRoll = 0.0
 /// The frame as the camera would have seen it with the card at a swaying angle (see tiltPitch).
-/// Where the tilted frame no longer reaches, plain grey.
+/// Where the tilted frame no longer reaches, its edge pixels carry on outward (a phone's picture
+/// always fills the screen; a flat grey wedge would add hard straight edges no camera shows).
 func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
     guard tiltPitch != 0 || tiltYaw != 0 || tiltRoll != 0 else { return img }
     let a = tiltPitch * .pi / 180 * sin(2 * .pi * t / 4.0)
@@ -225,21 +226,34 @@ func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
     let R = mul(Rz, mul(Ry, Rx))
     let M: [[Double]] = [[R[0][0], R[0][1], 0], [R[1][0], R[1][1], 0], [R[2][0], R[2][1], 1]]
     let H = mul(K, mul(M, Ki))
-    func map(_ x: Double, _ y: Double) -> (Double, Double) {
-        let X = H[0][0] * x + H[0][1] * y + H[0][2], Y = H[1][0] * x + H[1][1] * y + H[1][2]
-        let Z = H[2][0] * x + H[2][1] * y + H[2][2]
-        return (X / Z, Y / Z)
-    }
-    func corner(_ x: Double, _ y: Double) -> CIVector {
-        let p = map(x, y)
-        return CIVector(x: CGFloat(p.0), y: CGFloat(p.1))
+    // Each screen corner pulled back to where it comes from in the original picture (the inverse
+    // turn), then that patch of the picture, its border pixels carried outward (clamped) where it
+    // runs off the original, straightened onto the screen: exactly the turn H, and the screen is full.
+    let det = H[0][0] * (H[1][1] * H[2][2] - H[1][2] * H[2][1]) - H[0][1] * (H[1][0] * H[2][2] - H[1][2] * H[2][0])
+        + H[0][2] * (H[1][0] * H[2][1] - H[1][1] * H[2][0])
+    let Hi: [[Double]] = [
+        [(H[1][1] * H[2][2] - H[1][2] * H[2][1]) / det, (H[0][2] * H[2][1] - H[0][1] * H[2][2]) / det, (H[0][1] * H[1][2] - H[0][2] * H[1][1]) / det],
+        [(H[1][2] * H[2][0] - H[1][0] * H[2][2]) / det, (H[0][0] * H[2][2] - H[0][2] * H[2][0]) / det, (H[0][2] * H[1][0] - H[0][0] * H[1][2]) / det],
+        [(H[1][0] * H[2][1] - H[1][1] * H[2][0]) / det, (H[0][1] * H[2][0] - H[0][0] * H[2][1]) / det, (H[0][0] * H[1][1] - H[0][1] * H[1][0]) / det]]
+    func back(_ x: Double, _ y: Double) -> CIVector {
+        let X = Hi[0][0] * x + Hi[0][1] * y + Hi[0][2], Y = Hi[1][0] * x + Hi[1][1] * y + Hi[1][2]
+        let Z = Hi[2][0] * x + Hi[2][1] * y + Hi[2][2]
+        return CIVector(x: CGFloat(X / Z), y: CGFloat(Y / Z))
     }
     // (CIImage's y runs up, the matrix's down: the same kind of tilt either way, mirrored)
-    let warped = img.applyingFilter("CIPerspectiveTransform", parameters: [
-        "inputTopLeft": corner(0, h), "inputTopRight": corner(w, h),
-        "inputBottomLeft": corner(0, 0), "inputBottomRight": corner(w, 0)])
     let frame = CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h))
-    return warped.composited(over: CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5)).cropped(to: frame)).cropped(to: frame)
+    let straight = img.clampedToExtent().applyingFilter("CIPerspectiveCorrection", parameters: [
+        "inputTopLeft": back(0, h), "inputTopRight": back(w, h),
+        "inputBottomLeft": back(0, 0), "inputBottomRight": back(w, 0)])
+    let se = straight.extent
+    guard se.width.isFinite, se.height.isFinite, se.width > 1, se.height > 1 else {
+        print("tilt: straightened extent \(se), falling back to the original frame")
+        return img
+    }
+    let filled = straight
+        .transformed(by: CGAffineTransform(translationX: -se.minX, y: -se.minY))
+        .transformed(by: CGAffineTransform(scaleX: CGFloat(w) / se.width, y: CGFloat(h) / se.height))
+    return filled.cropped(to: frame)
 }
 
 cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)

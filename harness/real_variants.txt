@@ -1,2 +1,2 @@
-tilt tiltp=25,tilty=20,tiltr=10
+tilt tiltp=20,tilty=15,tiltr=8
 tiltmild tiltp=12,tilty=10,tiltr=5
