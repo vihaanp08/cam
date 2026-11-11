@@ -208,6 +208,13 @@ jobs:
             cat "$name".part* > "$name"
             shasum "$name"
           done
+          # the same real clips as if the phone were held off level (tilted while filming)
+          .venv/bin/pip install --quiet opencv-python-headless || true
+          for f in testdata/real1.mov testdata/real2.mov; do
+            [ -f "$f" ] || continue
+            n=$(basename "$f"); n="${n%.*}"
+            .venv/bin/python harness/tilt_clip.py "$f" "testdata/${n}tilt.mp4" 25 20 10 || true
+          done
           for f in testdata/*.mov testdata/*.MOV testdata/*.mp4; do
             [ -f "$f" ] || continue
             # (screen recordings of the app already have a fake painted in: not camera footage)
