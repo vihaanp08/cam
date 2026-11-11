@@ -1,1 +1,3 @@
+tilt tiltp=25,tilty=20,tiltr=10
+tiltprev tiltp=25,tilty=20,tiltr=10,mc=1.5,fon=0.75,fblur=1.5,leave=0.85,hmatch=0.6
 prev mc=1.5,fon=0.75,fblur=1.5,leave=0.85,hmatch=0.6

@@ -200,6 +200,47 @@ pipe.tracker.analysisScale = analysisScale
 if mode == "video" { pipe.tracker.analysisLongSide = 960 }
 var cfg = RenderConfig()
 cfg.mirror = false
+// Video tests: re-shoot the clip as if the phone were held off level (degrees, swaying over time:
+// forward/back, side to side, twist). 0 = as filmed.
+var tiltPitch = 0.0, tiltYaw = 0.0, tiltRoll = 0.0
+/// The frame as the camera would have seen it turned by a swaying tilt (see tiltPitch): the camera
+/// turning about its own centre moves every point by one homography, K R K^-1. The picture is then
+/// shifted back so the point the camera was looking at stays put (the performer keeps the card in
+/// view), leaving only the change of angle. Where the tilted frame no longer reaches, plain grey.
+func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
+    guard tiltPitch != 0 || tiltYaw != 0 || tiltRoll != 0 else { return img }
+    let a = tiltPitch * .pi / 180 * sin(2 * .pi * t / 4.0)
+    let b = tiltYaw * .pi / 180 * sin(2 * .pi * t / 5.3 + 1.0)
+    let c = tiltRoll * .pi / 180 * sin(2 * .pi * t / 6.7 + 2.0)
+    let f = 0.9 * max(w, h)
+    func mul(_ m: [[Double]], _ n: [[Double]]) -> [[Double]] {
+        (0..<3).map { i in (0..<3).map { j in (0..<3).reduce(0.0) { $0 + m[i][$1] * n[$1][j] } } }
+    }
+    let K: [[Double]] = [[f, 0, w / 2], [0, f, h / 2], [0, 0, 1]]
+    let Ki: [[Double]] = [[1 / f, 0, -w / (2 * f)], [0, 1 / f, -h / (2 * f)], [0, 0, 1]]
+    let Rx: [[Double]] = [[1, 0, 0], [0, cos(a), -sin(a)], [0, sin(a), cos(a)]]
+    let Ry: [[Double]] = [[cos(b), 0, sin(b)], [0, 1, 0], [-sin(b), 0, cos(b)]]
+    let Rz: [[Double]] = [[cos(c), -sin(c), 0], [sin(c), cos(c), 0], [0, 0, 1]]
+    let H = mul(K, mul(Rz, mul(Ry, mul(Rx, Ki))))
+    func map(_ x: Double, _ y: Double) -> (Double, Double) {
+        let X = H[0][0] * x + H[0][1] * y + H[0][2], Y = H[1][0] * x + H[1][1] * y + H[1][2]
+        let Z = H[2][0] * x + H[2][1] * y + H[2][2]
+        return (X / Z, Y / Z)
+    }
+    let mid = map(w / 2, h / 2)
+    let dx = w / 2 - mid.0, dy = h / 2 - mid.1
+    func corner(_ x: Double, _ y: Double) -> CIVector {
+        let p = map(x, y)
+        return CIVector(x: CGFloat(p.0 + dx), y: CGFloat(p.1 + dy))
+    }
+    // (CIImage's y runs up, the matrix's down: the same kind of tilt either way, mirrored)
+    let warped = img.applyingFilter("CIPerspectiveTransform", parameters: [
+        "inputTopLeft": corner(0, h), "inputTopRight": corner(w, h),
+        "inputBottomLeft": corner(0, 0), "inputBottomRight": corner(w, 0)])
+    let frame = CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h))
+    return warped.composited(over: CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5)).cropped(to: frame)).cropped(to: frame)
+}
+
 cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
 // Optional settings to try instead of the app's, "key=value,key=value" (to compare variants in one run).
 if args.count > 6 {
@@ -239,6 +280,9 @@ if args.count > 6 {
         case "inkfallback": Tuning.inkFallback = v != 0
         case "tilthold": Tuning.tiltHold = v != 0
         case "steadyfingers": Tuning.steadyFingers = v != 0
+        case "tiltp": tiltPitch = v
+        case "tilty": tiltYaw = v
+        case "tiltr": tiltRoll = v
         case "fon": Tuning.fingerOnLevel = Float(v)
         case "fblur": Tuning.fingerEdgeBlur = v
         case "leave": Tuning.leavingInside = v
@@ -597,7 +641,7 @@ if mode == "synth" {
             ])
             if let wr = writer, wr.canAdd(input) { wr.add(input); wr.startWriting(); wr.startSession(atSourceTime: .zero) }
         }
-        ciContext.render(upright, to: pb!)
+        ciContext.render(tilted(upright, w: Double(w), h: Double(h), t: ts), to: pb!)
         let t0 = Date()
         let out = pipe.process(pb!, time: ts, cfg: cfg, armed: true, albedo: albedo)
         let ms = Date().timeIntervalSince(t0) * 1000
