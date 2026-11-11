@@ -541,10 +541,15 @@ final class CardTracker {
                     // Fully in view but not a card face (a printed sheet on the wall, a poster), or a box
                     // round part of a card (printing carries on past where its corner index should end),
                     // and not where the card was just seen: it can't be the card.
-                    if sc > 0, let ip = indexPattern(paper, gq), !ip.cardLike || ip.misScaled, !nearLastCard(gq) { sc *= 0.3 }
+                    // (unless a corner index is plainly there, with the blank paper just past it: a
+                    // card face, its other index too faint to read, blurred or washed out by the light)
+                    let ip = sc > 0 ? indexPattern(paper, gq) : nil
+                    let proof = Tuning.indexProof && sc > 0 && !(ip?.misScaled ?? false) && entryEvidence(paper, gq) == 2
+                    if sc > 0, let ip = ip, !ip.cardLike || ip.misScaled, !nearLastCard(gq), !proof { sc *= 0.3 }
                     // (or the card carries on past one of its sides: a box inside the card, such as a
-                    // court card's printed frame, which looks like a card of its own)
-                    if Tuning.printingGuard, sc > 0, (0..<4).contains(where: { printingPast(paper, gq, side: $0) == true }) { sc *= 0.3 }
+                    // court card's printed frame, which looks like a card of its own; a hand in bright
+                    // light past a card's real edge can read like that too, so not with that proof)
+                    if Tuning.printingGuard, sc > 0, !proof, (0..<4).contains(where: { printingPast(paper, gq, side: $0) == true }) { sc *= 0.3 }
                     // How well its printing matches the card's picture, once that is known (turned
                     // the way the picture was taken)
                     var m: Float = -2
@@ -759,7 +764,9 @@ final class CardTracker {
                 // starts a lock or takes one over, unless it is right where the card was just seen.
                 // (its printing lining up with the card's picture overrules that)
                 // (nor does a box round part of a card)
-                let notCardFace = (bestPattern.map { !$0.cardLike || $0.misScaled } ?? false) && bestMatch < 0.9
+                let winProof = Tuning.indexProof && !(bestPattern?.misScaled ?? false)
+                    && (winQuad.flatMap { entryEvidence(paper, $0) } ?? 0) == 2
+                let notCardFace = (bestPattern.map { !$0.cardLike || $0.misScaled } ?? false) && bestMatch < 0.9 && !winProof
                 let mayStart = !notCardFace || (winQuad.map { nearLastCard($0) } ?? false)
                 // The lock drifting off the card (a side slid onto the printing or the palm, or lost
                 // track while out of view): a fresh find of the same card that fits it better (a

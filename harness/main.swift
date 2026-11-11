@@ -295,6 +295,7 @@ if args.count > 6 {
         case "inkfallback": Tuning.inkFallback = v != 0
         case "tilthold": Tuning.tiltHold = v != 0
         case "steadyfingers": Tuning.steadyFingers = v != 0
+        case "iproof": Tuning.indexProof = v != 0
         case "tiltp": tiltPitch = v
         case "tilty": tiltYaw = v
         case "tiltr": tiltRoll = v

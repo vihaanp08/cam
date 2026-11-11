@@ -100,4 +100,8 @@ enum Tuning {
     static var leavingInside = 0.6
     /// The hold keeps the fake while the card's picture still matches this well where it was.
     static var holdMatch: Float = 0.5
+    /// A shape with a corner index plainly in it (inked, the blank paper just past it) counts as a
+    /// card face even when its other index is too faint to read: finding the card again after a
+    /// fast or tilted move no longer waits for both indices (CardTracker).
+    static var indexProof = true
 }
