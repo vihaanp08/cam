@@ -222,17 +222,10 @@ struct CameraScreen: View {
     private func frontButtons(s: CGFloat) -> some View {
         HStack(spacing: 6.6 * s) {
             RoundGlassButton(size: 37.6 * s) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 14 * s, weight: .semibold))
+                ExpandGlyph(s: s)
             }
             RoundGlassButton(size: 37.6 * s) {
-                ZStack {
-                    Image(systemName: "person.crop.rectangle")
-                        .font(.system(size: 15 * s, weight: .semibold))
-                    Image(systemName: "arrow.trianglehead.2.clockwise")
-                        .font(.system(size: 22 * s, weight: .regular))
-                        .opacity(0.9)
-                }
+                RotateGlyph(s: s)
             }
         }
         .foregroundStyle(.white)
@@ -240,6 +233,82 @@ struct CameraScreen: View {
 }
 
 // MARK: - Components
+
+// The front camera's two round-button glyphs, drawn to match the built-in Camera app's: measured
+// from its screenshot (3 pixels a point), in points from the glyph's centre, y down. (the SF Symbols
+// came out the wrong size and shape: thin small arrows, and a big circular arrow round the frame)
+
+private struct ExpandGlyph: View {
+    let s: CGFloat
+    var body: some View {
+        Canvas { ctx, size in
+            let o = CGPoint(x: size.width / 2, y: size.height / 2)
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: o.x + x * s, y: o.y + y * s) }
+            // Two arrows out to opposite corners, each an L-shaped head on a short diagonal shaft.
+            let a: CGFloat = 6.5, l: CGFloat = 4.667, e: CGFloat = 1.333
+            var path = Path()
+            for k: CGFloat in [1, -1] {
+                path.move(to: p(k * (-a + l), k * -a))
+                path.addLine(to: p(k * -a, k * -a))
+                path.addLine(to: p(k * -a, k * (-a + l)))
+                path.move(to: p(k * -a, k * -a))
+                path.addLine(to: p(k * -e, k * -e))
+            }
+            ctx.stroke(path, with: .color(.white),
+                       style: StrokeStyle(lineWidth: 1.917 * s, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: 18 * s, height: 18 * s)
+    }
+}
+
+private struct RotateGlyph: View {
+    let s: CGFloat
+    var body: some View {
+        Canvas { ctx, size in
+            let o = CGPoint(x: size.width / 2, y: size.height / 2)
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: o.x + x * s, y: o.y + y * s) }
+            func r(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect {
+                CGRect(x: o.x + x * s, y: o.y + y * s, width: w * s, height: h * s)
+            }
+            let white = GraphicsContext.Shading.color(.white)
+            // The frame: a rounded landscape rectangle, outline only.
+            let fw: CGFloat = 14, fh: CGFloat = 10.833, fr: CGFloat = 1.833, sw: CGFloat = 1.583
+            var frame = Path(roundedRect: r(-fw / 2, -fh / 2, fw, fh), cornerRadius: fr * s, style: .circular)
+            frame.addPath(Path(roundedRect: r(-fw / 2 + sw, -fh / 2 + sw, fw - 2 * sw, fh - 2 * sw),
+                               cornerRadius: max(0, fr - sw) * s, style: .circular))
+            ctx.fill(frame, with: white, style: FillStyle(eoFill: true))
+            // The person: a round head, and shoulders (the top half of an ellipse) on the frame's bottom.
+            ctx.fill(Path(ellipseIn: r(0.167 - 2, -0.833 - 2, 4, 4)), with: white)
+            var shoulders = Path()
+            for i in 0...32 {
+                let t = CGFloat.pi * CGFloat(i) / 32
+                let q = p(0.167 + 4 * cos(t), 5.4 - 3.333 * sin(t))
+                if i == 0 { shoulders.move(to: q) } else { shoulders.addLine(to: q) }
+            }
+            shoulders.closeSubpath()
+            ctx.fill(shoulders, with: white)
+            // Two turning arrows at opposite corners: a quarter-circle hook, its head pointing back
+            // along the top at the top right (the same turned half way round at the bottom left).
+            for k: CGFloat in [1, -1] {
+                var hook = Path()
+                for i in 0...16 {
+                    let t = CGFloat.pi / 2 * (1 - CGFloat(i) / 16)
+                    let q = p(k * (6.667 + 3.333 * cos(t)), k * (-5.667 - 3.333 * sin(t)))
+                    if i == 0 { hook.move(to: q) } else { hook.addLine(to: q) }
+                }
+                hook.addLine(to: p(k * 10, k * -5))
+                ctx.stroke(hook, with: white, style: StrokeStyle(lineWidth: 1.133 * s, lineCap: .round, lineJoin: .round))
+                var head = Path()
+                head.move(to: p(k * 3, k * -9))
+                head.addLine(to: p(k * 6.167, k * -11.167))
+                head.addLine(to: p(k * 6.167, k * -6.833))
+                head.closeSubpath()
+                ctx.fill(head, with: white)
+            }
+        }
+        .frame(width: 24 * s, height: 24 * s)
+    }
+}
 
 private struct GridLines: Shape {
     func path(in r: CGRect) -> Path {

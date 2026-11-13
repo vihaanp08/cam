@@ -256,6 +256,34 @@ func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
     return filled.cropped(to: frame)
 }
 
+// Video tests: re-shoot the clip as if the light changed while filming. Every `lightPeriod` seconds
+// the light on the scene switches between full and `lightStep` of it (a lamp switched, a hand's
+// shadow, walking under a different light), suddenly; with `lightTint` the dimmer light is also
+// coloured (1 = a strong red cast, like a red lamp). The camera's exposure then pulls the brightness
+// most of the way back over about a third of a second, and its white balance a little of the colour
+// back more slowly, as a phone's do. 0 = as filmed.
+var lightStep = 0.0, lightTint = 0.0, lightPeriod = 2.0
+func relit(_ img: CIImage, t: Double) -> CIImage {
+    guard lightStep > 0 || lightTint != 0 else { return img }
+    let step = lightStep > 0 ? lightStep : 1
+    let k = Int(floor(t / lightPeriod)), since = t - Double(k) * lightPeriod
+    let dim = k % 2 == 1
+    // scene light now and before the last switch
+    let now = dim ? step : 1.0, before = k == 0 ? 1.0 : (dim ? 1.0 : step)
+    // exposure: aims to undo 80% of the change (in stops), getting there with a 0.35 s time constant
+    func target(_ l: Double) -> Double { pow(1 / l, 0.8) }
+    let e = target(now) + (target(before) - target(now)) * exp(-since / 0.35)
+    let g = max(0.05, now * e)
+    // colour: the dim light's tint, white balance taking back 40% of it with a 0.8 s time constant
+    let cast = dim ? lightTint * (1 - 0.4 * (1 - exp(-since / 0.8))) : 0
+    let r = g * (1 + 0.45 * cast), gr = g * (1 - 0.2 * cast), bl = g * (1 - 0.35 * cast)
+    return img.applyingFilter("CIColorMatrix", parameters: [
+        "inputRVector": CIVector(x: CGFloat(r), y: 0, z: 0, w: 0),
+        "inputGVector": CIVector(x: 0, y: CGFloat(gr), z: 0, w: 0),
+        "inputBVector": CIVector(x: 0, y: 0, z: CGFloat(bl), w: 0),
+        "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1)]).cropped(to: img.extent)
+}
+
 cfg.adaptiveHeadStart = false   // keep every frame (the metrics score each frame by its index)
 // Optional settings to try instead of the app's, "key=value,key=value" (to compare variants in one run).
 if args.count > 6 {
@@ -299,6 +327,9 @@ if args.count > 6 {
         case "tiltp": tiltPitch = v
         case "tilty": tiltYaw = v
         case "tiltr": tiltRoll = v
+        case "lstep": lightStep = v
+        case "ltint": lightTint = v
+        case "lperiod": lightPeriod = v
         case "fon": Tuning.fingerOnLevel = Float(v)
         case "fblur": Tuning.fingerEdgeBlur = v
         case "leave": Tuning.leavingInside = v
@@ -657,7 +688,7 @@ if mode == "synth" {
             ])
             if let wr = writer, wr.canAdd(input) { wr.add(input); wr.startWriting(); wr.startSession(atSourceTime: .zero) }
         }
-        ciContext.render(tilted(upright, w: Double(w), h: Double(h), t: ts), to: pb!)
+        ciContext.render(relit(tilted(upright, w: Double(w), h: Double(h), t: ts), t: ts), to: pb!)
         let t0 = Date()
         let out = pipe.process(pb!, time: ts, cfg: cfg, armed: true, albedo: albedo)
         let ms = Date().timeIntervalSince(t0) * 1000

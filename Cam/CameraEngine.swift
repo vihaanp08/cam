@@ -65,6 +65,10 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
     // Video-queue-only state
     private var gateFade = 0
+    private var gateFadeLength = 6
+    /// The last picture shown with the fake on it: the fade out of the opening black never lets a
+    /// frame without the fake show through.
+    private var lastFakeOut: CIImage?
     private var lastStatusSent: CFTimeInterval = 0
     private var lastFrameTime: Double = -1
     private var fps: Double = 30
@@ -163,8 +167,8 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         lock.unlock()
     }
 
-    /// Hide the live view behind `cover` until the card is locked (or a short timeout),
-    /// so the real face is never seen while tracking starts up.
+    /// Hide the live view behind `cover` until the fake is on the card (opening the app: no timeout;
+    /// a camera flip: a short one), so the real face is never seen while tracking starts up.
     private func beginGate(cover: CIImage?) {
         lock.lock()
         _gateUntilReady = true
@@ -506,21 +510,37 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
             let elapsed = now - gateStart
             let ready: Bool
             if armed {
-                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 2) || elapsed > 1.2
+                // Opening the app: black until the fake is on the card and has held there for three
+                // frames. Never on a timer, so the real card can't show: with no card found it stays
+                // black (a reveal, the volume button, shows the camera). A camera flip still gives up
+                // after a moment, its blurred picture being no help to anyone.
+                ready = (result.drewOverlay && pipeline.tracker.stableFrames >= 3)
+                    || (gateImage != nil && elapsed > 1.2)
             } else {
                 ready = elapsed > 0.35
             }
             if ready {
                 lock.lock(); _gateUntilReady = false; lock.unlock()
-                gateFade = 6
+                // (from black: two frames, like a real camera coming on; a camera flip keeps its
+                // slower dissolve from the blurred picture)
+                gateFade = gateImage == nil ? 2 : 6
+                gateFadeLength = gateImage == nil ? 3 : 6
             } else {
                 out = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
             }
         }
         if gateFade > 0 {
             let cover = (gateImage ?? CIImage(color: .black)).cropped(to: extent)
-            out = fade(cover, over: out, alpha: CGFloat(gateFade) / 6, extent: extent)
+            // (armed, a frame without the fake never shows through the fade: the last one with it)
+            let base = (armed && !result.drewOverlay) ? (lastFakeOut ?? cover) : out
+            out = fade(cover, over: base, alpha: CGFloat(gateFade) / CGFloat(gateFadeLength), extent: extent)
             gateFade -= 1
+        }
+        // (kept only while the cover is up or fading: a held camera frame ties up one of its buffers)
+        if gating || gateFade > 0 {
+            if result.drewOverlay { lastFakeOut = result.image }
+        } else {
+            lastFakeOut = nil
         }
 
         // Auto re-arm once the real card has been out of view for two seconds (FramePipeline).
