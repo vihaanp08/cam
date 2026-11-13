@@ -16,6 +16,10 @@ import Foundation
 ///   cut out of the overlay.
 /// - Camera blur and sensor noise are matched so the fake isn't suspiciously crisp.
 final class Compositor {
+    /// The card's paper as the tracker last measured it on a lock that is plainly the card (r g b
+    /// 0...255, gamma-encoded), or nil (FramePipeline sets it each frame). A border of that colour is
+    /// read as paper even when it is no ordinary light's colour (a red or purple light).
+    var cardLight: (Double, Double, Double)?
     let context: CIContext
 
     static let gw = 72          // analysis grid (card space), ~1.1 mm per cell
@@ -140,7 +144,14 @@ final class Compositor {
             // (these are linear; a light's colour is judged gamma-encoded, as the camera gives it)
             let enc = (100 * pow(max(c.0, 0), 1 / 2.2), 100 * pow(max(c.1, 0), 1 / 2.2), 100 * pow(max(c.2, 0), 1 / 2.2))
             // (only a clear cast changes anything: under white light the test stays as it was)
-            if c.0 > 1e-3, c.1 > 1e-3, c.2 > 1e-3, CardTracker.isLightColor(enc), CardTracker.lightCast(enc) > 0.25 { ref = c }
+            // (or any colour, when it is the colour the tracker measured on the card itself)
+            func isCardLight(_ e: (Double, Double, Double)) -> Bool {
+                guard Tuning.colouredLight, let w = cardLight, w.0 > 1, w.1 > 1, w.2 > 1,
+                      CardTracker.lightCast(w) > 0.25, e.0 > 1e-3, e.1 > 1e-3, e.2 > 1e-3 else { return false }
+                return abs(log(e.0 / e.1) - log(w.0 / w.1)) < 0.2 && abs(log(e.2 / e.1) - log(w.2 / w.1)) < 0.2
+            }
+            if c.0 > 1e-3, c.1 > 1e-3, c.2 > 1e-3, CardTracker.isLightColor(enc) || isCardLight(enc),
+               CardTracker.lightCast(enc) > 0.25 { ref = c }
         }
         let accepted = samples.filter { s in
             guard s.l > 0.6 * p75 && s.l < 1.6 * p75 else { return false }

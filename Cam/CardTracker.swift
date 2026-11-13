@@ -864,7 +864,7 @@ final class CardTracker {
         if Tuning.cardWhiteBalance, let gq = grayQuad, let pr = paper, stableFrames >= 2,
            verified || (trackedScore >= 0.35 && (indexPattern(pr, gq)?.cardLike ?? false)),
            FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.6,
-           let c = paperColor(pr, gq) {
+           let c = paperColor(pr, gq, anyLight: Tuning.colouredLight) {
             if let w = whiteRef, frameIndex - whiteRefFrame < 90 {
                 whiteRef = (0.8 * w.0 + 0.2 * c.0, 0.8 * w.1 + 0.2 * c.1, 0.8 * w.2 + 0.2 * c.2)
             } else {
@@ -1593,8 +1593,9 @@ final class CardTracker {
     /// of a ring just inside the outline along the middle of each side (the plain white border,
     /// clear of the corner indices). nil when too little of it is in view, when it isn't even (a
     /// finger, the background, printing) or when it isn't a colour white paper takes under any light
-    /// (see `isLightColor`).
-    private func paperColor(_ reader: PaperReader, _ quad: [CGPoint]) -> (Double, Double, Double)? {
+    /// (see `isLightColor`; with `anyLight`, on a lock that is plainly the card, any colour: a
+    /// coloured light turns the paper that colour).
+    private func paperColor(_ reader: PaperReader, _ quad: [CGPoint], anyLight: Bool = false) -> (Double, Double, Double)? {
         guard quad.count == 4, quad.allSatisfy({ $0.x.isFinite && $0.y.isFinite && abs($0.x) < 1e5 && abs($0.y) < 1e5 }) else { return nil }
         let raw = reader.withGain((1, 1, 1))
         let unit = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]
@@ -1615,7 +1616,7 @@ final class CardTracker {
         let top = Array(s[lo..<hi])
         let n = Double(top.count)
         let c = (top.map { $0.0 }.reduce(0, +) / n, top.map { $0.1 }.reduce(0, +) / n, top.map { $0.2 }.reduce(0, +) / n)
-        guard 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2 > 50, CardTracker.isLightColor(c) else { return nil }
+        guard 0.299 * c.0 + 0.587 * c.1 + 0.114 * c.2 > 50, anyLight || CardTracker.isLightColor(c) else { return nil }
         // even: one paper under one light, its colour hardly varying along the border
         var spread = 0.0
         for e in top {

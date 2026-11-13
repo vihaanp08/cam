@@ -2,3 +2,5 @@ tilt tiltp=20,tilty=15,tiltr=8
 tiltmild tiltp=12,tilty=10,tiltr=5
 light lstep=0.4,lperiod=2.2
 lightred lstep=0.65,ltint=1,lperiod=2.6
+lightredstart lstep=0.65,ltint=1,lperiod=4,lphase=1
+lightpurple lstep=0.6,ltint=1,lhue=1,lperiod=2.6

@@ -259,14 +259,16 @@ func tilted(_ img: CIImage, w: Double, h: Double, t: Double) -> CIImage {
 // Video tests: re-shoot the clip as if the light changed while filming. Every `lightPeriod` seconds
 // the light on the scene switches between full and `lightStep` of it (a lamp switched, a hand's
 // shadow, walking under a different light), suddenly; with `lightTint` the dimmer light is also
-// coloured (1 = a strong red cast, like a red lamp). The camera's exposure then pulls the brightness
-// most of the way back over about a third of a second, and its white balance a little of the colour
-// back more slowly, as a phone's do. 0 = as filmed.
-var lightStep = 0.0, lightTint = 0.0, lightPeriod = 2.0
+// coloured (1 = a strong red cast, like a red lamp; with `lightHue` 1, purple, like a party light).
+// The camera's exposure then pulls the brightness most of the way back over about a third of a
+// second, and its white balance a little of the colour back more slowly, as a phone's do. With
+// `lightPhase` 1 the clip starts under the dimmer light (the app opened under it). 0 = as filmed.
+var lightStep = 0.0, lightTint = 0.0, lightPeriod = 2.0, lightPhase = 0.0, lightHue = 0.0
 func relit(_ img: CIImage, t: Double) -> CIImage {
     guard lightStep > 0 || lightTint != 0 else { return img }
     let step = lightStep > 0 ? lightStep : 1
-    let k = Int(floor(t / lightPeriod)), since = t - Double(k) * lightPeriod
+    let tt = t + lightPhase * lightPeriod
+    let k = Int(floor(tt / lightPeriod)), since = tt - Double(k) * lightPeriod
     let dim = k % 2 == 1
     // scene light now and before the last switch
     let now = dim ? step : 1.0, before = k == 0 ? 1.0 : (dim ? 1.0 : step)
@@ -276,7 +278,8 @@ func relit(_ img: CIImage, t: Double) -> CIImage {
     let g = max(0.05, now * e)
     // colour: the dim light's tint, white balance taking back 40% of it with a 0.8 s time constant
     let cast = dim ? lightTint * (1 - 0.4 * (1 - exp(-since / 0.8))) : 0
-    let r = g * (1 + 0.45 * cast), gr = g * (1 - 0.2 * cast), bl = g * (1 - 0.35 * cast)
+    let hue = lightHue >= 0.5 ? (0.35, -0.4, 0.25) : (0.45, -0.2, -0.35)
+    let r = g * (1 + hue.0 * cast), gr = g * (1 + hue.1 * cast), bl = g * (1 + hue.2 * cast)
     return img.applyingFilter("CIColorMatrix", parameters: [
         "inputRVector": CIVector(x: CGFloat(r), y: 0, z: 0, w: 0),
         "inputGVector": CIVector(x: 0, y: CGFloat(gr), z: 0, w: 0),
@@ -330,6 +333,9 @@ if args.count > 6 {
         case "lstep": lightStep = v
         case "ltint": lightTint = v
         case "lperiod": lightPeriod = v
+        case "lphase": lightPhase = v
+        case "lhue": lightHue = v
+        case "clight": Tuning.colouredLight = v != 0
         case "fon": Tuning.fingerOnLevel = Float(v)
         case "fblur": Tuning.fingerEdgeBlur = v
         case "leave": Tuning.leavingInside = v

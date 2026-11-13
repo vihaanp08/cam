@@ -324,6 +324,7 @@ final class FramePipeline {
 
     private func decide(_ pb: CVPixelBuffer, image frame: CIImage, time: Double, cfg: RenderConfig) -> Slot {
         let state = tracker.process(pb, time: time)
+        compositor.cardLight = tracker.lastWhite
         var st = Status()
         st.source = tracker.lastSource
         st.score = tracker.lastScore

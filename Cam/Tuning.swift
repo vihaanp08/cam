@@ -104,4 +104,10 @@ enum Tuning {
     /// card face even when its other index is too faint to read: finding the card again after a
     /// fast or tilted move no longer waits for both indices (CardTracker).
     static var indexProof = true
+    /// The light on a card that is plainly the card (its picture matches, or both corner indices
+    /// show) is learned whatever its colour, a red or purple party light as well as a lamp or
+    /// daylight, and the border read as paper under it (CardTracker, Compositor). Off: only the
+    /// colours of ordinary lights (lamp to shade) are learned, so under a coloured light the
+    /// card's paper looked like skin and the fake came off.
+    static var colouredLight = true
 }
