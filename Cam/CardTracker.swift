@@ -393,14 +393,24 @@ final class CardTracker {
                 // inside and an even border of a colour white paper takes under some light). Under a
                 // lamp the card is orange where the room looks white, and nothing on it passed for
                 // paper. (Only a clear cast changes anything: under white light all stays as it was.)
-                if Tuning.cardWhiteBalance, grayQuad == nil, frameIndex - whiteRefFrame > 45, let pr = paper {
+                // (with the card's picture known, also a moment after losing it, and under a light of
+                // any colour, a red or purple one too: but then only on an outline showing the card's
+                // own picture. The light can change while the card is out of view, and under a
+                // coloured light the card was never found again.)
+                let lightStale = frameIndex - whiteRefFrame > 45
+                let relight = Tuning.colouredLight && cardPicture != nil
+                if Tuning.cardWhiteBalance, grayQuad == nil, lightStale || (relight && frameIndex - whiteRefFrame > 6),
+                   let pr = paper {
                     var bestShape = 0.0
                     var light: (Double, Double, Double)?
                     for (q, _) in cands.prefix(4) {
                         let gq = q.points.map(toGray)
                         let shape = PlanarTracker.cardScore(g, quad: gq)
-                        guard shape > bestShape, let c = paperColor(pr, gq),
+                        guard shape > bestShape, let c = paperColor(pr, gq, anyLight: relight),
                               lastView.map({ CardTracker.hasPrinting($0, quadCI(gq)) }) ?? false else { continue }
+                        if !lightStale || !CardTracker.isLightColor(c) {
+                            guard relight, (lastView.flatMap { pictureMatch(quadCI(gq), in: $0) } ?? -1) >= 0.7 else { continue }
+                        }
                         bestShape = shape
                         light = c
                     }
