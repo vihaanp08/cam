@@ -1,0 +1,30 @@
+harness/main.swift:611:29: warning: 'tracks(withMediaType:)' was deprecated in macOS 13.0: Use loadTracks(withMediaType:) instead
+609 | } else if mode == "video" {
+610 |     let asset = AVURLAsset(url: URL(fileURLWithPath: input))
+611 |     guard let track = asset.tracks(withMediaType: .video).first else { fail("no video track") }
+    |                             `- warning: 'tracks(withMediaType:)' was deprecated in macOS 13.0: Use loadTracks(withMediaType:) instead
+612 |     let t = track.preferredTransform
+613 |     let angle = atan2(t.b, t.a) * 180 / .pi
+
+harness/main.swift:612:19: warning: 'preferredTransform' was deprecated in macOS 13.0: Use load(.preferredTransform) instead
+610 |     let asset = AVURLAsset(url: URL(fileURLWithPath: input))
+611 |     guard let track = asset.tracks(withMediaType: .video).first else { fail("no video track") }
+612 |     let t = track.preferredTransform
+    |                   `- warning: 'preferredTransform' was deprecated in macOS 13.0: Use load(.preferredTransform) instead
+613 |     let angle = atan2(t.b, t.a) * 180 / .pi
+614 |     let orientation: CGImagePropertyOrientation
+harness/main.swift:611:29: warning: 'tracks(withMediaType:)' was deprecated in macOS 13.0: Use loadTracks(withMediaType:) instead
+609 | } else if mode == "video" {
+610 |     let asset = AVURLAsset(url: URL(fileURLWithPath: input))
+611 |     guard let track = asset.tracks(withMediaType: .video).first else { fail("no video track") }
+    |                             `- warning: 'tracks(withMediaType:)' was deprecated in macOS 13.0: Use loadTracks(withMediaType:) instead
+612 |     let t = track.preferredTransform
+613 |     let angle = atan2(t.b, t.a) * 180 / .pi
+
+harness/main.swift:612:19: warning: 'preferredTransform' was deprecated in macOS 13.0: Use load(.preferredTransform) instead
+610 |     let asset = AVURLAsset(url: URL(fileURLWithPath: input))
+611 |     guard let track = asset.tracks(withMediaType: .video).first else { fail("no video track") }
+612 |     let t = track.preferredTransform
+    |                   `- warning: 'preferredTransform' was deprecated in macOS 13.0: Use load(.preferredTransform) instead
+613 |     let angle = atan2(t.b, t.a) * 180 / .pi
+614 |     let orientation: CGImagePropertyOrientation
