@@ -1,0 +1,37 @@
+{
+  "corner_accel_median_px" : 6.6900000000000004,
+  "corner_accel_p95_px" : 35.810000000000002,
+  "coverage_after_lock_pct" : 81.379999999999995,
+  "document_detector_errors" : 0,
+  "first_lock_frame" : 9,
+  "flicker_events" : 4,
+  "frame" : "720x1280",
+  "frames" : 546,
+  "longest_gap_frames" : 54,
+  "ms_per_frame_mean" : 170.33000000000001,
+  "orientation_angle" : 0,
+  "reasons" : {
+    "ahead" : 8,
+    "lost" : 76,
+    "low paper" : 1,
+    "no card" : 32,
+    "ok" : 394,
+    "redone" : 35
+  },
+  "sources" : {
+    "doc ref" : 1,
+    "flow" : 13,
+    "flow fit" : 6,
+    "flow part" : 1,
+    "flow+edge" : 383,
+    "ink" : 11,
+    "ink entry" : 1,
+    "ink part" : 6,
+    "last" : 1,
+    "match" : 3,
+    "match fit" : 1,
+    "none" : 115,
+    "rect" : 1,
+    "rectx2" : 3
+  }
+}
