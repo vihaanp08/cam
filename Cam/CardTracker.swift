@@ -55,6 +55,10 @@ final class CardTracker {
     /// when: the light falling on the card (see `PaperReader.gain`).
     private var whiteRef: (Double, Double, Double)?
     private var whiteRefFrame = -1000
+    /// The colour of the whole picture when `whiteRef` was measured (the middle of its colours, as
+    /// log red/green and log blue/green): when the light changes colour, everything in the picture
+    /// changes colour with it, so how far this has moved since tells how the card's paper looks now.
+    private var sceneRef: (Double, Double)?
     /// The light measured at detection on the card found (see the detection step), and when: read
     /// under for the next few frames, until the lock it started is sure enough to measure the light
     /// itself (`whiteRef`). Without it the new lock was judged under the colours as they are on the
@@ -260,7 +264,16 @@ final class CardTracker {
         // (read under the light last measured on the card: see PaperReader.gain; only a clear cast
         // changes anything, under white light every check stays as it was)
         lastWhite = nil
-        let freshWhite = whiteRef.flatMap { frameIndex - whiteRefFrame < 450 ? $0 : nil }
+        var freshWhite = whiteRef.flatMap { frameIndex - whiteRefFrame < 450 ? $0 : nil }
+        // (the light may have changed colour since it was measured on the card: a red or purple light
+        // switched on while the card was lost or moving fast. The whole picture changed colour with it,
+        // so the paper is read under the light last measured on it, shifted the same way. Under a
+        // light that stays the same colour the picture's colour hardly moves and nothing changes.)
+        if Tuning.colouredLight, let w = freshWhite, let s0 = sceneRef, let pr = paper,
+           let s = CardTracker.sceneChroma(pr) {
+            let dr = s.0 - s0.0, db = s.1 - s0.1
+            if abs(dr) + abs(db) > 0.15 { freshWhite = (w.0 * exp(dr), w.1, w.2 * exp(db)) }
+        }
         let newerSeen = seenWhite.flatMap { frameIndex - seenWhiteFrame <= 15 && seenWhiteFrame > whiteRefFrame ? $0 : nil }
         if Tuning.cardWhiteBalance, let w = newerSeen ?? freshWhite, CardTracker.lightCast(w) > 0.25 {
             paper = paper?.withGain(CardTracker.lightGains(w))
@@ -875,10 +888,13 @@ final class CardTracker {
            verified || (trackedScore >= 0.35 && (indexPattern(pr, gq)?.cardLike ?? false)),
            FramePipeline.fractionInside(quadCI(gq), CGRect(x: 0, y: 0, width: W, height: H)) >= 0.6,
            let c = paperColor(pr, gq, anyLight: Tuning.colouredLight) {
+            let sc = CardTracker.sceneChroma(pr)
             if let w = whiteRef, frameIndex - whiteRefFrame < 90 {
                 whiteRef = (0.8 * w.0 + 0.2 * c.0, 0.8 * w.1 + 0.2 * c.1, 0.8 * w.2 + 0.2 * c.2)
+                if let s0 = sceneRef, let s = sc { sceneRef = (0.8 * s0.0 + 0.2 * s.0, 0.8 * s0.1 + 0.2 * s.1) } else { sceneRef = sc }
             } else {
                 whiteRef = c
+                sceneRef = sc
             }
             whiteRefFrame = frameIndex
         }
@@ -1533,6 +1549,34 @@ final class CardTracker {
         guard lb > -1.0, lb < 0.45 else { return false }
         let expected = lb <= 0 ? -0.8 * lb : -0.6 * lb
         return abs(lr - expected) < 0.08 + 0.3 * abs(lb)
+    }
+
+    /// The middle colour of the whole picture, as (log red/green, log blue/green), from a coarse grid
+    /// of its lit parts (the middle, not the mean: the card itself, or a hand coming into view, moves
+    /// it little). nil when too little of the picture is lit.
+    static func sceneChroma(_ pr: PaperReader) -> (Double, Double)? {
+        let raw = pr.gain == (1, 1, 1) ? pr : pr.withGain((1, 1, 1))
+        let step = max(4, min(pr.w, pr.h) / 40)
+        var rg: [Double] = [], bg: [Double] = []
+        var y = step / 2
+        while y < pr.h {
+            var x = step / 2
+            while x < pr.w {
+                if let c8 = raw.colorAt(x, y) {
+                    let r = Double(c8.0), g = Double(c8.1), b = Double(c8.2)
+                    let l = 0.299 * r + 0.587 * g + 0.114 * b
+                    if l > 30, max(r, g, b) < 250 {
+                        rg.append(log(max(r, 1) / max(g, 1)))
+                        bg.append(log(max(b, 1) / max(g, 1)))
+                    }
+                }
+                x += step
+            }
+            y += step
+        }
+        guard rg.count >= 50 else { return nil }
+        rg.sort(); bg.sort()
+        return (rg[rg.count / 2], bg[bg.count / 2])
     }
 
     /// How far a light colour is from neutral (0 = white light).
