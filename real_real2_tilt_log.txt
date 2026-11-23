@@ -1,0 +1,34 @@
+{
+  "corner_accel_median_px" : 5.21,
+  "corner_accel_p95_px" : 24.629999999999999,
+  "coverage_after_lock_pct" : 98.760000000000005,
+  "document_detector_errors" : 0,
+  "first_lock_frame" : 142,
+  "flicker_events" : 1,
+  "frame" : "720x1280",
+  "frames" : 546,
+  "longest_gap_frames" : 5,
+  "ms_per_frame_mean" : 270.54000000000002,
+  "orientation_angle" : 0,
+  "reasons" : {
+    "ahead" : 6,
+    "confirming" : 1,
+    "followed" : 23,
+    "kept" : 94,
+    "lost" : 35,
+    "no card" : 111,
+    "ok" : 246,
+    "redone" : 30
+  },
+  "sources" : {
+    "flow" : 19,
+    "flow fit" : 2,
+    "flow part" : 1,
+    "flow+edge" : 237,
+    "ink" : 8,
+    "none" : 272,
+    "rect" : 2,
+    "rect ref" : 3,
+    "rectx2" : 2
+  }
+}
