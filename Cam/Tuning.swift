@@ -110,4 +110,9 @@ enum Tuning {
     /// colours of ordinary lights (lamp to shade) are learned, so under a coloured light the
     /// card's paper looked like skin and the fake came off.
     static var colouredLight = true
+    /// Once the fake is on the card it stays until the snap: on a frame where the card can't be
+    /// found, the fake is left where it last was (FramePipeline) instead of the real card showing.
+    /// For at most `keepSeconds` without the card being found again.
+    static var keepUntilSnap = true
+    static var keepSeconds = 6.0
 }

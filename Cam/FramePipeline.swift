@@ -108,6 +108,8 @@ final class FramePipeline {
     /// The decision before that (for the card's motion when it can't be followed).
     private var beforeLastDecided: Slot?
     private var followStreak = 0
+    /// Since when the fake has been kept in place without the card being found (Tuning.keepUntilSnap).
+    private var keptSince: Double?
     /// Frames in a row with the fake on the card, and a frame counter for pacing the head start.
     private var drawnStreak = 0
     private var missStreak = 0
@@ -133,6 +135,7 @@ final class FramePipeline {
         lastDecided = nil
         beforeLastDecided = nil
         followStreak = 0
+        keptSince = nil
         drawnStreak = 0
         missStreak = 0
         live = false
@@ -460,8 +463,27 @@ final class FramePipeline {
             }
         }
         if slot.status.reason != "followed" && slot.status.reason != "carried on" { followStreak = 0 }
-        if slot.draw || slot.status.reason == "confirming" { lastCardSeen = time }
-        if slot.draw { lastDrawn = time }
+        // Keep the fake until the snap (Tuning.keepUntilSnap): the card can't be found on this frame
+        // and the fake was on it on the frame before. The fake stays where it last was, on the live
+        // picture, until the card is found again (it then goes back onto the card at once), the
+        // snap, or `keepSeconds`. Not for a card turned to its back or one that went out of the
+        // picture over an edge. (The real card showing before the snap gives the trick away; a
+        // fake left in place a moment too long does not.)
+        var kept = false
+        if Tuning.keepUntilSnap, !slot.draw, slot.status.reason != "card back",
+           let prev = lastDecided, prev.draw, let pq = prev.quad, let pa = prev.analysis,
+           FramePipeline.fractionInside(pq, frame.extent) >= Tuning.leavingInside,
+           time - (keptSince ?? time) < Tuning.keepSeconds {
+            keptSince = keptSince ?? time
+            slot.quad = pq
+            slot.draw = true
+            slot.analysis = pa
+            slot.status.reason = "kept"
+            kept = true
+        }
+        if !kept { keptSince = nil }
+        if (slot.draw && !kept) || slot.status.reason == "confirming" { lastCardSeen = time }
+        if slot.draw && !kept { lastDrawn = time }
         beforeLastDecided = lastDecided
         lastDecided = slot
         return slot

@@ -336,6 +336,7 @@ if args.count > 6 {
         case "lphase": lightPhase = v
         case "lhue": lightHue = v
         case "clight": Tuning.colouredLight = v != 0
+        case "keep": Tuning.keepUntilSnap = v != 0
         case "fon": Tuning.fingerOnLevel = Float(v)
         case "fblur": Tuning.fingerEdgeBlur = v
         case "leave": Tuning.leavingInside = v
